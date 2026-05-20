@@ -6,7 +6,8 @@ import {openHelpModal} from './help-modal.js';
 import './style.css';
 import * as THREE from 'three';
 
-// --- TRADUZIONE ELEMENTI STATICI (Lettore e Titolo) ---
+window.t = t;
+
 // --- TRADUZIONE ELEMENTI STATICI E UI DINAMICA ---
 function translateStaticHTML() {
     // 1. Traduzione Lettore (Reader) e pagina

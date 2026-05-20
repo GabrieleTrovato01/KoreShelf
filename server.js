@@ -523,6 +523,29 @@ app.put('/api/books/:id/progress', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
+// --- ROTTA PER SALVARE LA RECENSIONE ---
+app.put('/api/books/:id/review', async (req, res) => {
+    const bookId = req.params.id;
+    const { rating, reviewText } = req.body;
+
+    try {
+        const fileData = await fs.readFile(booksJsonPath, 'utf-8');
+        let books = JSON.parse(fileData);
+        const bookIndex = books.findIndex(b => b.id === bookId);
+
+        if (bookIndex !== -1) {
+            books[bookIndex].rating = rating; // Numero da 1 a 5
+            books[bookIndex].review = reviewText; // Testo della recensione
+            await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
+            res.json({ success: true });
+        } else {
+            res.status(404).json({ success: false, message: 'Libro non trovato.' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Errore interno.' });
+    }
+});
+
 // --- SCUDO ANTI-CRASH GLOBALE ---
 // Cattura gli errori critici non gestiti dalle librerie esterne (come epub2) 
 // per evitare che il server Node.js si spenga improvvisamente.
@@ -616,6 +639,8 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
         res.status(500).json({ success: false, message: 'Errore interno del server durante la generazione del Markdown.' });
     }
 });
+
+
 
 app.listen(port, () => {
     console.log(`🚀 Backend in ascolto su http://localhost:${port}`);

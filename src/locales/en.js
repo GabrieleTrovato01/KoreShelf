@@ -134,5 +134,14 @@ export default {
         donateBtn: "💙 Donate",
 
         // Aggiungi questo in fondo all'oggetto export default
-emptyLibraryMessage: "Your library is empty. Click '+ Upload Ebook' to start your collection!",
-};
+        emptyLibraryMessage: "Your library is empty. Click '+ Upload Ebook' to start your collection!",
+        
+        readerReviewBtnText: "⭐ You finished! Write a Review",
+        reviewModalTitleLong: "What do you think of this book?",
+        reviewPlaceholderHot: "Write your fresh thoughts here...",
+        saveMemoriesBtn: "Save to Memories",
+        selectStarAlert: "Please select at least one star!",
+        savingReview: "⏳ Saving...",
+        reviewSavedBtn: "✅ Review Saved!",
+        errorRetry: "Error. Try again."
+    };
