@@ -846,36 +846,97 @@ function createSpineTexture(title, author) {
     return new THREE.CanvasTexture(canvas);
 }
 
-function createBackCoverTexture(description) {
+function createBackCoverTexture(description, tags, rating) {
     const canvas = document.createElement('canvas');
-    canvas.width = 512; canvas.height = 768;
+    canvas.width = 512;
+    canvas.height = 768;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = baseCoverColor; ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#dddddd'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
 
-    const words = description.split(' ');
-    const maxWidth = 432; const maxHeight = 688;
-    let fontSize = 28; let lineHeight; let lines = [];
-    while (fontSize >= 14) { 
-        ctx.font = `${fontSize}px Arial, sans-serif`;
-        lineHeight = fontSize * 1.5; lines = []; let line = '';
+    // Sfondo elegante per il retro
+    ctx.fillStyle = '#1e1e1e'; // Grigio scuro
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Bordo dorato opzionale
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+
+    let currentY = 70;
+
+    // --- DISEGNA I TAG ---
+    if (tags && tags.length > 0) {
+        ctx.fillStyle = '#d4af37';
+        ctx.font = 'bold 24px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(tags[0].toUpperCase(), canvas.width / 2, currentY);
+        currentY += 40;
+        
+        // Linea separatrice
+        ctx.beginPath();
+        ctx.moveTo(100, currentY - 20);
+        ctx.lineTo(canvas.width - 100, currentY - 20);
+        ctx.stroke();
+    }
+
+    // --- LIMITE DI SICUREZZA PER LE STELLE ---
+    // Riserviamo gli ultimi 120 pixel del canvas esclusivamente per le stelle
+    const maxBottomY = canvas.height - 120; 
+
+    // --- DISEGNA LA TRAMA (Con Word Wrap e Truncation) ---
+    if (description) {
+        ctx.fillStyle = '#ecf0f1';
+        ctx.font = '22px serif';
+        ctx.textAlign = 'left';
+        
+        // Puliamo l'HTML dalla trama (es. <i>, <b>)
+        const cleanDesc = description.replace(/<[^>]*>?/gm, '');
+        const words = cleanDesc.split(' ');
+        
+        let line = '';
+        const maxWidth = canvas.width - 80;
+        const x = 40;
+        const lineHeight = 32;
+
         for (let n = 0; n < words.length; n++) {
             const testLine = line + words[n] + ' ';
-            if (ctx.measureText(testLine).width > maxWidth && n > 0) {
-                lines.push(line); line = words[n] + ' ';
-            } else { line = testLine; }
+            const metrics = ctx.measureText(testLine);
+            
+            if (metrics.width > maxWidth && n > 0) {
+                ctx.fillText(line, x, currentY);
+                line = words[n] + ' ';
+                currentY += lineHeight;
+                
+                // Se la prossima riga invade l'area delle stelle, ci fermiamo!
+                if (currentY > maxBottomY) {
+                    ctx.fillText("...", x, currentY - lineHeight + 10);
+                    break; 
+                }
+            } else {
+                line = testLine;
+            }
         }
-        lines.push(line); if (lines.length * lineHeight <= maxHeight) break;
-        fontSize -= 2; 
-    }
-    ctx.font = `${fontSize}px Arial, sans-serif`; 
-    let y = 40; const x = 40;
-    for (let i = 0; i < lines.length; i++) {
-        if (y + lineHeight > maxHeight + 40 && i < lines.length - 1) {
-            ctx.fillText(lines[i].trim() + '...', x, y); break;
+        
+        // Disegna l'ultima riga se non abbiamo superato il limite
+        if (currentY <= maxBottomY) {
+            ctx.fillText(line, x, currentY);
         }
-        ctx.fillText(lines[i], x, y); y += lineHeight;
     }
+
+    // --- DISEGNA LE STELLE (Fisse in basso) ---
+    if (rating && rating > 0) {
+        ctx.textAlign = 'center';
+        ctx.font = '45px Arial';
+        let starsText = '';
+        
+        for (let s = 1; s <= 5; s++) {
+            starsText += s <= rating ? '★ ' : '☆ ';
+        }
+        
+        ctx.fillStyle = '#d4af37'; // Oro brillante
+        // Posizionate sempre a 80px dal fondo, indipendentemente dalla trama
+        ctx.fillText(starsText.trim(), canvas.width / 2, canvas.height - 80);
+    }
+
     return new THREE.CanvasTexture(canvas);
 }
 
@@ -1037,7 +1098,7 @@ async function loadBooks() {
 
                 // Modifica anche il retro per stampare i tag personalizzati e la trama
                 const planeGeo = new THREE.PlaneGeometry(bookWidth, bookHeight); 
-                const planeMat = new THREE.MeshStandardMaterial({ map: createBackCoverTexture(bookData.description, bookData.tags), roughness: 0.8 });
+                const planeMat = new THREE.MeshStandardMaterial({ map: createBackCoverTexture(bookData.description, bookData.tags,bookData.rating), roughness: 0.8 });
                 const backPlane = new THREE.Mesh(planeGeo, planeMat);
                 backPlane.position.z = -(bookThickness / 2) - 0.001; 
                 backPlane.rotation.y = Math.PI; 
