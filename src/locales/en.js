@@ -135,7 +135,7 @@ export default {
 
         // Aggiungi questo in fondo all'oggetto export default
         emptyLibraryMessage: "Your library is empty. Click '+ Upload Ebook' to start your collection!",
-        
+        //review
         readerReviewBtnText: "⭐ You finished! Write a Review",
         reviewModalTitleLong: "What do you think of this book?",
         reviewPlaceholderHot: "Write your fresh thoughts here...",
@@ -143,5 +143,11 @@ export default {
         selectStarAlert: "Please select at least one star!",
         savingReview: "⏳ Saving...",
         reviewSavedBtn: "✅ Review Saved!",
-        errorRetry: "Error. Try again."
+        errorRetry: "Error. Try again.",
+
+        //synopsis on back of the book
+        authorLabel: "Author:",
+        fullPlotTitle: "Synopsis",
+        noDescription: "No synopsis available.",
+        closeBtn: "Close",
     };

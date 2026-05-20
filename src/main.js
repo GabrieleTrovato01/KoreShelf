@@ -1100,6 +1100,10 @@ async function loadBooks() {
                 const planeGeo = new THREE.PlaneGeometry(bookWidth, bookHeight); 
                 const planeMat = new THREE.MeshStandardMaterial({ map: createBackCoverTexture(bookData.description, bookData.tags,bookData.rating), roughness: 0.8 });
                 const backPlane = new THREE.Mesh(planeGeo, planeMat);
+
+                backPlane.name = "backCover_mesh";
+                backPlane.userData = { ...bookData };
+
                 backPlane.position.z = -(bookThickness / 2) - 0.001; 
                 backPlane.rotation.y = Math.PI; 
                 bookMesh.add(backPlane);
@@ -1303,6 +1307,78 @@ function updateCarousel() {
     });
 }
 
+
+// --- FUNZIONE PER MOSTRARE LA TRAMA COMPLETA SCORREVOLE ---
+window.showFullPlotModal = function(bookData) {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0'; overlay.style.left = '0';
+    overlay.style.width = '100vw'; overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    overlay.style.zIndex = '2000';
+    overlay.style.display = 'flex';
+    overlay.style.justifyContent = 'center';
+    overlay.style.alignItems = 'center';
+    overlay.style.backdropFilter = 'blur(8px)';
+    
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
+
+    const modal = document.createElement('div');
+    modal.className = 'glass-effect';
+    modal.style.padding = '40px';
+    modal.style.borderRadius = '20px';
+    modal.style.width = '90%';
+    modal.style.maxWidth = '600px';
+    modal.style.maxHeight = '80vh'; 
+    modal.style.overflowY = 'auto'; // Abilita lo scroll se il testo è lungo
+    modal.style.color = 'white';
+    modal.style.textAlign = 'left';
+    overlay.appendChild(modal);
+
+    const title = document.createElement('h2');
+    title.innerText = bookData.title || "Titolo Sconosciuto";
+    title.style.marginTop = '0';
+    title.style.marginBottom = '10px';
+    title.style.color = '#d4af37';
+    modal.appendChild(title);
+
+    const author = document.createElement('h4');
+    author.innerText = `${t('authorLabel')} ${bookData.author || "Sconosciuto"}`;
+    author.style.marginTop = '0';
+    author.style.marginBottom = '30px';
+    author.style.color = '#ccc';
+    modal.appendChild(author);
+
+    const plotTitle = document.createElement('h3');
+    plotTitle.innerText = t('fullPlotTitle');
+    plotTitle.style.borderBottom = '1px solid rgba(255,255,255,0.2)';
+    plotTitle.style.paddingBottom = '10px';
+    modal.appendChild(plotTitle);
+
+    const description = document.createElement('p');
+    description.innerHTML = bookData.description || `<i>${t('noDescription')}</i>`;
+    description.style.lineHeight = '1.8';
+    description.style.fontSize = '16px';
+    description.style.color = '#e0e0e0';
+    modal.appendChild(description);
+
+    const closeBtnContainer = document.createElement('div');
+    closeBtnContainer.style.textAlign = 'center';
+    closeBtnContainer.style.marginTop = '40px';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.innerText = t('closeBtn'); 
+    closeBtn.className = 'glass-effect modern-btn';
+    closeBtn.onclick = () => overlay.remove();
+    
+    closeBtnContainer.appendChild(closeBtn);
+    modal.appendChild(closeBtnContainer);
+};
+
+
+
+
 // --- 5. INTERAZIONI UNIFICATE (Click, Swipe, Trackpad) ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -1313,6 +1389,11 @@ let pointerStartY = 0; // Tracciamo anche la Y
 let pointerEndX = 0;
 let pointerEndY = 0;   // Tracciamo anche la Y
 let isDragging = false;
+
+
+
+
+
 
 window.addEventListener('pointerdown', (event) => {
     if (document.getElementById('category-manager-overlay')) return;
@@ -1355,6 +1436,13 @@ window.addEventListener('pointerup', (event) => {
 
         if (intersects.length > 0) {
             let obj = intersects[0].object;
+            //trama
+            if (obj.name === "backCover_mesh") {
+                // Mostriamo il modale passandogli i dati salvati
+                window.showFullPlotModal(obj.userData);
+                return; // Fermiamo qui: il libro non deve aprirsi o girarsi
+            }
+
             while (obj.parent !== libraryGroup) obj = obj.parent;
             
             const clickedIndex = obj.userData.index;
@@ -1362,7 +1450,7 @@ window.addEventListener('pointerup', (event) => {
             if (clickedIndex !== currentIndex) {
                 currentIndex = clickedIndex;
                 isShowingBack = false;
-                infoBtn.innerText = 'Mostra Trama';
+                infoBtn.innerText = t('showSynopsis');
                 updateCarousel();
             } else {
                 // APERTURA DEL LIBRO
@@ -1452,6 +1540,20 @@ window.addEventListener('keydown', (event) => {
                 }
             }
         }
+    }
+});
+
+window.addEventListener('pointermove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(libraryGroup.children, true);
+    
+    // Cambiamo il cursore se siamo sopra una backCover_mesh
+    if (intersects.length > 0 && intersects[0].object.name === "backCover_mesh") {
+        document.body.style.cursor = 'pointer';
+    } else {
+        document.body.style.cursor = 'auto';
     }
 });
 

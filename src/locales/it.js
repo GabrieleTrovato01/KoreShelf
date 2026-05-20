@@ -136,7 +136,7 @@ export default {
         donateBtn: "💙 Supporta",
         // Aggiungi questo in fondo all'oggetto export default
         emptyLibraryMessage: "La tua libreria è vuota. Clicca su '+ Carica Ebook' per iniziare la tua collezione!",
-        
+        //recensione
         readerReviewBtnText: "⭐ Hai finito! Scrivi una Recensione",
         reviewModalTitleLong: "Cosa ne pensi di questo libro?",
         reviewPlaceholderHot: "Scrivi qui le tue riflessioni a caldo...",
@@ -144,5 +144,11 @@ export default {
         selectStarAlert: "Seleziona almeno una stella!",
         savingReview: "⏳ Salvataggio...",
         reviewSavedBtn: "✅ Recensione Salvata!",
-        errorRetry: "Errore. Riprova."
+        errorRetry: "Errore. Riprova.",
+        //trama sul retro del libro 3D
+
+        authorLabel: "Autore:",
+        fullPlotTitle: "Trama",
+        noDescription: "Nessuna trama disponibile.",
+        closeBtn: "Chiudi",
     };
