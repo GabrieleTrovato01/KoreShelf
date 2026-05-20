@@ -57,6 +57,17 @@ On Google Chrome or Edge, go to the menu (the three dots) -> "Save and share" / 
 
 ---
 
+### 📖 Integrated EPUB Reader & Reading Memories
+
+LoreKeeper is not just an archive, it's a fully-featured immersive reading environment designed to build your personal "Memory Palace":
+
+* **Customizable Reader:** Open any EPUB directly in the browser. Adjust the text size on the fly and toggle between Light and Dark mode. The reader will remember your exact position and aesthetic preferences!
+* **Dynamic 3D Bookmarks:** As you progress through a book, a physical red ribbon bookmark will move along your 3D book on the shelf, showing your exact reading percentage at a glance.
+* **Interactive Reviews:** When you finish a book (100%), a seamless modal will appear prompting you to rate it (1-5 stars) and write your hot-take review. Your rating will literally be stamped in gold on the back cover of the 3D book in your library!
+
+---
+
+
 ### 🧠 Export for AI (Obsidian & LLM Ready)
 
 LoreKeeper acts as an "AI-Bridge", transforming your EPUBs into clean, structured Knowledge Bases.
@@ -153,6 +164,16 @@ Apri il tuo browser preferito (Chrome, Edge, Safari) e vai all'indirizzo:
 
 **💡 Tip per l'esperienza definitiva:** Non c'è bisogno di aprire il browser ogni volta! Puoi trasformare questa pagina in un'app desktop:
 Su Google Chrome o Edge, vai nel menu (i tre puntini) -> "Salva e condividi" / "App" -> **Installa pagina come App / Crea scorciatoia** (ricorda di spuntare "Apri come finestra"). Avrai un'icona sul desktop e sembrerà a tutti gli effetti un programma nativo installato!
+
+---
+
+### 📖 Lettore EPUB Integrato e Ricordi di Lettura
+
+LoreKeeper non è solo un archivio, ma un ambiente di lettura immersivo pensato per costruire il tuo personale "Palazzo della Memoria":
+
+* **Lettore Personalizzabile:** Apri gli EPUB direttamente nel browser. Regola la grandezza del testo al volo e passa dalla modalità Chiara a quella Scura. Il lettore ricorderà l'esatta pagina in cui ti trovavi e le tue preferenze estetiche!
+* **Segnalibri Dinamici in 3D:** Mentre progredisci nella lettura, una fettuccia rossa (segnalibro) si sposterà fisicamente sul tuo libro 3D nella mensola, mostrandoti la percentuale completata a colpo d'occhio.
+* **Recensioni Interattive:** Quando finisci un libro (100%), apparirà un elegante pop-up per valutare l'opera (1-5 stelle) e scrivere le tue riflessioni a caldo. La tua valutazione a stelle verrà letteralmente stampata in oro sul retro della copertina 3D del libro!
 
 ---
 
