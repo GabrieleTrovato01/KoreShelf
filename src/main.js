@@ -48,7 +48,6 @@ function translateStaticHTML() {
     if (emptyLibraryHint) emptyLibraryHint.innerText = t('emptyLibraryMessage');
 }
 
-
 // --- 1. SETUP BASE ---
 const scene = new THREE.Scene();
 
@@ -607,22 +606,6 @@ manageCatBtn.onclick = () => {
     
     openCategoryManager(activeCategory, booksArray);
 };
-
-async function updateCategoryOnServer(oldName, newName, action) {
-    try {
-        const response = await fetch('/api/categories', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ oldName, newName, action })
-        });
-        const result = await response.json();
-        if (result.success) {
-            location.reload(); // Ricarica la pagina per ricostruire le mensole 3D
-        } else {
-            alert(result.message);
-        }
-    } catch (e) { console.error(e); }
-} 
 
 // --- COSTRUZIONE FRECCE LATERALI ---
 const leftArrow = document.createElement('button');
@@ -1307,7 +1290,6 @@ function updateCarousel() {
     });
 }
 
-
 // --- FUNZIONE PER MOSTRARE LA TRAMA COMPLETA SCORREVOLE ---
 window.showFullPlotModal = function(bookData) {
     const overlay = document.createElement('div');
@@ -1376,9 +1358,6 @@ window.showFullPlotModal = function(bookData) {
     modal.appendChild(closeBtnContainer);
 };
 
-
-
-
 // --- 5. INTERAZIONI UNIFICATE (Click, Swipe, Trackpad) ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -1389,11 +1368,6 @@ let pointerStartY = 0; // Tracciamo anche la Y
 let pointerEndX = 0;
 let pointerEndY = 0;   // Tracciamo anche la Y
 let isDragging = false;
-
-
-
-
-
 
 window.addEventListener('pointerdown', (event) => {
     if (document.getElementById('category-manager-overlay')) return;
@@ -1609,7 +1583,6 @@ window.addEventListener('resize', () => {
 });
 
 // --- AVVIO DELL'APPLICAZIONE ---
-// In fondo a src/main.js
 
 async function startApp() {
     const loadingScreen = document.getElementById('loading-screen');
