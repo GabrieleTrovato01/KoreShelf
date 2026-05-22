@@ -43,6 +43,13 @@ Now that the environment is ready, let's start the software!
 
 Wait a couple of minutes. Docker will download a lightweight Linux environment, compile the 3D graphics (Vite), and start the server in the background.
 
+#### Step 3: Starting and Stopping (Daily Use)
+You don't need to rebuild the project every time you want to read! 
+* **To start the app:** Open the terminal in the project folder and run:
+  `docker-compose up -d`
+* **To stop the app:** Run:
+  `docker-compose down`
+
 ---
 
 ### 🎮 How to Use the App
@@ -153,6 +160,12 @@ Ora che l'ambiente è pronto, accendiamo il software!
 
 Attendi un paio di minuti. Docker scaricherà un ambiente Linux leggerissimo, compilerà la grafica in 3D (Vite) e avvierà il server in background.
 
+#### Passo 3: Avviare e Fermare l'App (Uso Quotidiano)
+Non c'è bisogno di ricostruire (build) il progetto ogni volta che vuoi leggere!
+* **Per avviare l'app:** Apri il terminale nella cartella del progetto e digita:
+  `docker-compose up -d`
+* **Per fermare l'app:** Digita:
+  `docker-compose down`
 ---
 
 ### 🎮 Come usare l'App
