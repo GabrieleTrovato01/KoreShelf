@@ -1,6 +1,14 @@
 let currentBook = null;
 let rendition = null;
 
+// --- VARIABILI GLOBALI PDF.JS ---
+let pdfDoc = null;
+let pageNum = 1;
+let pageRendering = false;
+let pageNumPending = null;
+const scaleBase = 1.5; // Scala di base per una buona risoluzione
+let currentPdfId = null;
+
 // La variabile globale per ricordare lo stato
 let isDarkMode = localStorage.getItem('readerDarkMode') === 'true';
 
@@ -78,11 +86,21 @@ window.openReader = function(epubUrl, bookId) {
     }
 
     const keyListener = function(e) {
-        if (e.key === "ArrowRight") rendition.next();
-        if (e.key === "ArrowLeft") rendition.prev();
+        if (e.key === "ArrowRight") {
+            if (pdfDoc) onNextPage();
+            else if (rendition) rendition.next();
+        }
+        if (e.key === "ArrowLeft") {
+            if (pdfDoc) onPrevPage();
+            else if (rendition) rendition.prev();
+        }
     };
+    
     document.addEventListener("keydown", keyListener);
-    rendition.on("keydown", keyListener);
+    
+    if (rendition) {
+        rendition.on("keydown", keyListener);
+    }
 
     window.addEventListener('readerClosed', () => {
         document.removeEventListener("keydown", keyListener);
@@ -158,6 +176,166 @@ window.openReader = function(epubUrl, bookId) {
     });
 };
 
+// --- FUNZIONI DI RENDERING PDF ---
+function renderPage(num) {
+    pageRendering = true;
+    
+    pdfDoc.getPage(num).then(function(page) {
+        const canvas = document.getElementById('pdf-canvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('pdf-container');
+        
+        // Calcoliamo lo spazio disponibile, togliendo 20px per non toccare i bordi fisici
+        const containerWidth = container.clientWidth - 20;
+        const containerHeight = container.clientHeight - 20;
+
+        // Prendiamo le proporzioni originali del PDF (scala 1.0)
+        const unscaledViewport = page.getViewport({ scale: 1.0 });
+
+        // Troviamo il moltiplicatore perfetto per farlo entrare in altezza o in larghezza
+        const scaleWidth = containerWidth / unscaledViewport.width;
+        const scaleHeight = containerHeight / unscaledViewport.height;
+        const bestFitScale = Math.min(scaleWidth, scaleHeight);
+
+        // Applichiamo lo zoom utente (100% sulla barra = Adatta perfettamente allo schermo)
+        const savedZoom = parseInt(localStorage.getItem('readerZoom') || '100') / 100;
+        const finalScale = bestFitScale * savedZoom;
+        
+        const viewport = page.getViewport({scale: finalScale});
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+            canvasContext: ctx,
+            viewport: viewport
+        };
+        
+        const renderTask = page.render(renderContext);
+        
+        renderTask.promise.then(function() {
+            pageRendering = false;
+            if (pageNumPending !== null) {
+                renderPage(pageNumPending);
+                pageNumPending = null;
+            }
+        });
+        setTimeout(window.updateScrollIndicator, 100);
+    });
+    
+    // Sincronizza progresso e bottone recensione
+    const percentage = num / pdfDoc.numPages;
+    const progressEl = document.getElementById('reading-progress');
+    if (progressEl) {
+        progressEl.innerText = Math.round(percentage * 100) + "%";
+    }
+    
+    // Mostra il bottone recensione se siamo all'ultima pagina
+    const reviewBtn = document.getElementById('reader-review-btn');
+    if (reviewBtn) {
+        if (num === pdfDoc.numPages) {
+            reviewBtn.style.display = 'block';
+            window.applyCurrentTheme(); // Riapplica il tema per colorare il bottone
+        } else {
+            reviewBtn.style.display = 'none';
+        }
+    }
+
+    // Salva il segnalibro e invia al server
+    localStorage.setItem(`pdf_bookmark_${currentPdfId}`, num);
+    fetch(`/api/books/${currentPdfId}/progress`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progress: percentage })
+    }).catch(e => console.warn(e));
+}
+
+function queueRenderPage(num) {
+    if (pageRendering) {
+        pageNumPending = num;
+    } else {
+        renderPage(num);
+    }
+}
+
+// --- LOGICA INDICATORE DI SCORRIMENTO (FRECCIA) ---
+window.updateScrollIndicator = function() {
+    const container = document.getElementById('pdf-container');
+    const indicator = document.getElementById('scroll-indicator');
+
+    // Se uno dei due non esiste, esci subito senza fare nulla (evita l'errore)
+    if (!container || !indicator) return;
+
+    // Se il container è nascosto, nascondi anche l'indicatore
+    if (container.style.display === 'none') {
+        indicator.style.display = 'none';
+        return;
+    }
+
+    const canScroll = container.scrollHeight > container.clientHeight;
+    const atBottom = Math.ceil(container.scrollTop) + container.clientHeight >= container.scrollHeight - 5;
+
+    indicator.style.display = (canScroll && !atBottom) ? 'block' : 'none';
+};
+
+function onPrevPage() {
+    if (pageNum <= 1) return;
+    pageNum--;
+    queueRenderPage(pageNum);
+}
+
+function onNextPage() {
+    if (pageNum >= pdfDoc.numPages) return;
+    pageNum++;
+    queueRenderPage(pageNum);
+}
+
+// La funzione che viene chiamata da main.js
+window.openPdfReader = function(pdfUrl, bookId) {
+    currentPdfId = bookId;
+    const readerOverlay = document.getElementById('reader-overlay');
+    
+    // Resetta il bottone recensione
+    const readerReviewBtn = document.getElementById('reader-review-btn');
+    if (readerReviewBtn) {
+        readerReviewBtn.style.display = 'none';
+        readerReviewBtn.innerHTML = window.t('readerReviewBtnText'); 
+        readerReviewBtn.onclick = () => window.openReviewModal(bookId); 
+    }
+
+    readerOverlay.style.display = 'block'; 
+
+    // --- GESTIONE FRECCE TASTIERA PER PDF ---
+    const pdfKeyListener = function(e) {
+        if (e.key === "ArrowRight") onNextPage();
+        if (e.key === "ArrowLeft") onPrevPage();
+    };
+    document.addEventListener("keydown", pdfKeyListener);
+    
+    window.addEventListener('readerClosed', () => {
+        document.removeEventListener("keydown", pdfKeyListener);
+    }, { once: true });
+
+    setTimeout(() => readerOverlay.style.opacity = '1', 50);
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    loadingTask.promise.then(function(pdf) {
+        pdfDoc = pdf;
+        
+        // Ripristina l'ultima pagina letta
+        const savedPage = localStorage.getItem(`pdf_bookmark_${bookId}`);
+        pageNum = savedPage ? parseInt(savedPage) : 1;
+        if (pageNum > pdf.numPages) pageNum = pdf.numPages;
+        
+        renderPage(pageNum);
+        window.applyCurrentTheme();
+    }).catch(err => {
+        alert("Errore caricamento PDF: " + err.message);
+    });
+};
+
 window.closeReader = function() {
     const readerOverlay = document.getElementById('reader-overlay');
     const viewer = document.getElementById('viewer');
@@ -174,6 +352,20 @@ window.closeReader = function() {
             rendition = null;
         }
 
+        // Pulisci il PDF
+        if (pdfDoc) {
+            pdfDoc = null;
+            const canvas = document.getElementById('pdf-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        const pdfContainer = document.getElementById('pdf-container');
+        if (pdfContainer) pdfContainer.style.display = 'none';
+
+        const scrollIndicator = document.getElementById('scroll-indicator');
+        if (scrollIndicator) scrollIndicator.style.display = 'none';
+
         window.dispatchEvent(new Event('readerClosed'));
     }, 800); 
 };
@@ -185,6 +377,18 @@ window.applyCurrentTheme = function() {
     const bottomBarZoom = document.getElementById('bottom-bar-zoom');
 
     if (isDarkMode) {
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        if (pdfCanvas) {
+            pdfCanvas.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85)';
+            pdfCanvas.style.mixBlendMode = 'screen'; 
+        }
+        const scrollIndicator = document.getElementById('scroll-indicator');
+        if (scrollIndicator) {
+            scrollIndicator.style.background = 'rgba(255, 255, 255, 0.15)';
+            scrollIndicator.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            scrollIndicator.style.color = '#ffffff';
+            scrollIndicator.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
+        }
         if (readerOverlay) readerOverlay.style.background = '#121212';
         if (themeBtn) themeBtn.innerText = '☀️ Light Mode';
         if (readingProgress) {
@@ -196,6 +400,18 @@ window.applyCurrentTheme = function() {
             bottomBarZoom.style.background = 'rgba(255, 255, 255, 0.08)';
         }
     } else {
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        if (pdfCanvas) {
+            pdfCanvas.style.filter = 'none';
+            pdfCanvas.style.mixBlendMode = 'multiply'; 
+        }
+        const scrollIndicator = document.getElementById('scroll-indicator');
+        if (scrollIndicator) {
+            scrollIndicator.style.background = 'rgba(0, 0, 0, 0.08)';
+            scrollIndicator.style.border = '1px solid rgba(0, 0, 0, 0.1)';
+            scrollIndicator.style.color = '#333333';
+            scrollIndicator.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+        }
         if (readerOverlay) readerOverlay.style.background = '#faf9f6';
         if (themeBtn) themeBtn.innerText = '🌙 Dark Mode';
         if (readingProgress) {
@@ -381,9 +597,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById('prev-page-btn');
     const themeBtn = document.getElementById('theme-toggle-btn');
     const closeReaderBtn = document.getElementById('close-reader-btn');
+    const pdfContainer = document.getElementById('pdf-container');
 
-    if (prevBtn) prevBtn.onclick = () => { if(rendition) rendition.prev(); };
-    if (nextBtn) nextBtn.onclick = () => { if(rendition) rendition.next(); };
+    if (pdfContainer) {
+        pdfContainer.addEventListener('scroll', window.updateScrollIndicator);
+    }
+
+    if (prevBtn) prevBtn.onclick = () => { 
+        if (pdfDoc) onPrevPage();
+        else if (rendition) rendition.prev(); 
+    };
+    if (nextBtn) nextBtn.onclick = () => { 
+        if (pdfDoc) onNextPage();
+        else if (rendition) rendition.next(); 
+    };
 
     if (themeBtn) {
         themeBtn.onclick = () => {
@@ -482,13 +709,23 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('readerZoom', zoomValue); 
             if (rendition) {
                 rendition.themes.fontSize(`${zoomValue}%`);
+            } else if (pdfDoc) {
+                queueRenderPage(pageNum); 
             }
         });
     }
 });
 
 window.addEventListener('resize', () => {
+    // 1. Gestione ridimensionamento EPUB
     if (rendition) {
         rendition.resize('100%', '100%');
+    }
+    
+    // 2. Gestione ridimensionamento PDF
+    const pdfContainer = document.getElementById('pdf-container');
+    if (pdfDoc && pdfContainer && pdfContainer.style.display !== 'none') {
+        queueRenderPage(pageNum);
+        setTimeout(window.updateScrollIndicator, 100);
     }
 });

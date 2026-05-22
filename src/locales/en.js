@@ -54,6 +54,7 @@ export default {
         shelfLog: "Created shelf {name} at height {y}",
         texturesSuccess: "Active shelf textures for {cat} loaded.",
         allTexturesLoaded: "🎉 All textures have been loaded in the background without lag!",
+        loadingPdf: "Loading PDF...",
 
         // 3D Book Back
         backIn: "In: ",

@@ -1458,8 +1458,25 @@ window.addEventListener('pointerup', (event) => {
                 activeBook.userData.hinge.userData = { targetRotY: -Math.PI * 0.85 };
 
                 setTimeout(() => {
-                    window.openReader(activeBook.userData.epubPath, activeBook.userData.id);
-                }, 400); 
+                    const bookPath = activeBook.userData.epubPath;
+                    const isPdf = bookPath.toLowerCase().endsWith('.pdf');
+
+                    if (isPdf) {
+                        console.log("📄 Apertura PDF rilevata...");
+                        // Puliamo il viewer EPUB per sicurezza
+                        document.getElementById('viewer').style.display = 'none';
+                        document.getElementById('pdf-container').style.display = 'flex'; 
+                        
+                        
+                        window.openPdfReader(bookPath, activeBook.userData.id);
+                    } else {
+                        console.log("📚 Apertura EPUB rilevata...");
+                        document.getElementById('pdf-container').style.display = 'none'; 
+                        document.getElementById('viewer').style.display = 'block';
+                        
+                        window.openReader(bookPath, activeBook.userData.id);
+                    }
+                }, 400);
             }
         }
     }

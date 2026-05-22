@@ -55,6 +55,7 @@ export default {
         shelfLog: "Creata mensola {name} ad altezza {y}",
         texturesSuccess: "Texture mensola attiva {cat} caricate.",
         allTexturesLoaded: "🎉 Tutte le texture sono state caricate in background senza lag!",
+        loadingPdf: "Caricamento PDF...",
         // Retro Libro 3D
         backIn: "In: ",
         backPages: "Pagine stimate: ",

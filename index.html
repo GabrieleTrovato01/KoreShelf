@@ -5,14 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LoreKeeper</title>
     <link rel="icon" type="image/png" href="/logo.png" />
+    <style>
+        /* Animazione e stile per la freccia di scroll */
+        @keyframes bounce-glass {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+            40% { transform: translateY(-10px) translateX(-50%); }
+            60% { transform: translateY(-5px) translateX(-50%); }
+        }
+
+        .glass-scroll-arrow {
+            display: none;
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 6px 18px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 1001;
+            pointer-events: none;
+            animation: bounce-glass 2.5s infinite;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: opacity 0.4s ease;
+        }
+
+        /* Nasconde la scrollbar nativa ma mantiene lo scorrimento attivo */
+        #pdf-container::-webkit-scrollbar { display: none; }
+        #pdf-container {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
   </head>
   <body>
     
-    <script src="reader.js"></script>
-    <script type="module" src="/src/main.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <script src="reader.js"></script>
+    <script type="module" src="/src/main.js"></script>
     
     <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #1e2d3b; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
         <div class="loader"></div>
@@ -42,6 +76,12 @@
 
         <div id="viewer" style="position: absolute; top: 60px; left: 10px; right: 10px; bottom: 40px; overflow: hidden;"></div>
         
+        <div id="pdf-container" style="display: none; position: absolute; top: 60px; left: 10px; right: 10px; bottom: 20px; overflow: auto; flex-direction: column; align-items: center; justify-content: center;">
+             <canvas id="pdf-canvas" style="display: block; margin: 0 auto; max-width: 100%; height: auto;"></canvas>
+        </div>
+
+        <div id="scroll-indicator" class="glass-scroll-arrow">↓</div>
+
         <button id="prev-page-btn" style="position: absolute; top: 50%; left: 10px; font-size: 24px; background: rgba(100,100,100,0.4); border-radius: 50%; color: white; border: none; cursor: pointer; z-index: 10; width: 45px; height: 45px; transform: translateY(-50%);">&#10094;</button>
         <button id="next-page-btn" style="position: absolute; top: 50%; right: 10px; font-size: 24px; background: rgba(100,100,100,0.4); border-radius: 50%; color: white; border: none; cursor: pointer; z-index: 10; width: 45px; height: 45px; transform: translateY(-50%);">&#10095;</button>
     </div>
