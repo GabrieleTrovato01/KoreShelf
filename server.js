@@ -7,7 +7,8 @@ import { EPub } from 'epub2';
 import axios from 'axios';
 import sharp from 'sharp';
 import { EPubLoader } from "@langchain/community/document_loaders/fs/epub";
-import { text } from 'stream/consumers';
+import pdfParse from 'pdf-parse';
+import { fromPath } from 'pdf2pic';
 
 const app = express();
 const port = 3000;
@@ -153,6 +154,77 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
     }
 }
 
+// --- 1.B Estrae dati e copertina dal PDF ---
+async function parsePdf(filePath, coverFileName, originalFileName) {
+    try {
+        // 1. Estrazione Testo per calcolo pagine e IA
+        const dataBuffer = await fsSync.promises.readFile(filePath);
+        const pdfData = await pdfParse(dataBuffer);
+
+        let extractedTitle = pdfData.info?.Title;
+        let extractedAuthor = pdfData.info?.Author;
+
+        // I PDF spesso hanno metadati spazzatura (es. "Microsoft Word - Documento1")
+        const isJunkTitle = extractedTitle && (
+            /^[a-f0-9]{20,}$/i.test(extractedTitle) || 
+            extractedTitle.toLowerCase().includes('unknown') ||
+            extractedTitle.toLowerCase().includes('word') ||
+            extractedTitle.toLowerCase().includes('untitled')
+        );
+
+        if (!extractedTitle || extractedTitle.trim() === '' || isJunkTitle) {
+            console.log(`⚠️ Metadati PDF assenti o corrotti! Uso il nome del file...`);
+            let cleanName = originalFileName.replace(/\.pdf$/i, '');
+            
+            if (cleanName.includes('-')) {
+                const parts = cleanName.split('-');
+                extractedTitle = parts[0].replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                extractedAuthor = parts[1].replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+            } else {
+                cleanName = cleanName.replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ');
+                extractedTitle = cleanName.replace(/\s+/g, ' ').trim();
+                extractedAuthor = 'Autore Sconosciuto';
+            }
+        }
+
+        const rawTextLength = pdfData.text ? pdfData.text.length : 0;
+
+        const metadata = {
+            title: extractedTitle,
+            author: extractedAuthor || 'Autore Sconosciuto',
+            description: null, // I PDF raramente includono la trama nei metadati
+            coverPath: null,
+            textLength: rawTextLength
+        };
+
+        // 2. Scattiamo la foto alla prima pagina per la copertina
+        try {
+            const options = {
+                density: 150,           // Risoluzione DPI per nitidezza
+                saveFilename: coverFileName,
+                savePath: coversDir,
+                format: "jpg",
+                width: 512,
+                height: 768
+            };
+            
+            const storeAsImage = fromPath(filePath, options);
+            const resolveImg = await storeAsImage(1); // Fotografiamo la pagina 1
+            
+            console.log("📸 Prima pagina PDF trasformata con successo in copertina!");
+            metadata.coverPath = `covers/${resolveImg.name}`;
+
+        } catch (imgError) {
+            console.error("⚠️ Impossibile generare la copertina dal PDF:", imgError.message);
+        }
+
+        return metadata;
+
+    } catch (error) {
+        throw new Error(`Errore di parsing PDF: ${error.message}`);
+    }
+}
+
 // --- TIMER DI SICUREZZA PER GLI EPUB CORROTTI ---
 function parseEpubWithTimeout(filePath, coverFileName, originalFileName, timeoutMs = 8000) {
     return Promise.race([
@@ -266,7 +338,18 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         const baseName = `book_${timestamp}`;
 
         console.log(`⚙️  Estrazione metadati e copertina interna...`);
-        const epubData = await parseEpubWithTimeout(file.path, baseName, file.originalname,8000);
+        const fileExt = path.extname(file.originalname).toLowerCase();
+        let bookData;
+
+        if (fileExt === '.epub') {
+            bookData = await parseEpubWithTimeout(file.path, baseName, file.originalname, 8000);
+        } else if (fileExt === '.pdf') {
+            bookData = await parsePdf(file.path, baseName, file.originalname);
+        } else {
+            // Se qualcuno forza il caricamento di un file non supportato
+            try { await fs.unlink(file.path); } catch(e){}
+            return res.status(400).json({ success: false, message: 'Formato non supportato. Usa EPUB o PDF.' });
+        }
 
         let currentBooks = [];
         try {
@@ -275,46 +358,46 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         } catch (e) {}
 
         const isDuplicate = currentBooks.some(book => 
-            book.title.toLowerCase().trim() === epubData.title.toLowerCase().trim() && 
-            book.author.toLowerCase().trim() === epubData.author.toLowerCase().trim()
+            book.title.toLowerCase().trim() === bookData.title.toLowerCase().trim() && 
+            book.author.toLowerCase().trim() === bookData.author.toLowerCase().trim()
         );
 
         if (isDuplicate) {
-            console.log(`🛑 Upload bloccato: "${epubData.title}" è già presente in libreria.`);
+            console.log(`🛑 Upload bloccato: "${bookData.title}" è già presente in libreria.`);
             try { await fs.unlink(file.path); } catch (err) {}
             return res.json({ success: false, message: 'Questo libro è già presente nel tuo scaffale!' });
         }
 
-        console.log(`✔️  Dati iniziali: "${epubData.title}" di ${epubData.author}`);
+        console.log(`✔️  Dati iniziali: "${bookData.title}" di ${bookData.author}`);
         
         console.log(`⏳ Attesa iniziale di 2 secondi per non sovraccaricare le API di Google...`);
         
         console.log(`🔍 Ricerca dati su  Books...`);
-        const googleData = await fetchBestBookData(epubData.title, epubData.author, epubData.textLength);
+        const googleData = await fetchBestBookData(bookData.title, bookData.author, bookData.textLength);
 
-        let finalTitle = epubData.title;
-        let finalAuthor = epubData.author;
+        let finalTitle = bookData.title;
+        let finalAuthor = bookData.author;
 
         if (googleData.googleTitle) {
-            const titleWords = epubData.title.toLowerCase().split(' ').filter(w => w.length > 3);
+            const titleWords = bookData.title.toLowerCase().split(' ').filter(w => w.length > 3);
             const googleTitleLower = googleData.googleTitle.toLowerCase();
             const isRelated = titleWords.some(word => googleTitleLower.includes(word));
 
-            if (isRelated || epubData.title === 'Titolo Sconosciuto') {
+            if (isRelated || bookData.title === 'Titolo Sconosciuto') {
                 finalTitle = googleData.googleTitle;
-                finalAuthor = googleData.googleAuthor || epubData.author;
+                finalAuthor = googleData.googleAuthor || bookData.author;
                 console.log(`✨ Autocorrezione: Titolo corretto in "${finalTitle}"`);
             }
         }
 
-        let finalCoverPath = epubData.coverPath; 
+        let finalCoverPath = bookData.coverPath; 
         if (!finalCoverPath && googleData.coverUrl) {
             console.log(`🖼️  Copertina assente nell'EPUB. Download in corso da Google Books...`);
             finalCoverPath = await downloadCoverImage(googleData.coverUrl, baseName);
         }
 
         let finalDescription = "Nessuna trama disponibile per questo libro.";
-        let epubDesc = epubData.description;
+        let epubDesc = bookData.description;
 
         if (epubDesc) epubDesc = epubDesc.replace(/^(EDGT[0-9]+[\r\n\s]*)/i, '').trim();
 
@@ -329,7 +412,7 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         const ebooksDir = path.join(publicDir, 'ebooks');
         if (!fsSync.existsSync(ebooksDir)) fsSync.mkdirSync(ebooksDir, { recursive: true });
         
-        const finalEpubPath = `ebooks/${baseName}.epub`;
+        const finalEpubPath = `ebooks/${baseName}${fileExt}`;
         // SOLUZIONE EXDEV: Copiamo il file e poi cancelliamo l'originale
         await fs.copyFile(file.path, path.join(publicDir, finalEpubPath));
         await fs.unlink(file.path);
@@ -573,16 +656,27 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
             return res.status(404).json({ success: false, message: 'Libro non trovato.' });
         }
 
+
+
         const physicalEpubPath = path.join(publicDir, book.epubPath);
         
         console.log(`📦 Generazione Knowledge Base Markdown per: ${book.title}...`);
 
-        // Usiamo il loader di Langchain per pulire l'HTML dall'EPUB
-        const loader = new EPubLoader(physicalEpubPath);
-        const rawDocs = await loader.load();
-        
-        // Uniamo tutti i capitoli separandoli con una riga orizzontale Markdown
-        const fullText = rawDocs.map(doc => doc.pageContent).join("\n\n---\n\n");
+        let fullText = "";
+
+        // Bivio: Estrazione testo in base al formato
+        if (book.epubPath.toLowerCase().endsWith('.pdf')) {
+            console.log(`📄 Lettura PDF rilevata. Estrazione testo grezzo in corso...`);
+            const dataBuffer = await fs.readFile(physicalEpubPath);
+            const pdfData = await pdfParse(dataBuffer);
+            fullText = pdfData.text;
+        } else {
+            console.log(`📚 Lettura EPUB rilevata. Estrazione tramite LangChain in corso...`);
+            const loader = new EPubLoader(physicalEpubPath);
+            const rawDocs = await loader.load();
+            
+            fullText = rawDocs.map(doc => doc.pageContent).join("\n\n---\n\n");
+        }
 
         // Prepariamo il nome del file
         const safeTitle = book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -639,8 +733,6 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
         res.status(500).json({ success: false, message: 'Errore interno del server durante la generazione del Markdown.' });
     }
 });
-
-
 
 app.listen(port, () => {
     console.log(`🚀 Backend in ascolto su http://localhost:${port}`);

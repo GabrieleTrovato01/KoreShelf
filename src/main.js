@@ -236,7 +236,7 @@ topBar.appendChild(uploadLabel);
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
 fileInput.id = 'file-upload';
-fileInput.accept = '.epub';
+fileInput.accept = '.epub, .pdf';
 fileInput.multiple = true;
 topBar.appendChild(fileInput);
 

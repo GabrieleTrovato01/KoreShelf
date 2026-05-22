@@ -1,9 +1,9 @@
 # 1. Base Node.js aggiornata per supportare Vite
 FROM node:22-bookworm-slim
 
-# 2. Installiamo Calibre per la conversione dei PDF
+# 2. Installiamo SOLO le dipendenze grafiche per pdf2pic
 RUN apt-get update && \
-    apt-get install -y calibre && \
+    apt-get install -y ghostscript graphicsmagick && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
