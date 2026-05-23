@@ -29,26 +29,35 @@ To run this project on your computer, you don't need to configure servers or ins
 
 ### 🚀 Installation Guide (Step-by-Step)
 
-#### Step 1: Install Docker
+You have two ways to run LoreKeeper. If you are on Windows, we highly recommend the new **Portable Version** for a faster, "out-of-the-box" experience.
+
+#### Option 1: The Easy Way (Portable Windows App - Recommended)
+
+If you are on Windows and want to avoid installing Docker or Node.js, you can use our standalone executable.
+
+1. Go to the [Releases section](https://github.com/GabrieleTrovato01/LoreKeeper/releases/tag/v1.3.0) of this repository.
+2. Download the latest `LoreKeeper-v1.x.x-win.zip` file.
+3. Extract the contents to any folder on your PC.
+4. Run `lorekeeper-app.exe`.
+*Note: Upon first launch, the app will automatically create the necessary data folders (`ebooks/`, `covers/`, and `books.json`) in the same directory.*
+
+*Note on Security: As this is an independent open-source project without a paid digital signature, Windows SmartScreen may show a warning at the first launch. Simply click "More info" and "Run anyway" to get started; the source code is fully transparent and available here.*
+
+#### Option 2: The Advanced Way (Docker - For Developers/Linux/macOS)
+
+If you prefer to run the project via Docker or are on a non-Windows OS, follow these steps.
+
+**Step 1: Install Docker**
+
 * **Windows / macOS:** Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop/). Start it and make sure Docker is running in the background.
 * **Linux:** Open the terminal and install Docker Engine and the Compose plugin (e.g., on Ubuntu: `sudo apt install docker.io docker-compose-v2`).
 
-#### Step 2: Start the 3D Library
-Now that the environment is ready, let's start the software!
+**Step 2: Start the 3D Library**
 
 1. Download this project to your PC (via `git clone` or by downloading the ZIP).
 2. Open the terminal **exactly inside the project folder** (where the `docker-compose.yml` file is located).
 3. Type this command and press Enter:
-   `docker compose up -d --build`
-
-Wait a couple of minutes. Docker will download a lightweight Linux environment, compile the 3D graphics (Vite), and start the server in the background.
-
-#### Step 3: Starting and Stopping (Daily Use)
-You don't need to rebuild the project every time you want to read! 
-* **To start the app:** Open the terminal in the project folder and run:
-  `docker compose up -d`
-* **To stop the app:** Run:
-  `docker compose down`
+`docker compose up -d --build`.
 
 ---
 
@@ -146,27 +155,36 @@ Per far funzionare questo progetto sul tuo computer non devi configurare server 
 
 ### 🚀 Guida all'Installazione (Passo Passo)
 
-#### Passo 1: Installa Docker
+Hai due modi per avviare LoreKeeper. Se sei su Windows, ti consigliamo vivamente la nuova **Versione Portatile** per un'esperienza immediata e senza configurazioni.
+
+#### Opzione 1: La via più semplice (App Portatile per Windows - Consigliata)
+
+Se sei su Windows e vuoi evitare di installare Docker o Node.js, puoi usare il nostro eseguibile standalone.
+
+1. Vai nella sezione [Releases](https://github.com/GabrieleTrovato01/LoreKeeper/releases/tag/v1.3.0) di questo repository.
+2. Scarica il file `LoreKeeper-v1.x.x-win.zip` più recente.
+3. Estrai il contenuto in una cartella a tua scelta sul PC.
+4. Avvia `lorekeeper-app.exe`.
+*Nota: Al primo avvio, l'app creerà automaticamente le cartelle necessarie (`ebooks/`, `covers/` e `books.json`) nella stessa directory.*
+
+*Nota sulla Sicurezza: Essendo un progetto open-source indipendente privo di firma digitale a pagamento, Windows SmartScreen potrebbe mostrare un avviso al primo avvio. Basta cliccare su "Ulteriori informazioni" e poi su "Esegui comunque"; il codice sorgente è completamente trasparente e verificabile in questo repository.*
+
+#### Opzione 2: La via avanzata (Docker - Per Sviluppatori/Linux/macOS)
+
+Se preferisci far girare il progetto tramite Docker o sei su un sistema operativo diverso da Windows, segui questi passaggi.
+
+**Passo 1: Installa Docker**
+
 * **Windows / macOS:** Scarica e installa [Docker Desktop](https://www.docker.com/products/docker-desktop/). Avvialo e assicurati che Docker sia attivo in background.
 * **Linux:** Apri il terminale e installa Docker Engine e il plugin Compose (es. su Ubuntu: `sudo apt install docker.io docker-compose-v2`).
 
-#### Passo 2: Avvia la Libreria 3D
-Ora che l'ambiente è pronto, accendiamo il software!
+**Passo 2: Avvia la Libreria 3D**
 
 1. Scarica questo progetto sul tuo PC (tramite `git clone` o scaricando lo ZIP).
 2. Apri il terminale **esattamente all'interno della cartella del progetto** (dove si trova il file `docker-compose.yml`).
 3. Digita questo comando e premi Invio:
-   `docker compose up -d --build`
+`docker compose up -d --build`.
 
-Attendi un paio di minuti. Docker scaricherà un ambiente Linux leggerissimo, compilerà la grafica in 3D (Vite) e avvierà il server in background.
-
-#### Passo 3: Avviare e Fermare l'App (Uso Quotidiano)
-Non c'è bisogno di ricostruire (build) il progetto ogni volta che vuoi leggere!
-* **Per avviare l'app:** Apri il terminale nella cartella del progetto e digita:
-  `docker compose up -d`
-* **Per fermare l'app:** Digita:
-  `docker compose down`
----
 
 ### 🎮 Come usare l'App
 
