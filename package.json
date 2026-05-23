@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "concurrently \"node server.js\" \"npm run dev\""
+    "start": "concurrently \"node server.js\" \"npm run dev\"",
+    "build:exe": "node build-exe.js"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
