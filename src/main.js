@@ -1370,18 +1370,25 @@ let pointerEndY = 0;   // Tracciamo anche la Y
 let isDragging = false;
 
 window.addEventListener('pointerdown', (event) => {
+    const readerOverlay = document.getElementById('reader-overlay');
+    if (readerOverlay && readerOverlay.style.display !== 'none') return;
     if (document.getElementById('category-manager-overlay')) return;
     if (document.getElementById('assign-category-overlay')) return;
     if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT' || event.target.tagName === 'LABEL') return;
-    
+    if (document.getElementById('help-modal-overlay')) return;
+
+
     pointerStartX = event.clientX;
     pointerStartY = event.clientY;
     isDragging = true;
 });
 
 window.addEventListener('pointerup', (event) => {
+    const readerOverlay = document.getElementById('reader-overlay');
+    if (readerOverlay && readerOverlay.style.display !== 'none') return;
     if (document.getElementById('category-manager-overlay')) return;
     if (document.getElementById('assign-category-overlay')) return;
+    if (document.getElementById('help-modal-overlay')) return;
     if (!isDragging) return;
     isDragging = false;
     pointerEndX = event.clientX;
@@ -1487,6 +1494,7 @@ let scrollTimeout = null;
 window.addEventListener('wheel', (event) => {
     if (document.getElementById('category-manager-overlay')) return;
     if (document.getElementById('assign-category-overlay')) return;
+    if (document.getElementById('help-modal-overlay')) return;
     if (scrollTimeout) return;
 
     if (Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 20) {
@@ -1509,6 +1517,7 @@ window.addEventListener('keydown', (event) => {
 
     if (document.getElementById('category-manager-overlay')) return;
     if (document.getElementById('assign-category-overlay')) return;
+    if (document.getElementById('help-modal-overlay')) return;
 
     if (event.key === 'ArrowRight') {
         changeBook(1); 

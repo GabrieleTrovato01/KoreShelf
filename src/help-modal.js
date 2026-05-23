@@ -3,6 +3,7 @@ import { t } from './i18n.js';
 export function openHelpModal() {
     // 1. Setup Overlay
     const overlay = document.createElement('div');
+    overlay.id = 'help-modal-overlay';
     overlay.style.position = 'fixed';
     overlay.style.top = '0';
     overlay.style.left = '0';
