@@ -13,9 +13,9 @@
 <a name="english"></a>
 ## 🇬🇧 English
 
-An interactive 3D digital library that allows you to upload, browse, and organize your EPUB files in an immersive graphical environment.
+An interactive 3D digital library that allows you to upload, browse, and organize your EPUB and PDF files in an immersive graphical environment.
 
-But that's not all: thanks to the **Export for AI** feature, you can extract the entire clean text of any book into a ready-to-use Knowledge Base (`.txt` file). You can easily upload this file to ChatGPT, Claude, or Gemini to literally "talk" to your books: ask questions about the plot, search for specific concepts, or ask for summaries, leaving the heavy computational lifting to cloud AIs without overloading your PC!
+But that's not all: thanks to the **Export for AI** feature, you can extract the entire clean text of any book into a ready-to-use Knowledge Base (`.md` file). You can easily upload this file to ChatGPT, Claude, or Gemini to literally "talk" to your books: ask questions about the plot, search for specific concepts, or ask for summaries, leaving the heavy computational lifting to cloud AIs without overloading your PC!
 
 ---
 
@@ -39,16 +39,16 @@ Now that the environment is ready, let's start the software!
 1. Download this project to your PC (via `git clone` or by downloading the ZIP).
 2. Open the terminal **exactly inside the project folder** (where the `docker-compose.yml` file is located).
 3. Type this command and press Enter:
-   `docker-compose up -d --build`
+   `docker compose up -d --build`
 
 Wait a couple of minutes. Docker will download a lightweight Linux environment, compile the 3D graphics (Vite), and start the server in the background.
 
 #### Step 3: Starting and Stopping (Daily Use)
 You don't need to rebuild the project every time you want to read! 
 * **To start the app:** Open the terminal in the project folder and run:
-  `docker-compose up -d`
+  `docker compose up -d`
 * **To stop the app:** Run:
-  `docker-compose down`
+  `docker compose down`
 
 ---
 
@@ -64,11 +64,11 @@ On Google Chrome or Edge, go to the menu (the three dots) -> "Save and share" / 
 
 ---
 
-### 📖 Integrated EPUB Reader & Reading Memories
+### 📖 Integrated EPUB & PDF Reader & Reading Memories
 
 LoreKeeper is not just an archive, it's a fully-featured immersive reading environment designed to build your personal "Memory Palace":
 
-* **Customizable Reader:** Open any EPUB directly in the browser. Adjust the text size on the fly and toggle between Light and Dark mode. The reader will remember your exact position and aesthetic preferences!
+* **Customizable Reader:** Open any EPUB or PDF directly in the browser. Adjust the text size on the fly and toggle between Light and Dark mode. The reader will remember your exact position and aesthetic preferences!
 * **Dynamic 3D Bookmarks:** As you progress through a book, a physical red ribbon bookmark will move along your 3D book on the shelf, showing your exact reading percentage at a glance.
 * **Interactive Reviews:** When you finish a book (100%), a seamless modal will appear prompting you to rate it (1-5 stars) and write your hot-take review. Your rating will literally be stamped in gold on the back cover of the 3D book in your library!
 
@@ -77,7 +77,7 @@ LoreKeeper is not just an archive, it's a fully-featured immersive reading envir
 
 ### 🧠 Export for AI (Obsidian & LLM Ready)
 
-LoreKeeper acts as an "AI-Bridge", transforming your EPUBs into clean, structured Knowledge Bases.
+LoreKeeper acts as an "AI-Bridge", transforming your EPUBs and PDFs into clean, structured Knowledge Bases.
 
 If you want to analyze a book:
 1. Select the book in the 3D library.
@@ -94,7 +94,7 @@ If you want to analyze a book:
 
 The app is smart and syncs data with your computer. Inside the project folder, you will find these folders in the `public/` directory (created automatically on the first run):
 
-* `ebooks/`: Your books (EPUBs) are physically saved here.
+* `ebooks/`: Your books (EPUBs/PDFs) are physically saved here.
 * `covers/`: Extracted covers for 3D visualization are saved here.
 * `books.json`: This file is the database of your library.
 
@@ -130,9 +130,9 @@ Adding a new translation is incredibly easy:
 <a name="italiano"></a>
 ## 🇮🇹 Italiano
 
-Una libreria digitale interattiva in 3D che ti permette di caricare, sfogliare e organizzare i tuoi file EPUB in un ambiente grafico immersivo.
+Una libreria digitale interattiva in 3D che ti permette di caricare, sfogliare e organizzare i tuoi file EPUB e PDF in un ambiente grafico immersivo.
 
-Ma non è finita qui: grazie alla funzione **Esporta per IA**, puoi estrarre l'intero testo pulito di qualsiasi libro in un file Knowledge Base (`.txt`) pronto all'uso. Ti basterà caricare questo file su ChatGPT, Claude o Gemini per letteralmente "parlare" con i tuoi libri: fai domande sulla trama, cerca concetti specifici o chiedi riassunti, lasciando il lavoro pesante ai server cloud senza fondere il tuo PC!
+Ma non è finita qui: grazie alla funzione **Esporta per IA**, puoi estrarre l'intero testo pulito di qualsiasi libro in un file Knowledge Base (`.md`) pronto all'uso. Ti basterà caricare questo file su ChatGPT, Claude o Gemini per letteralmente "parlare" con i tuoi libri: fai domande sulla trama, cerca concetti specifici o chiedi riassunti, lasciando il lavoro pesante ai server cloud senza fondere il tuo PC!
 
 ---
 
@@ -156,16 +156,16 @@ Ora che l'ambiente è pronto, accendiamo il software!
 1. Scarica questo progetto sul tuo PC (tramite `git clone` o scaricando lo ZIP).
 2. Apri il terminale **esattamente all'interno della cartella del progetto** (dove si trova il file `docker-compose.yml`).
 3. Digita questo comando e premi Invio:
-   `docker-compose up -d --build`
+   `docker compose up -d --build`
 
 Attendi un paio di minuti. Docker scaricherà un ambiente Linux leggerissimo, compilerà la grafica in 3D (Vite) e avvierà il server in background.
 
 #### Passo 3: Avviare e Fermare l'App (Uso Quotidiano)
 Non c'è bisogno di ricostruire (build) il progetto ogni volta che vuoi leggere!
 * **Per avviare l'app:** Apri il terminale nella cartella del progetto e digita:
-  `docker-compose up -d`
+  `docker compose up -d`
 * **Per fermare l'app:** Digita:
-  `docker-compose down`
+  `docker compose down`
 ---
 
 ### 🎮 Come usare l'App
@@ -180,11 +180,11 @@ Su Google Chrome o Edge, vai nel menu (i tre puntini) -> "Salva e condividi" / "
 
 ---
 
-### 📖 Lettore EPUB Integrato e Ricordi di Lettura
+### 📖 Lettore EPUB e PDF Integrato e Ricordi di Lettura
 
 LoreKeeper non è solo un archivio, ma un ambiente di lettura immersivo pensato per costruire il tuo personale "Palazzo della Memoria":
 
-* **Lettore Personalizzabile:** Apri gli EPUB direttamente nel browser. Regola la grandezza del testo al volo e passa dalla modalità Chiara a quella Scura. Il lettore ricorderà l'esatta pagina in cui ti trovavi e le tue preferenze estetiche!
+* **Lettore Personalizzabile:** Apri gli EPUB o i PDF direttamente nel browser. Regola la grandezza del testo al volo e passa dalla modalità Chiara a quella Scura. Il lettore ricorderà l'esatta pagina in cui ti trovavi e le tue preferenze estetiche!
 * **Segnalibri Dinamici in 3D:** Mentre progredisci nella lettura, una fettuccia rossa (segnalibro) si sposterà fisicamente sul tuo libro 3D nella mensola, mostrandoti la percentuale completata a colpo d'occhio.
 * **Recensioni Interattive:** Quando finisci un libro (100%), apparirà un elegante pop-up per valutare l'opera (1-5 stelle) e scrivere le tue riflessioni a caldo. La tua valutazione a stelle verrà letteralmente stampata in oro sul retro della copertina 3D del libro!
 
@@ -192,7 +192,7 @@ LoreKeeper non è solo un archivio, ma un ambiente di lettura immersivo pensato 
 
 ### 🧠 Funzione "Esporta per IA" (Pronto per Obsidian e LLM)
 
-LoreKeeper funge da "AI-Bridge", trasformando i tuoi EPUB in Knowledge Base strutturate e pulite.
+LoreKeeper funge da "AI-Bridge", trasformando i tuoi EPUB e PDF in Knowledge Base strutturate e pulite.
 
 Se vuoi analizzare un libro con l'Intelligenza Artificiale:
 1. Seleziona il libro nella libreria 3D.
