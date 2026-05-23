@@ -27,3 +27,7 @@ uploads
 public/ebooks/
 public/covers/
 public/books.json
+
+build-win/
+build-exe.js
+

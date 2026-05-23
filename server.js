@@ -14,7 +14,7 @@ const app = express();
 const port = 3000;
 
 // Configurazione cartelle
-const uploadDir = 'uploads/';
+const uploadDir = path.join(process.cwd(), 'uploads');
 const publicDir = path.join(process.cwd(), 'public');
 const coversDir = path.join(publicDir, 'covers');
 const booksJsonPath = path.join(publicDir, 'books.json');
@@ -22,7 +22,7 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // --- Creiamo le cartelle e i file se non esistono ---
 if (!fsSync.existsSync(uploadDir)) {
-    fsSync.mkdirSync(uploadDir);
+    fsSync.mkdirSync(uploadDir, { recursive: true });
     console.log("📁 Cartella 'uploads' creata automaticamente.");
 }
 
@@ -31,7 +31,7 @@ if (!fsSync.existsSync(coversDir)) {
     console.log("📁 Cartella 'covers' creata automaticamente.");
 }
 
-// NUOVO: Controllo specifico per il database JSON
+
 if (!fsSync.existsSync(booksJsonPath)) {
     fsSync.writeFileSync(booksJsonPath, '[]'); 
     console.log("📄 File 'books.json' creato automaticamente.");
@@ -45,7 +45,7 @@ const upload = multer({ dest: uploadDir });
 
 app.use(express.json());
 app.use(express.static('dist')); 
-app.use(express.static('public'));
+app.use(express.static(publicDir));
 
 
 // --- FUNZIONI HELPER ---
