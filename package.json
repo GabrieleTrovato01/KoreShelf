@@ -19,8 +19,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "concurrently \"node server.js\" \"npm run dev\"",
-    "build:exe": "node build-exe.js"
+    "start": "concurrently \"node server.js\" \"npm run dev\""
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
