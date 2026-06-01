@@ -1,0 +1,60 @@
+name: Build LoreKeeper
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Ti permette di avviare la build manualmente da GitHub!
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: node18-win-x64
+            output_name: lorekeeper.exe
+            artifact_name: LoreKeeper-Windows
+          - os: ubuntu-latest
+            target: node18-linux-x64
+            output_name: lorekeeper-linux
+            artifact_name: LoreKeeper-Linux
+          - os: macos-latest
+            target: node18-macos-x64
+            output_name: lorekeeper-macos
+            artifact_name: LoreKeeper-macOS
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Frontend (Vite)
+        run: npm run build
+
+      - name: Package Executable with pkg
+        run: npx pkg package.json --targets ${{ matrix.target }} --output ${{ matrix.output_name }}
+
+      - name: Prepare Release Folder (Include Sharp binaries)
+        shell: bash
+        run: |
+          mkdir release_build
+          mv ${{ matrix.output_name }} release_build/
+          
+          # Riproduciamo la logica del tuo build-exe.js per evitare crash con le immagini!
+          mkdir -p release_build/node_modules/sharp/build/Release
+          cp -r node_modules/sharp/build/Release/* release_build/node_modules/sharp/build/Release/ || echo "Nessun modulo nativo extra da copiare"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: release_build/
