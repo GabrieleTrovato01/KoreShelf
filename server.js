@@ -6,7 +6,6 @@ import fsSync from 'fs';
 import { EPub } from 'epub2';
 import axios from 'axios';
 import sharp from 'sharp';
-import { EPubLoader } from "@langchain/community/document_loaders/fs/epub";
 import pdfParse from 'pdf-parse';
 import { fromPath } from 'pdf2pic';
 import * as htmlToText from 'html-to-text';
@@ -689,10 +688,34 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
             fullText = pdfData.text;
         } else {
             console.log(`📚 Lettura EPUB rilevata. Estrazione tramite LangChain in corso...`);
-            const loader = new EPubLoader(physicalEpubPath);
-            const rawDocs = await loader.load();
+            const epub = await EPub.createAsync(physicalEpubPath);
+            const getChapterAsync = (id) => new Promise(resolve => {
+                epub.getChapter(id, (err, text) => {
+                    if (err || !text) resolve('');
+                    else resolve(text);
+                });
+            });
+            let chaptersText = [];
+            if (epub.flow) {
+                for (const chapter of epub.flow) {
+                    if (chapter.id) {
+                        const htmlText = await getChapterAsync(chapter.id);
+                        if (htmlText && htmlText.trim() !== '') {
+                            // Usiamo html-to-text per pulire l'HTML in un Markdown perfetto
+                            const cleanText = htmlToText.convert(htmlText, {
+                                wordwrap: false,
+                                selectors: [ 
+                                    { selector: 'img', format: 'skip' }, 
+                                    { selector: 'a', options: { ignoreHref: true } } 
+                                ]
+                            });
+                            chaptersText.push(cleanText);
+                        }
+                    }
+                }
+            }
             
-            fullText = rawDocs.map(doc => doc.pageContent).join("\n\n---\n\n");
+            fullText = chaptersText.join("\n\n---\n\n");
         }
 
         // Prepariamo il nome del file
