@@ -9,6 +9,7 @@ import sharp from 'sharp';
 import { EPubLoader } from "@langchain/community/document_loaders/fs/epub";
 import pdfParse from 'pdf-parse';
 import { fromPath } from 'pdf2pic';
+import * as htmlToText from 'html-to-text';
 
 const app = express();
 const port = 3000;
