@@ -9,7 +9,6 @@ import sharp from 'sharp';
 import { EPubLoader } from "@langchain/community/document_loaders/fs/epub";
 import pdfParse from 'pdf-parse';
 import { fromPath } from 'pdf2pic';
-import { fileURLToPath } from 'url';
 
 const app = express();
 const port = 3000;
@@ -47,17 +46,24 @@ const upload = multer({ dest: uploadDir });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Se l'app gira dentro l'eseguibile (process.pkg esiste), il file si trova in "build-output", 
-// quindi saliamo di un livello ("../dist"). Altrimenti siamo in locale e usiamo "dist".
-const distPath = process.pkg 
-    ? path.join(__dirname, '../dist') 
-    : path.join(__dirname, 'dist');
+// --- FIX PER I PERCORSI DI PKG ED ESBUILD ---
+let distPath;
+
+if (process.pkg) {
+    // Se gira dentro l'eseguibile, esbuild ha creato un ambiente CJS, 
+    // quindi __dirname esiste e punta alla cartella invisibile "build-output"
+    distPath = path.join(__dirname, '../dist');
+} else {
+    // Se gira in locale sul tuo PC, usiamo semplicemente process.cwd() 
+    // esattamente come hai già fatto brillantemente per uploads e covers
+    distPath = path.join(process.cwd(), 'dist');
+}
 
 app.use(express.json());
 app.use(express.static(distPath)); 
 app.use(express.static(publicDir));
 
-// Fallback fondamentale per le Single Page Application (come Vite)
+// Fallback fondamentale per le Single Page Application
 app.get('/', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
 });
