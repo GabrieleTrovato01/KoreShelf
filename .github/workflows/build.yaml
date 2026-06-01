@@ -40,6 +40,9 @@ jobs:
       - name: Build Frontend (Vite)
         run: npm run build
 
+      - name: Bundle Backend (esbuild)
+        run: npx esbuild server.js --bundle --platform=node --format=cjs --packages=external --outfile=build-output/server.bundle.js
+
       - name: Package Executable with pkg
         run: npx pkg package.json --targets ${{ matrix.target }} --output ${{ matrix.output_name }}
 
