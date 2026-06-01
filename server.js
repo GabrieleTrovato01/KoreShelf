@@ -42,10 +42,6 @@ if (!fsSync.existsSync(booksJsonPath)) {
 // ----------------------------------------------------
 
 const upload = multer({ dest: uploadDir });
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // --- FIX PER I PERCORSI DI PKG ED ESBUILD ---
 let distPath;
 
