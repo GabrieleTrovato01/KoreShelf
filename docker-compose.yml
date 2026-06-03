@@ -2,7 +2,7 @@ services:
   lorekeeper:
     build: .
     container_name: lorekeeper
-    restart: unless-stopped
+    restart: on-failure
     ports:
       - "3000:3000"
     volumes:
