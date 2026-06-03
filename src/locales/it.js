@@ -133,7 +133,8 @@ export default {
             <li><b>Esplora:</b> Usa "Mostra Trama" per voltare il libro 3D e leggere il retro.</li>
             <li><b>Dark Mode:</b> Clicca l'icona della luna nel lettore per non affaticare la vista.</li>
             <li><b style="color: #ba55d3;">🤖 Knowledge Base (Markdown):</b> Esporta per IA per estrarre una Knowledge Base formattata in <strong>Markdown (.md)</strong>. È pronta per Obsidian, Notion, ChatGPT o Claude!</li>
-        ` ,
+            <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto "Spegni" in alto a destra per chiudere il server locale e l'applicazione in totale sicurezza quando hai finito di leggere.</li>
+            ` ,
         donateBtn: "💙 Supporta",
         // Aggiungi questo in fondo all'oggetto export default
         emptyLibraryMessage: "La tua libreria è vuota. Clicca su '+ Carica Ebook' per iniziare la tua collezione!",
