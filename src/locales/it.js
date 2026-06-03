@@ -152,4 +152,12 @@ export default {
         fullPlotTitle: "Trama",
         noDescription: "Nessuna trama disponibile.",
         closeBtn: "Chiudi",
+
+        //Spegnimento server
+        // Spegnimento Server
+        shutdownBtn: "Spegni",
+        shutdownTooltip: "Spegni il server locale di LoreKeeper",
+        shutdownConfirm: "Vuoi davvero spegnere LoreKeeper? L'applicazione verrà chiusa.",
+        shutdownTitle: "LoreKeeper disattivato",
+        shutdownMessage: "Il server locale è stato spento. Puoi chiudere questa finestra."
     };

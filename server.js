@@ -774,6 +774,16 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
     }
 });
 
+// --- ROTTA PER SPEGNIMENTO SERVER ---
+app.post('/api/shutdown', (req, res) => {
+    console.log("🛑 Richiesta di spegnimento ricevuta dal client. Chiusura del server in corso...");
+    res.json({ success: true, message: "Server in chiusura" });
+    
+    setTimeout(() => {
+        process.exit(0);
+    }, 1000);
+});
+
 app.listen(port, () => {
     console.log(`🚀 Backend in ascolto su http://localhost:${port}`);
 });

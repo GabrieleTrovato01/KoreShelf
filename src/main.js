@@ -15,6 +15,11 @@ function translateStaticHTML() {
     const themeBtn = document.getElementById('theme-toggle-btn');
     const lang = localStorage.getItem('lorekeeper_lang') || 'it';
 
+    if (typeof shutdownBtn !== 'undefined') {
+        shutdownBtn.innerHTML = '⏻ ' + t('shutdownBtn');
+        shutdownBtn.title = t('shutdownTooltip');
+    }
+    
     if (closeReaderBtn) closeReaderBtn.innerHTML = `&times; ${t('closeReader')}`;
     
     if (themeBtn) {
@@ -239,6 +244,56 @@ fileInput.id = 'file-upload';
 fileInput.accept = '.epub, .pdf';
 fileInput.multiple = true;
 topBar.appendChild(fileInput);
+
+// --- BOTTONE SPEGNIMENTO SERVER ---
+const shutdownBtn = document.createElement('button');
+shutdownBtn.innerHTML = '⏻ ' + t('shutdownBtn'); 
+shutdownBtn.className = 'glass-effect modern-btn';
+shutdownBtn.style.padding = '12px 15px';
+shutdownBtn.style.fontWeight = 'bold';
+shutdownBtn.title = t('shutdownTooltip');
+
+// Colore rossastro/violaceo per distinguerlo dalla lingua, ma in stile Glassmorphism
+shutdownBtn.style.background = 'rgba(217, 83, 79, 0.15)';
+shutdownBtn.style.borderColor = 'rgba(217, 83, 79, 0.4)';
+shutdownBtn.style.color = '#ff9999';
+
+// Effetto hover
+shutdownBtn.onmouseover = () => {
+    shutdownBtn.style.background = 'rgba(217, 83, 79, 0.3)';
+    shutdownBtn.style.borderColor = 'rgba(217, 83, 79, 0.6)';
+    shutdownBtn.style.transform = 'translateY(-3px)';
+    shutdownBtn.style.boxShadow = '0 8px 15px rgba(217, 83, 79, 0.2)';
+};
+shutdownBtn.onmouseout = () => {
+    shutdownBtn.style.background = 'rgba(217, 83, 79, 0.15)';
+    shutdownBtn.style.borderColor = 'rgba(217, 83, 79, 0.4)';
+    shutdownBtn.style.transform = 'translateY(0px)';
+    shutdownBtn.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+};
+
+shutdownBtn.onclick = async () => {
+    const confermato = confirm(t('shutdownConfirm'));
+    
+    if (confermato) {
+        try {
+            await fetch('/api/shutdown', { method: 'POST' });
+            
+            // Schermata di arrivederci a tutto schermo
+            document.body.innerHTML = `
+                <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background-color: #2c3e50; color: white; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0;">
+                    <h1 style="font-size: 2.5rem; margin-bottom: 15px; color: #d4af37;">${t('shutdownTitle')}</h1>
+                    <p style="color: #a0aec0; font-size: 1.2rem;">${t('shutdownMessage')}</p>
+                </div>
+            `;
+        } catch (error) {
+            console.error("Errore durante lo spegnimento:", error);
+        }
+    }
+};
+
+// Aggiungiamo il bottone alla barra in alto, subito dopo la lingua
+topBar.appendChild(shutdownBtn);
 
 // --- PULSANTE CAMBIO LINGUA ---
 const langBtn = document.createElement('button');
