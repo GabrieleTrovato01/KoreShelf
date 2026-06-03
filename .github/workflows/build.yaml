@@ -10,20 +10,30 @@ jobs:
     name: Build on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      strategy:
       matrix:
         include:
           - os: windows-latest
             target: node18-win-x64
             output_name: lorekeeper.exe
             artifact_name: LoreKeeper-Windows
+            
           - os: ubuntu-latest
             target: node18-linux-x64
             output_name: lorekeeper-linux
             artifact_name: LoreKeeper-Linux
-          - os: macos-latest
+            
+          # Versione per i vecchi Mac Intel
+          - os: macos-13
             target: node18-macos-x64
-            output_name: lorekeeper-macos
-            artifact_name: LoreKeeper-macOS
+            output_name: lorekeeper-macos-intel
+            artifact_name: LoreKeeper-macOS-Intel
+            
+          # Versione Nativa per i nuovi Mac M1/M2/M3 (Apple Silicon)
+          - os: macos-latest
+            target: node18-macos-arm64
+            output_name: lorekeeper-macos-arm
+            artifact_name: LoreKeeper-macOS-AppleSilicon
 
     steps:
       - name: Checkout repository
