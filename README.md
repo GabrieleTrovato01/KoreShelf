@@ -21,27 +21,39 @@ But that's not all: thanks to the **Export for AI** feature, you can extract the
 
 ### ⚙️ System Requirements
 
-To run this project on your computer, you don't need to configure servers or install Node.js. You only need one free program:
+To run this project, you do not need to configure servers or install Node.js! The requirements depend entirely on how you choose to run it:
 
-1. **Docker**: The engine that will run the web application (frontend and backend) isolated and securely with a single command.
+*   **Portable App (Recommended):** No external software required. Just download, extract, and run.
+*   **Docker Version:** You only need one free program: **Docker**, which will run the web application isolated and securely.
 
 ---
 
 ### 🚀 Installation Guide (Step-by-Step)
 
-You have two ways to run LoreKeeper. If you are on Windows, we highly recommend the new **Portable Version** for a faster, "out-of-the-box" experience.
+You have two ways to run LoreKeeper.
 
-#### Option 1: The Easy Way (Portable Windows App - Recommended)
+#### Option 1: The Easy Way (Portable Desktop App - Recommended)
 
-If you are on Windows and want to avoid installing Docker or Node.js, you can use our standalone executable.
+If you want to avoid installing Docker or Node.js, you can use our standalone executable available for **Windows, Linux, and macOS (Apple Silicon)**.
 
-1. Go to the [Releases section](https://github.com/GabrieleTrovato01/LoreKeeper/releases/tag/v1.3.0) of this repository.
-2. Download the latest `LoreKeeper-v1.x.x-win.zip` file.
+1. Go to the [Releases section](https://www.google.com/search?q=https://github.com/GabrieleTrovato01/LoreKeeper/releases) of this repository.
+2. Download the `.zip` file for your Operating System.
 3. Extract the contents to any folder on your PC.
-4. Run `lorekeeper-app.exe`.
-*Note: Upon first launch, the app will automatically create the necessary data folders (`ebooks/`, `covers/`, and `books.json`) in the same directory.*
+4. **Windows:** Double-click `lorekeeper-win.exe`.
+5. **Linux:** Open the terminal in the folder and run `./lorekeeper-linux`. *(Note: you might need to make it executable first by running `chmod +x lorekeeper-linux`).*
+6. **macOS (Apple Silicon / M1, M2, M3...):** Due to Apple's strict quarantine for unsigned apps, open your terminal in the extracted folder and run these two commands to grant permissions:
 
-*Note on Security: As this is an independent open-source project without a paid digital signature, Windows SmartScreen may show a warning at the first launch. Simply click "More info" and "Run anyway" to get started; the source code is fully transparent and available here.*
+```bash
+chmod +x lorekeeper-macos-arm
+xattr -cr lorekeeper-macos-arm
+
+```
+
+*Then, simply double-click the file or run `./lorekeeper-macos-arm`.*
+
+*(Note for Intel Mac users: Pre-built binaries are not available for older Intel Macs. Please use Option 2: Docker, or run the app from source).*
+
+*Note on Security: As this is an independent open-source project without a paid digital signature, SmartScreen or Gatekeeper may show a warning at the first launch. Simply choose "More info" and "Run anyway" to get started; the source code is fully transparent and available here.*
 
 #### Option 2: The Advanced Way (Docker - For Developers/Linux/macOS)
 
@@ -58,7 +70,6 @@ If you prefer to run the project via Docker or are on a non-Windows OS, follow t
 2. Open the terminal **exactly inside the project folder** (where the `docker-compose.yml` file is located).
 3. Type this command and press Enter:
 `docker compose up -d --build`.
-
 ---
 
 ### 🎮 How to Use the App
@@ -147,27 +158,40 @@ Ma non è finita qui: grazie alla funzione **Esporta per IA**, puoi estrarre l'i
 
 ### ⚙️ Requisiti di Sistema
 
-Per far funzionare questo progetto sul tuo computer non devi configurare server o installare Node.js. Ti serve solo un programma gratuito:
+Per far funzionare questo progetto non devi configurare server o installare Node.js! I requisiti dipendono esclusivamente da come decidi di avviarlo:
 
-1. **Docker**: Il motore che farà girare l'applicazione web (frontend e backend) in modo isolato e sicuro con un solo comando.
+*   **App Portatile (Consigliata):** Nessun software aggiuntivo richiesto. Basta scaricare, estrarre e avviare il programma.
+*   **Versione Docker:** Ti serve solo un programma gratuito: **Docker**, che farà girare l'applicazione web in modo isolato e sicuro.
 
 ---
 
+
 ### 🚀 Guida all'Installazione (Passo Passo)
 
-Hai due modi per avviare LoreKeeper. Se sei su Windows, ti consigliamo vivamente la nuova **Versione Portatile** per un'esperienza immediata e senza configurazioni.
+Hai due modi per avviare LoreKeeper.
 
-#### Opzione 1: La via più semplice (App Portatile per Windows - Consigliata)
+#### Opzione 1: La via più semplice (App Portatile Desktop - Consigliata)
 
-Se sei su Windows e vuoi evitare di installare Docker o Node.js, puoi usare il nostro eseguibile standalone.
+Se vuoi evitare di installare Docker o Node.js, puoi usare il nostro eseguibile standalone disponibile per **Windows, Linux e macOS (Apple Silicon)**.
 
-1. Vai nella sezione [Releases](https://github.com/GabrieleTrovato01/LoreKeeper/releases/tag/v1.3.0) di questo repository.
-2. Scarica il file `LoreKeeper-v1.x.x-win.zip` più recente.
+1. Vai nella sezione [Releases](https://www.google.com/search?q=https://github.com/GabrieleTrovato01/LoreKeeper/releases) di questo repository.
+2. Scarica il file `.zip` corrispondente al tuo Sistema Operativo.
 3. Estrai il contenuto in una cartella a tua scelta sul PC.
-4. Avvia `lorekeeper-app.exe`.
-*Nota: Al primo avvio, l'app creerà automaticamente le cartelle necessarie (`ebooks/`, `covers/` e `books.json`) nella stessa directory.*
+4. **Windows:** Fai doppio clic su `lorekeeper-win.exe`.
+5. **Linux:** Apri il terminale nella cartella ed esegui `./lorekeeper-linux`. *(Nota: potrebbe essere necessario dare i permessi di esecuzione digitando `chmod +x lorekeeper-linux`).*
+6. **macOS (Apple Silicon / M1, M2, M3...):** A causa delle rigide regole di sicurezza di Apple per le app non firmate a pagamento, apri il terminale nella cartella estratta ed esegui questi due comandi per sbloccare l'app:
 
-*Nota sulla Sicurezza: Essendo un progetto open-source indipendente privo di firma digitale a pagamento, Windows SmartScreen potrebbe mostrare un avviso al primo avvio. Basta cliccare su "Ulteriori informazioni" e poi su "Esegui comunque"; il codice sorgente è completamente trasparente e verificabile in questo repository.*
+```bash
+chmod +x lorekeeper-macos-arm
+xattr -cr lorekeeper-macos-arm
+
+```
+
+*Fatto ciò, ti basterà fare doppio clic sul file o eseguire `./lorekeeper-macos-arm`.*
+
+*(Nota per gli utenti Mac Intel: L'eseguibile precompilato non è disponibile per i vecchi Mac Intel. Puoi usare l'Opzione 2 con Docker, oppure avviare l'app dal codice sorgente).*
+
+*Nota sulla Sicurezza: Essendo un progetto open-source indipendente privo di firma digitale a pagamento, Windows SmartScreen o Apple Gatekeeper potrebbero mostrare un avviso al primo avvio. Basta cliccare su "Ulteriori informazioni" e poi su "Esegui comunque"; il codice sorgente è completamente trasparente e verificabile in questo repository.*
 
 #### Opzione 2: La via avanzata (Docker - Per Sviluppatori/Linux/macOS)
 
@@ -185,16 +209,12 @@ Se preferisci far girare il progetto tramite Docker o sei su un sistema operativ
 3. Digita questo comando e premi Invio:
 `docker compose up -d --build`.
 
-
 ### 🎮 Come usare l'App
 
 Una volta che il terminale ha finito di caricare, la libreria è pronta!
 Apri il tuo browser preferito (Chrome, Edge, Safari) e vai all'indirizzo:
 
 👉 **http://localhost:3000**
-
-**💡 Tip per l'esperienza definitiva:** Non c'è bisogno di aprire il browser ogni volta! Puoi trasformare questa pagina in un'app desktop:
-Su Google Chrome o Edge, vai nel menu (i tre puntini) -> "Salva e condividi" / "App" -> **Installa pagina come App / Crea scorciatoia** (ricorda di spuntare "Apri come finestra"). Avrai un'icona sul desktop e sembrerà a tutti gli effetti un programma nativo installato!
 
 ---
 
