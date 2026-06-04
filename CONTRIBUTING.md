@@ -74,9 +74,9 @@ Basandoci sul feedback della community e sullo sviluppo interno, ecco su cosa la
 
 ### 🖥️ Supporto Cross-Platform
 
-* [ ] **macOS:** Sviluppare e testare la strategia di packaging `.dmg` per il supporto nativo Apple Silicon/Intel.
-* [ ] **Linux:** Implementare la distribuzione tramite `.AppImage` (o `.deb`/`.flatpak`) per garantire un'esecuzione fluida sulle principali distribuzioni Linux.
-* [ ] **CI/CD:** Automatizzare il processo di build per gli eseguibili Windows, macOS e Linux per velocizzare le future release.
+* [X] **macOS:** Sviluppare e testare la strategia di packaging `.dmg` per il supporto nativo Apple Silicon/Intel.
+* [X] **Linux:** Implementare la distribuzione tramite `.AppImage` (o `.deb`/`.flatpak`) per garantire un'esecuzione fluida sulle principali distribuzioni Linux.
+* [X] **CI/CD:** Automatizzare il processo di build per gli eseguibili Windows, macOS e Linux per velocizzare le future release.
 
 ---
 
@@ -188,9 +188,9 @@ Based on community feedback and internal development, here is what we are workin
 
 ### 🖥️ Cross-Platform Support
 
-* [ ] **macOS:** Develop and test the `.dmg` packaging strategy for native Apple Silicon/Intel support.
-* [ ] **Linux:** Implement distribution via `.AppImage` (or `.deb`/`.flatpak`) to ensure seamless execution on major Linux distributions.
-* [ ] **CI/CD:** Automate the build process for Windows, macOS, and Linux executables to streamline future releases.
+* [X] **macOS:** Develop and test the `.dmg` packaging strategy for native Apple Silicon/Intel support.
+* [X] **Linux:** Implement distribution via `.AppImage` (or `.deb`/`.flatpak`) to ensure seamless execution on major Linux distributions.
+* [X] **CI/CD:** Automate the build process for Windows, macOS, and Linux executables to streamline future releases.
 
 ---
 
