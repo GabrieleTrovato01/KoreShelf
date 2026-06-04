@@ -36,7 +36,7 @@ You have two ways to run LoreKeeper.
 
 If you want to avoid installing Docker or Node.js, you can use our standalone executable available for **Windows, Linux, and macOS (Apple Silicon)**.
 
-1. Go to the [Releases section](https://www.google.com/search?q=https://github.com/GabrieleTrovato01/LoreKeeper/releases) of this repository.
+1. Go to the [Releases section](https://github.com/GabrieleTrovato01/LoreKeeper/releases) of this repository.
 2. Download the `.zip` file for your Operating System.
 3. Extract the contents to any folder on your PC.
 4. **Windows:** Double-click `lorekeeper-win.exe`.
@@ -174,7 +174,7 @@ Hai due modi per avviare LoreKeeper.
 
 Se vuoi evitare di installare Docker o Node.js, puoi usare il nostro eseguibile standalone disponibile per **Windows, Linux e macOS (Apple Silicon)**.
 
-1. Vai nella sezione [Releases](https://www.google.com/search?q=https://github.com/GabrieleTrovato01/LoreKeeper/releases) di questo repository.
+1. Vai nella sezione [Releases](https://github.com/GabrieleTrovato01/LoreKeeper/releases) di questo repository.
 2. Scarica il file `.zip` corrispondente al tuo Sistema Operativo.
 3. Estrai il contenuto in una cartella a tua scelta sul PC.
 4. **Windows:** Fai doppio clic su `lorekeeper-win.exe`.
