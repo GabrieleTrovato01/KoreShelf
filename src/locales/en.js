@@ -157,5 +157,9 @@ export default {
         shutdownTooltip: "Shutdown LoreKeeper local server",
         shutdownConfirm: "Do you really want to shutdown LoreKeeper? The application will close.",
         shutdownTitle: "LoreKeeper Shutdown",
-        shutdownMessage: "The local server has been shut down. You can safely close this window."
+        shutdownMessage: "The local server has been shut down. You can safely close this window.",
+
+        //update
+        updateAvailable: "🚀 New version of LoreKeeper (<strong>{version}</strong>) available!",
+        updateDownload: "DOWNLOAD",
     };

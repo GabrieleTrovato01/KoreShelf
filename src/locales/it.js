@@ -160,5 +160,9 @@ export default {
         shutdownTooltip: "Spegni il server locale di LoreKeeper",
         shutdownConfirm: "Vuoi davvero spegnere LoreKeeper? L'applicazione verrà chiusa.",
         shutdownTitle: "LoreKeeper disattivato",
-        shutdownMessage: "Il server locale è stato spento. Puoi chiudere questa finestra."
+        shutdownMessage: "Il server locale è stato spento. Puoi chiudere questa finestra.",
+
+        // update 
+        updateAvailable: "🚀 Nuova versione di LoreKeeper (<strong>{version}</strong>) disponibile!",
+        updateDownload: "SCARICA",
     };
