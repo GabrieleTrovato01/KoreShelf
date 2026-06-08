@@ -806,7 +806,7 @@ app.listen(port, () => {
 
     exec(command, (error) => {
         if (error) {
-            console.error("Impossibile aprire il browser automaticamente:", error);
+            console.error("Impossibile aprire il browser automaticamente(aprilo manualmente): ", error);
         }
     });
 });
