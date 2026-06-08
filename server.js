@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
 import fsSync from 'fs';
+import {exec} from 'child_process';
 import { EPub } from 'epub2';
 import axios from 'axios';
 import sharp from 'sharp';
@@ -786,4 +787,26 @@ app.post('/api/shutdown', (req, res) => {
 
 app.listen(port, () => {
     console.log(`🚀 Backend in ascolto su http://localhost:${port}`);
+
+    // --- LOGICA PER APRIRE IL BROWSER IN AUTOMATICO ---
+    const url = `http://localhost:${port}`;
+    
+    let command;
+    switch (process.platform) {
+        case 'darwin': // macOS
+            command = `open ${url}`;
+            break;
+        case 'win32':  // Windows
+            command = `start "" "${url}"`; // Le virgolette vuote evitano bug su Windows
+            break;
+        default:       // Linux e altri (inclusi gli ambienti pacchettizzati)
+            command = `xdg-open ${url}`;
+            break;
+    }
+
+    exec(command, (error) => {
+        if (error) {
+            console.error("Impossibile aprire il browser automaticamente:", error);
+        }
+    });
 });
