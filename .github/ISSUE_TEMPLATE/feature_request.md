@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 ## 💡 Descrizione della proposta
-Una spiegazione chiara di quale funzione vorresti vedere in LoreKeeper.
+Una spiegazione chiara di quale funzione vorresti vedere in KoreShelf.
 
 ## 🚀 Perché è utile?
 Spiega perché questa modifica migliorerebbe l'esperienza dell'utente.

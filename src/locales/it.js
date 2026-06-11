@@ -36,7 +36,7 @@ export default {
         categoryPrompt: "Inserisci il nome della nuova categoria per questo libro:",
         
         // Help Modal (index.html/main.js logic)
-        helpTitle: "Guida Rapida LoreKeeper",
+        helpTitle: "Guida Rapida KoreShelf",
         helpClose: "Ho capito!",
 
         // Reader (reader.js)
@@ -115,7 +115,7 @@ export default {
         allBooksAlreadyHere: "Tutti i libri della libreria sono già qui.",
         importSelectedBtn: "📥 Importa Selezionati Qui",
 
-        credits: "&copy; 2026 LoreKeeper - Tutti i diritti riservati. Creata da",
+        credits: "&copy; 2026 KoreShelf - Tutti i diritti riservati. Creata da",
 
         // help guide
         // --- LETTORE E HELP MODAL ---
@@ -157,8 +157,8 @@ export default {
         //Spegnimento server
         // Spegnimento Server
         shutdownBtn: "Spegni",
-        shutdownTooltip: "Spegni il server locale di LoreKeeper",
-        shutdownConfirm: "Vuoi davvero spegnere LoreKeeper? L'applicazione verrà chiusa.",
-        shutdownTitle: "LoreKeeper disattivato",
+        shutdownTooltip: "Spegni il server locale di KoreShelf",
+        shutdownConfirm: "Vuoi davvero spegnere KoreShelf? L'applicazione verrà chiusa.",
+        shutdownTitle: "KoreShelf disattivato",
         shutdownMessage: "Il server locale è stato spento. Puoi chiudere questa finestra."
     };

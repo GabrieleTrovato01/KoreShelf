@@ -1,19 +1,19 @@
-# 📚 LoreKeeper
+# 📚 KoreShelf
 
 *Read this in: [English](#english) | [Italiano](#italiano)*
 
 ---
 
 <a name="italiano"></a>
-# 🤝 Guida al Contributo per LoreKeeper
+# 🤝 Guida al Contributo per KoreShelf
 
-Grazie per l'interesse nel contribuire a **LoreKeeper**! La tua collaborazione è fondamentale per rendere questa libreria 3D ancora più potente e immersiva.
+Grazie per l'interesse nel contribuire a **KoreShelf**! La tua collaborazione è fondamentale per rendere questa libreria 3D ancora più potente e immersiva.
 
 ## 🐛 Segnalazione Bug
 
 Hai trovato qualcosa che non va? Prima di aprire una nuova segnalazione:
 
-1. Verifica che il bug non sia già stato segnalato tra le [Issues](https://github.com/GabrieleTrovato01/LoreKeeper/issues).
+1. Verifica che il bug non sia già stato segnalato tra le [Issues](https://github.com/GabrieleTrovato01/KoreShelf/issues).
 2. Se non c'è, apri una nuova Issue.
 3. Descrivi chiaramente il problema:
 * **Cosa succede:** (es. "Il segnalibro non sparisce al 100%")
@@ -22,7 +22,7 @@ Hai trovato qualcosa che non va? Prima di aprire una nuova segnalazione:
 
 ## 💡 Proposta di Nuove Feature
 
-LoreKeeper è in continua evoluzione. Se hai un'idea per una nuova funzione:
+KoreShelf è in continua evoluzione. Se hai un'idea per una nuova funzione:
 
 1. Apri una Issue e usa il tag `enhancement`.
 2. Spiega perché la feature sarebbe utile e come immagini che l'utente interagisca con essa.
@@ -44,7 +44,7 @@ LoreKeeper è in continua evoluzione. Se hai un'idea per una nuova funzione:
 
 ## 🗺️ Roadmap del Progetto
 
-Benvenuto nella roadmap di sviluppo di LoreKeeper! Questo documento traccia i nostri progressi, le funzionalità in arrivo e il futuro del nostro progetto.
+Benvenuto nella roadmap di sviluppo di KoreShelf! Questo documento traccia i nostri progressi, le funzionalità in arrivo e il futuro del nostro progetto.
 
 ## ✅ Completato (v1.0.0 - v1.3.0)
 
@@ -106,28 +106,28 @@ Basandoci sul feedback della community e sullo sviluppo interno, ecco su cosa la
 
 ## 📢 Come contribuire
 
-LoreKeeper è un progetto open-source e ogni aiuto è benvenuto! Se vuoi contribuire:
+KoreShelf è un progetto open-source e ogni aiuto è benvenuto! Se vuoi contribuire:
 
-1. Controlla la pagina delle [Issues](https://www.google.com/search?q=https://github.com/GabrieleTrovato01/LoreKeeper/issues) per vedere cosa c'è da fare.
+1. Controlla la pagina delle [Issues](https://www.google.com/search?q=https://github.com/GabrieleTrovato01/KoreShelf/issues) per vedere cosa c'è da fare.
 2. Segui le nostre linee guida di programmazione e apri una Pull Request.
 3. Se hai una nuova idea, apri prima una Issue in modo da poterne discutere insieme!
 
 Nota: Poiché questo progetto viene sviluppato passo dopo passo, ti chiediamo di avere pazienza mentre implementiamo queste funzionalità. Il tuo supporto e il tuo feedback sono ciò che fa avanzare il progetto!
 
-[⬆ Back to Top](#lorekeeper)
+[⬆ Back to Top](#koreshelf)
 
 ---
 
 <a name="english"></a>
-# 🤝 LoreKeeper Contribution Guide
+# 🤝 KoreShelf Contribution Guide
 
-Thanks for your interest in contributing to **LoreKeeper**! Your collaboration is key to making this 3D library even more powerful and immersive.
+Thanks for your interest in contributing to **KoreShelf**! Your collaboration is key to making this 3D library even more powerful and immersive.
 
 ## 🐛 Bug Reporting
 
 Found something that isn't working as expected? Before opening a new report:
 
-1. Check if the bug has already been reported in the [Issues](https://github.com/GabrieleTrovato01/LoreKeeper/issues) section.
+1. Check if the bug has already been reported in the [Issues](https://github.com/GabrieleTrovato01/KoreShelf/issues) section.
 2. If it hasn't, open a new Issue.
 3. Clearly describe the problem:
    * **What happens:** (e.g., "The bookmark doesn't disappear at 100%")
@@ -136,7 +136,7 @@ Found something that isn't working as expected? Before opening a new report:
 
 ## 💡 New Feature Proposals
 
-LoreKeeper is constantly evolving. If you have an idea for a new feature:
+KoreShelf is constantly evolving. If you have an idea for a new feature:
 
 1. Open an Issue and use the `enhancement` label.
 2. Explain why the feature would be useful and how you envision the user interacting with it.
@@ -158,7 +158,7 @@ LoreKeeper is constantly evolving. If you have an idea for a new feature:
 
 ## 🗺️ Project Roadmap
 
-Welcome to the LoreKeeper development roadmap! This document tracks our progress, upcoming features, and the future of our project.
+Welcome to the KoreShelf development roadmap! This document tracks our progress, upcoming features, and the future of our project.
 
 ## ✅ Completed (v1.0.0 - v1.3.0)
 
@@ -219,10 +219,10 @@ Based on community feedback and internal development, here is what we are workin
 
 ## 📢 How to contribute
 
-LoreKeeper is an open-source project, and we welcome help! If you want to contribute:
+KoreShelf is an open-source project, and we welcome help! If you want to contribute:
 
-1. Check the [Issues page](https://github.com/GabrieleTrovato01/LoreKeeper/issues) to see what needs to be done.
+1. Check the [Issues page](https://github.com/GabrieleTrovato01/KoreShelf/issues) to see what needs to be done.
 2. Follow our coding guidelines and open a Pull Request.
 3. If you have a new idea, open an Issue first so we can discuss it together!
 
-[⬆ Back to Top](#lorekeeper)
+[⬆ Back to Top](#koreshelf)

@@ -35,7 +35,7 @@ export default {
         categoryPrompt: "Enter the new category name for this book:",
 
         // Help Modal
-        helpTitle: "LoreKeeper Quick Guide",
+        helpTitle: "KoreShelf Quick Guide",
         helpClose: "Got it!",
 
         // Reader
@@ -114,7 +114,7 @@ export default {
         allBooksAlreadyHere: "All library books are already here.",
         importSelectedBtn: "📥 Import Selected Here",
 
-        credits: "&copy; 2026 LoreKeeper - All rights reserved. Created by",
+        credits: "&copy; 2026 KoreShelf - All rights reserved. Created by",
 
         //help guide 
         closeReader: "Close Book",
@@ -154,8 +154,8 @@ export default {
         closeBtn: "Close",
         //shutdown server
         shutdownBtn: "Shutdown",
-        shutdownTooltip: "Shutdown LoreKeeper local server",
-        shutdownConfirm: "Do you really want to shutdown LoreKeeper? The application will close.",
-        shutdownTitle: "LoreKeeper Shutdown",
+        shutdownTooltip: "Shutdown KoreShelf local server",
+        shutdownConfirm: "Do you really want to shutdown KoreShelf? The application will close.",
+        shutdownTitle: "KoreShelf Shutdown",
         shutdownMessage: "The local server has been shut down. You can safely close this window."
     };

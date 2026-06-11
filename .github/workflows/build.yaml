@@ -1,4 +1,4 @@
-name: Build LoreKeeper
+name: Build KoreShelf
 
 on:
   push:
@@ -14,19 +14,19 @@ jobs:
         include:
           - os: windows-latest
             target: node18-win-x64
-            output_name: lorekeeper.exe
-            artifact_name: LoreKeeper-Windows
+            output_name: koreshelf.exe
+            artifact_name: KoreShelf-Windows
             
           - os: ubuntu-latest
             target: node18-linux-x64
-            output_name: lorekeeper-linux
-            artifact_name: LoreKeeper-Linux
+            output_name: koreshelf-linux
+            artifact_name: KoreShelf-Linux
             
           # Versione Nativa per i nuovi Mac M1/M2/M3 (Apple Silicon)
           - os: macos-latest
             target: node18-macos-arm64
-            output_name: lorekeeper-macos-arm
-            artifact_name: LoreKeeper-macOS-AppleSilicon
+            output_name: koreshelf-macos-arm
+            artifact_name: KoreShelf-macOS-AppleSilicon
 
     steps:
       - name: Checkout repository

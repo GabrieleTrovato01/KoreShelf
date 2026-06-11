@@ -13,7 +13,7 @@ function translateStaticHTML() {
     // 1. Traduzione Lettore (Reader) e pagina
     const closeReaderBtn = document.getElementById('close-reader-btn');
     const themeBtn = document.getElementById('theme-toggle-btn');
-    const lang = localStorage.getItem('lorekeeper_lang') || 'it';
+    const lang = localStorage.getItem('KoreShelf_lang') || 'it';
 
     if (typeof shutdownBtn !== 'undefined') {
         shutdownBtn.innerHTML = '⏻ ' + t('shutdownBtn');
@@ -29,7 +29,7 @@ function translateStaticHTML() {
             : (lang === 'it' ? '🌙 Modalità Scura' : '🌙 Dark Mode');
     }
 
-    document.title = lang === 'it' ? "LoreKeeper - Libreria 3D" : "LoreKeeper - 3D Library";
+    document.title = lang === 'it' ? "KoreShelf - Libreria 3D" : "KoreShelf - 3D Library";
 
     // 2. AGGIORNAMENTO TESTI BOTTONI (La vera soluzione al tuo problema!)
     // Dato che la lingua ora è caricata, applichiamo i testi corretti ai bottoni creati in alto
@@ -298,7 +298,7 @@ topBar.appendChild(shutdownBtn);
 // --- PULSANTE CAMBIO LINGUA ---
 const langBtn = document.createElement('button');
 // Leggiamo la lingua salvata (o 'it' di default) per impostare il testo del bottone
-const savedLang = localStorage.getItem('lorekeeper_lang') || 'it';
+const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
 langBtn.innerText = savedLang === 'it' ? '🇬🇧 EN' : '🇮🇹 IT';
 langBtn.className = 'glass-effect modern-btn';
 langBtn.style.padding = '12px 15px';
@@ -1670,7 +1670,7 @@ async function startApp() {
     const loadingText = document.getElementById('loading-text');
     
     // Recuperiamo la lingua salvata per i testi di caricamento
-    const savedLang = localStorage.getItem('lorekeeper_lang') || 'it';
+    const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
 
     try {
         // 1. Carica le traduzioni dal server

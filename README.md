@@ -1,4 +1,4 @@
-# 📚 LoreKeeper
+# 📚 KoreShelf
 
 *Read this in: [English](#english) | [Italiano](#italiano)*
 
@@ -30,26 +30,26 @@ To run this project, you do not need to configure servers or install Node.js! Th
 
 ### 🚀 Installation Guide (Step-by-Step)
 
-You have two ways to run LoreKeeper.
+You have two ways to run KoreShelf.
 
 #### Option 1: The Easy Way (Portable Desktop App - Recommended)
 
 If you want to avoid installing Docker or Node.js, you can use our standalone executable available for **Windows, Linux, and macOS (Apple Silicon)**.
 
-1. Go to the [Releases section](https://github.com/GabrieleTrovato01/LoreKeeper/releases) of this repository.
+1. Go to the [Releases section](https://github.com/GabrieleTrovato01/KoreShelf/releases) of this repository.
 2. Download the `.zip` file for your Operating System.
 3. Extract the contents to any folder on your PC.
-4. **Windows:** Double-click `lorekeeper-win.exe`.
-5. **Linux:** Open the terminal in the folder and run `./lorekeeper-linux`. *(Note: you might need to make it executable first by running `chmod +x lorekeeper-linux`).*
+4. **Windows:** Double-click `koreshelf-win.exe`.
+5. **Linux:** Open the terminal in the folder and run `./koreshelf-linux`. *(Note: you might need to make it executable first by running `chmod +x koreshelf-linux`).*
 6. **macOS (Apple Silicon / M1, M2, M3...):** Due to Apple's strict quarantine for unsigned apps, open your terminal in the extracted folder and run these two commands to grant permissions:
 
 ```bash
-chmod +x lorekeeper-macos-arm
-xattr -cr lorekeeper-macos-arm
+chmod +x koreshelf-macos-arm
+xattr -cr koreshelf-macos-arm
 
 ```
 
-*Then, simply double-click the file or run `./lorekeeper-macos-arm`.*
+*Then, simply double-click the file or run `./koreshelf-macos-arm`.*
 
 *(Note for Intel Mac users: Pre-built binaries are not available for older Intel Macs. Please use Option 2: Docker, or run the app from source).*
 
@@ -86,7 +86,7 @@ On Google Chrome or Edge, go to the menu (the three dots) -> "Save and share" / 
 
 ### 📖 Integrated EPUB & PDF Reader & Reading Memories
 
-LoreKeeper is not just an archive, it's a fully-featured immersive reading environment designed to build your personal "Memory Palace":
+KoreShelf is not just an archive, it's a fully-featured immersive reading environment designed to build your personal "Memory Palace":
 
 * **Customizable Reader:** Open any EPUB or PDF directly in the browser. Adjust the text size on the fly and toggle between Light and Dark mode. The reader will remember your exact position and aesthetic preferences!
 * **Dynamic 3D Bookmarks:** As you progress through a book, a physical red ribbon bookmark will move along your 3D book on the shelf, showing your exact reading percentage at a glance.
@@ -97,12 +97,12 @@ LoreKeeper is not just an archive, it's a fully-featured immersive reading envir
 
 ### 🧠 Export for AI (Obsidian & LLM Ready)
 
-LoreKeeper acts as an "AI-Bridge", transforming your EPUBs and PDFs into clean, structured Knowledge Bases.
+KoreShelf acts as an "AI-Bridge", transforming your EPUBs and PDFs into clean, structured Knowledge Bases.
 
 If you want to analyze a book:
 1. Select the book in the 3D library.
 2. Click on **"🤖 Esporta per IA"**.
-3. The app will instantly download a `LoreKeeper_title.md` file.
+3. The app will instantly download a `KoreShelf_title.md` file.
 
 **Why Markdown?**
 * **Clean Text:** The exported file is stripped of all complex HTML, providing only the raw content, which drastically reduces AI hallucinations.
@@ -124,7 +124,7 @@ The app is smart and syncs data with your computer. Inside the project folder, y
 
 ### 🌍 Multilingual Support (i18n)
 
-LoreKeeper supports internationalization (i18n) using an asynchronous loading system to ensure optimal performance without startup lag. Currently, the application is available in **English** and **Italian**.
+KoreShelf supports internationalization (i18n) using an asynchronous loading system to ensure optimal performance without startup lag. Currently, the application is available in **English** and **Italian**.
 
 You can switch languages on the fly using the dedicated button in the top navigation bar. Your language preference is automatically saved in your browser via `localStorage`.
 
@@ -168,26 +168,26 @@ Per far funzionare questo progetto non devi configurare server o installare Node
 
 ### 🚀 Guida all'Installazione (Passo Passo)
 
-Hai due modi per avviare LoreKeeper.
+Hai due modi per avviare KoreShelf.
 
 #### Opzione 1: La via più semplice (App Portatile Desktop - Consigliata)
 
 Se vuoi evitare di installare Docker o Node.js, puoi usare il nostro eseguibile standalone disponibile per **Windows, Linux e macOS (Apple Silicon)**.
 
-1. Vai nella sezione [Releases](https://github.com/GabrieleTrovato01/LoreKeeper/releases) di questo repository.
+1. Vai nella sezione [Releases](https://github.com/GabrieleTrovato01/KoreShelf/releases) di questo repository.
 2. Scarica il file `.zip` corrispondente al tuo Sistema Operativo.
 3. Estrai il contenuto in una cartella a tua scelta sul PC.
-4. **Windows:** Fai doppio clic su `lorekeeper-win.exe`.
-5. **Linux:** Apri il terminale nella cartella ed esegui `./lorekeeper-linux`. *(Nota: potrebbe essere necessario dare i permessi di esecuzione digitando `chmod +x lorekeeper-linux`).*
+4. **Windows:** Fai doppio clic su `koreshelf-win.exe`.
+5. **Linux:** Apri il terminale nella cartella ed esegui `./koreshelf-linux`. *(Nota: potrebbe essere necessario dare i permessi di esecuzione digitando `chmod +x koreshelf-linux`).*
 6. **macOS (Apple Silicon / M1, M2, M3...):** A causa delle rigide regole di sicurezza di Apple per le app non firmate a pagamento, apri il terminale nella cartella estratta ed esegui questi due comandi per sbloccare l'app:
 
 ```bash
-chmod +x lorekeeper-macos-arm
-xattr -cr lorekeeper-macos-arm
+chmod +x koreshelf-macos-arm
+xattr -cr koreshelf-macos-arm
 
 ```
 
-*Fatto ciò, ti basterà fare doppio clic sul file o eseguire `./lorekeeper-macos-arm`.*
+*Fatto ciò, ti basterà fare doppio clic sul file o eseguire `./koreshelf-macos-arm`.*
 
 *(Nota per gli utenti Mac Intel: L'eseguibile precompilato non è disponibile per i vecchi Mac Intel. Puoi usare l'Opzione 2 con Docker, oppure avviare l'app dal codice sorgente).*
 
@@ -220,7 +220,7 @@ Apri il tuo browser preferito (Chrome, Edge, Safari) e vai all'indirizzo:
 
 ### 📖 Lettore EPUB e PDF Integrato e Ricordi di Lettura
 
-LoreKeeper non è solo un archivio, ma un ambiente di lettura immersivo pensato per costruire il tuo personale "Palazzo della Memoria":
+KoreShelf non è solo un archivio, ma un ambiente di lettura immersivo pensato per costruire il tuo personale "Palazzo della Memoria":
 
 * **Lettore Personalizzabile:** Apri gli EPUB o i PDF direttamente nel browser. Regola la grandezza del testo al volo e passa dalla modalità Chiara a quella Scura. Il lettore ricorderà l'esatta pagina in cui ti trovavi e le tue preferenze estetiche!
 * **Segnalibri Dinamici in 3D:** Mentre progredisci nella lettura, una fettuccia rossa (segnalibro) si sposterà fisicamente sul tuo libro 3D nella mensola, mostrandoti la percentuale completata a colpo d'occhio.
@@ -230,12 +230,12 @@ LoreKeeper non è solo un archivio, ma un ambiente di lettura immersivo pensato 
 
 ### 🧠 Funzione "Esporta per IA" (Pronto per Obsidian e LLM)
 
-LoreKeeper funge da "AI-Bridge", trasformando i tuoi EPUB e PDF in Knowledge Base strutturate e pulite.
+KoreShelf funge da "AI-Bridge", trasformando i tuoi EPUB e PDF in Knowledge Base strutturate e pulite.
 
 Se vuoi analizzare un libro con l'Intelligenza Artificiale:
 1. Seleziona il libro nella libreria 3D.
 2. Clicca sul tasto **"🤖 Esporta per IA / Esporta in Markdown"**.
-3. L'app scaricherà istantaneamente un file `LoreKeeper_titolo.md`.
+3. L'app scaricherà istantaneamente un file `KoreShelf_titolo.md`.
 
 **Perché in Markdown?**
 * **Testo Pulito:** Il file esportato viene ripulito da tutto l'HTML complesso, offrendo solo il contenuto grezzo, riducendo drasticamente le allucinazioni dell'IA.
@@ -256,7 +256,7 @@ L'app è intelligente e sincronizza i dati con il tuo computer. All'interno dell
 ---
 ### 🌍 Multilingua (i18n)
 
-LoreKeeper supporta l'internazionalizzazione (i18n) con un sistema di caricamento asincrono per garantire prestazioni ottimali. Attualmente, l'applicazione è disponibile in **Italiano** e **Inglese**.
+KoreShelf supporta l'internazionalizzazione (i18n) con un sistema di caricamento asincrono per garantire prestazioni ottimali. Attualmente, l'applicazione è disponibile in **Italiano** e **Inglese**.
 
 La lingua può essere cambiata istantaneamente tramite l'apposito pulsante nella barra superiore, e la tua preferenza verrà salvata automaticamente nel browser tramite `localStorage`.
 

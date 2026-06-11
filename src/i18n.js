@@ -1,4 +1,4 @@
-export let currentLang = localStorage.getItem('lorekeeper_lang') || 'en';
+export let currentLang = localStorage.getItem('KoreShelf_lang') || 'en';
 let translations = {}; // Inizialmente vuoto
 
 /**
@@ -6,7 +6,7 @@ let translations = {}; // Inizialmente vuoto
  */
 export async function initI18n() {
     // Sincronizziamo la variabile con il localStorage prima di caricare il modulo
-    currentLang = localStorage.getItem('lorekeeper_lang') || 'it';
+    currentLang = localStorage.getItem('KoreShelf_lang') || 'it';
     
     try {
         // Il percorso deve essere relativo alla posizione di i18n.js
@@ -37,6 +37,6 @@ export function t(key) {
 }
 
 export function setLanguage(lang) {
-    localStorage.setItem('lorekeeper_lang', lang);
+    localStorage.setItem('KoreShelf_lang', lang);
     window.location.reload();
 }

@@ -1,7 +1,7 @@
 services:
-  lorekeeper:
+  koreshelf:
     build: .
-    container_name: lorekeeper
+    container_name: koreshelf
     restart: on-failure
     ports:
       - "3000:3000"

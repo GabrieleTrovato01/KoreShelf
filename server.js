@@ -720,7 +720,7 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
 
         // Prepariamo il nome del file
         const safeTitle = book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `LoreKeeper_${safeTitle}.md`; // Estensione .md
+        const fileName = `KoreShelf_${safeTitle}.md`; // Estensione .md
 
         // Configurazione Header per il download di un file Markdown
         res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
@@ -735,14 +735,14 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
         title: "${book.title.replace(/"/g, '\\"')}"
         author: "${book.author.replace(/"/g, '\\"')}"
         category: "${mainCategory}"
-        exported_from: "LoreKeeper"
+        exported_from: "KoreShelf"
         export_date: ${now}
-        tags: [LoreKeeper, KnowledgeBase, ${mainCategory.replace(/\s+/g, '')}]
+        tags: [KoreShelf, KnowledgeBase, ${mainCategory.replace(/\s+/g, '')}]
         ---
 
         # ${book.title}
 
-        > **LoreKeeper Smart Document:** Questo file è stato generato automaticamente da LoreKeeper come una Knowledge Base in formato Markdown, 
+        > **KoreShelf Smart Document:** Questo file è stato generato automaticamente da KoreShelf come una Knowledge Base in formato Markdown, 
         pronta per essere importata in qualsiasi sistema di gestione della conoscenza o IA esterna.
         Contiene i metadati essenziali del libro, la trama (se disponibile) e il testo completo estratto dall'EPUB, pulito da qualsiasi formattazione HTML.
 
@@ -762,7 +762,7 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
         ${fullText}
 
         ---
-        *Fine del documento - Generato da LoreKeeper*
+        *Fine del documento - Generato da KoreShelf*
         `;
 
         res.write(markdownHeader);
