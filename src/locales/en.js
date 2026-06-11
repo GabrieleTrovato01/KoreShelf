@@ -14,7 +14,7 @@ export default {
         generatingMD: "⏳ Generating MD ...",
         exportToastMessage: "Generating Knowledge Base (.md) for Obsidian/IA ...",
 
-        assignCategory: "🏷️ Assign Category",
+        assignCategory: "🏷️ Assign Category ",
         moveBookTitle: "Move",
         saveBtn: "Save",
         categoryPrompt: "Enter the new category name for this book:",
