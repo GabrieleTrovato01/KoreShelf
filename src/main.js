@@ -1663,6 +1663,90 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// --- 7. CONTROLLO AGGIORNAMENTI GITHUB ---
+const CURRENT_VERSION = "v2.0.0"; 
+const GITHUB_API_URL = "https://api.github.com/repos/GabrieleTrovato01/LoreKeeper/releases/latest";
+
+async function checkForUpdates() {
+    try {
+        const response = await fetch(GITHUB_API_URL);
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const data = await response.json();
+        const latestVersion = data.tag_name;
+
+        if (latestVersion && latestVersion !== CURRENT_VERSION) {
+            showUpdateNotification(latestVersion, data.html_url);
+        }
+    } catch (error) {
+        console.error("Errore nel controllo aggiornamenti:", error);
+    }
+}
+
+function showUpdateNotification(newVersion, downloadUrl) {
+    if (document.getElementById('lorekeeper-update-banner')) return; 
+
+    const banner = document.createElement('div');
+    banner.id = 'lorekeeper-update-banner';
+    
+    Object.assign(banner.style, {
+        position: 'fixed',
+        top: '20px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: 'rgba(43, 43, 43, 0.85)',
+        backdropFilter: 'blur(10px)',
+        webkitBackdropFilter: 'blur(10px)',
+        color: '#ffffff',
+        padding: '12px 24px',
+        borderRadius: '50px',
+        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+        zIndex: '9999', 
+        display: 'flex',
+        alignItems: 'center',
+        gap: '20px',
+        fontFamily: "'Segoe UI', system-ui, sans-serif",
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+    });
+
+    const msgText = t('updateAvailable').replace('{version}', newVersion);
+    const btnText = t('updateDownload');
+
+    banner.innerHTML = `
+        <span style="font-size: 14px; letter-spacing: 0.5px;">${msgText}</span>
+        <a href="${downloadUrl}" target="_blank" class="modern-btn" style="
+            background-color: rgba(76, 175, 80, 0.2); 
+            border: 1px solid rgba(76, 175, 80, 0.5);
+            color: #81c784; 
+            padding: 8px 20px; 
+            text-decoration: none; 
+            font-size: 12px;
+            margin-left: 10px;
+        " onmouseover="this.style.backgroundColor='rgba(76, 175, 80, 0.4)'; this.style.transform='translateY(-2px)';" 
+           onmouseout="this.style.backgroundColor='rgba(76, 175, 80, 0.2)'; this.style.transform='translateY(0)';">
+           ${btnText}
+        </a>
+        <button id="close-update-banner" style="
+            background: transparent; 
+            border: none; 
+            color: rgba(255,255,255,0.5); 
+            font-size: 20px; 
+            cursor: pointer; 
+            padding: 0; 
+            transition: color 0.3s;
+        " onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='rgba(255,255,255,0.5)'">✖</button>
+    `;
+
+    document.body.appendChild(banner);
+
+    document.getElementById('close-update-banner').addEventListener('click', () => {
+        banner.style.opacity = '0';
+        banner.style.transform = 'translateX(-50%) translateY(-20px)';
+        banner.style.transition = 'all 0.4s ease';
+        setTimeout(() => banner.remove(), 400);
+    });
+}
+
 // --- AVVIO DELL'APPLICAZIONE ---
 
 async function startApp() {
@@ -1690,6 +1774,8 @@ async function startApp() {
 
         // 4. Avvia l'animazione 3D
         animate();
+
+        checkForUpdates(); // Controlla se ci sono aggiornamenti disponibili su GitHub
 
         // 5. Rimuovi lo splash screen
         if (loadingScreen) {
