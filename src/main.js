@@ -305,9 +305,19 @@ langBtn.style.padding = '12px 15px';
 langBtn.style.fontWeight = 'bold';
 langBtn.title = savedLang === 'it' ? 'Switch to English' : 'Passa all\'Italiano';
 
-langBtn.onclick = () => {
+langBtn.onclick = async () => {
     const newLang = savedLang === 'it' ? 'en' : 'it';
-    setLanguage(newLang);
+    localStorage.setItem('KoreShelf_lang', newLang);
+    
+    try {
+        await fetch('/api/sync-language', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lang: newLang })
+        });
+    } catch(e) {}
+
+    window.location.reload();
 };
 topBar.appendChild(langBtn);
 
@@ -1757,6 +1767,13 @@ async function startApp() {
     const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
 
     try {
+        // sync della lingua con il server.
+        fetch('/api/sync-language', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lang: savedLang })
+        }).catch(e => {});
+
         // 1. Carica le traduzioni dal server
         if (loadingText) {
             loadingText.innerText = savedLang === 'it' ? "Caricamento lingua..." : "Loading language...";

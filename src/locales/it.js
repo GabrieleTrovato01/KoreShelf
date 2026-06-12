@@ -154,11 +154,121 @@ export default {
         noDescription: "Nessuna trama disponibile.",
         closeBtn: "Chiudi",
 
-        //Spegnimento server
+        //update 
+        updateAvailable: "Aggiornamento disponibile!",
+        updateDownload: "Scarica ora",
+
         // Spegnimento Server
         shutdownBtn: "Spegni",
         shutdownTooltip: "Spegni il server locale di KoreShelf",
         shutdownConfirm: "Vuoi davvero spegnere KoreShelf? L'applicazione verrà chiusa.",
         shutdownTitle: "KoreShelf disattivato",
-        shutdownMessage: "Il server locale è stato spento. Puoi chiudere questa finestra."
+        shutdownMessage: "Il server locale è stato spento. Puoi chiudere questa finestra.",
+
+        //-----------------------------------------------------server.js locales...-----------------------------------------------------
+        errNoFile: "Nessun file caricato.",
+        errFormat: "Formato non supportato. Usa EPUB o PDF.",
+        errDuplicate: "Questo libro è già nella tua libreria!",
+        successUpload: "Libro elaborato e aggiunto con successo!",
+        errInternal: "Errore interno del server.",
+        errInvalidTag: "Tag non valido.",
+        errNotFound: "Libro non trovato.",
+        successTagAdded: "Tag aggiunto!",
+        successTagExists: "Tag già esistente.",
+        successDelete: "Libro eliminato con successo!",
+        errNoBooksCat: "Nessun libro trovato per questa categoria.",
+        successBulkMove: "Spostati {count} libri.",
+        errNoBooksUpdated: "Nessun libro aggiornato.",
+        successShutdown: "Server in fase di spegnimento",
+
+        logUploadDirCreated: "📁 Cartella 'uploads' creata automaticamente.",
+        logCoversDirCreated: "📁 Cartella 'covers' creata automaticamente.",
+        logBooksJsonCreated: "📄 File 'books.json' creato automaticamente.",
+        errDockerBooksJson: "⚠️ ERRORE CRITICO: Docker ha creato 'books.json' come cartella invece che come file! Elimina la cartella e riavvia.",
+
+        logCorruptedMetadata: "⚠️ Metadati corrotti rilevati! Uso il nome del file...",
+        logFoundDash: "🪄 Trovato un trattino! Titolo: \"{title}\", Autore: \"{author}\"",
+        unknownAuthor: "Autore Sconosciuto",
+        errEpubImageExtract: "⚠️ Impossibile estrarre l'immagine dall'EPUB:",
+        errEpubParse: "Errore di parsing EPUB:",
+
+        logCorruptedPdfMetadata: "⚠️ Metadati PDF assenti o corrotti! Uso il nome del file...",
+        logPdfCoverGenerated: "📸 Prima pagina PDF trasformata con successo in copertina!",
+        errPdfCoverGen: "⚠️ Impossibile generare la copertina dal PDF:",
+        errPdfParse: "Errore di parsing PDF:",
+
+        errEpubTimeout: "Timeout: L'EPUB è malformato o troppo complesso e ha bloccato la lettura.",
+
+        unknownTitle: "Titolo Sconosciuto",
+        noPlotFound: "Trama non trovata.",
+        logContactApple: "🍏 Contatto Apple Books per la trama: {url}",
+        errAppleTimeout: "⚠️ Apple Books non ha risposto in tempo.",
+        logPagesCalculated: "🧮 Pagine calcolate matematicamente dal testo: {count}",
+        logPagesRandom: "⚠️ Impossibile leggere il testo per il calcolo, uso spessore casuale.",
+
+        errAppleCoverDownload: "⚠️ Errore nel download della copertina da Apple Books:",
+
+        logUploadStart: "\n📥 Inizio elaborazione di: {file}...",
+        logExtractingMetadata: "⚙️  Estrazione metadati e copertina interna...",
+        logUploadBlocked: "🛑 Upload bloccato: \"{title}\" è già presente in libreria.",
+        logInitialData: "✔️  Dati iniziali: \"{title}\" di {author}",
+        logWaitAppleAPI: "⏳ Attesa iniziale per non sovraccaricare le API di Apple...",
+        logSearchAppleBooks: "🔍 Ricerca dati su Apple Books...",
+        logAutoCorrectTitle: "✨ Autocorrezione: Titolo corretto in \"{finalTitle}\"",
+        logDownloadCoverMissing: "🖼️  Copertina assente nell'EPUB. Download in corso da Apple Books...",
+        noDescriptionAvailable: "Nessuna trama disponibile per questo libro.",
+        logValidEpubPlot: "📖 Trama valida trovata all'interno dell'EPUB!",
+        logPlotDownloaded: "🌐 Trama EPUB assente o non valida. Trama scaricata da Apple Books.",
+        logUpdatingLibrary: "📝 Aggiornamento della libreria...",
+        logUploadSuccess: "✅ Successo! \"{title}\" aggiunto allo scaffale.\n",
+        errCriticalUpload: "❌ Errore critico durante l'elaborazione del libro:",
+
+        errInvalidTag: "Tag non valido.",
+        errNotFound: "Libro non trovato.",
+        successTagAdded: "Tag aggiunto!",
+        successTagExists: "Tag già presente.",
+        errInternal: "Errore interno del server.",
+
+        logFilesAlreadyMissing: "⚠️ Libro rimosso dal database, ma i file fisici erano già assenti.",
+        logDeleteSuccess: "🗑️ Eliminato con successo: \"{title}\"",
+        errDeleteBook: "Errore durante l'eliminazione del libro:",
+
+        successCatUpdate: "Categoria aggiornata con successo su {count} libri.",
+        errNoBooksCat: "Nessun libro trovato per questa categoria.",
+        errCategoryManager: "Errore nella gestione categorie:",
+
+        successBulkMove: "Spostati {count} libri.",
+        errNoBooksUpdated: "Nessun libro aggiornato.",
+        errBulkUpdate: "Errore nell'aggiornamento massivo:",
+
+        errProgressUpdate: "Errore durante il salvataggio dei progressi di lettura:",
+
+        errSaveReview: "Errore durante il salvataggio della recensione:",
+
+        logShieldActivated: "\n🛡️ SCUDO ATTIVATO: Un errore critico ha tentato di far crashare il server!",
+        errEpub2Crash: "⚠️ Causa: Un file EPUB malformato ha fatto impazzire la libreria \"epub2\".",
+        solutionCalibre: "👉 Soluzione: Usa Calibre per convertire l'EPUB in EPUB (così da pulire il codice interno) e ricaricalo.\n",
+        errUnexpected: "❌ Errore imprevisto:",
+
+        uncategorized: "Senza Categoria",
+        logExportStart: "📦 Generazione Knowledge Base Markdown per: {title}...",
+        logPdfExtract: "📄 Lettura PDF rilevata. Estrazione testo grezzo in corso...",
+        logEpubExtract: "📚 Lettura EPUB rilevata. Estrazione in corso...",
+        mdSmartDoc: "> **KoreShelf Smart Document:** Questo file è stato generato automaticamente da KoreShelf come una Knowledge Base in formato Markdown,\n> pronta per essere importata in qualsiasi sistema di gestione della conoscenza o IA esterna.\n> Contiene i metadati essenziali del libro, la trama (se disponibile) e il testo completo estratto dall'EPUB, pulito da qualsiasi formattazione HTML.",
+        mdDetailsPlot: "## 📖 Dettagli e Trama",
+        mdAuthor: "- **Autore:** {author}",
+        mdPages: "- **Pagine stimate:** {count}",
+        mdOriginalPlot: "### Trama originale",
+        mdBookContent: "## 📂 Contenuto del Libro",
+        mdEndOfDoc: "*Fine del documento - Generato da KoreShelf*",
+        errExportMD: "Errore durante l'esportazione Markdown:",
+        errGenerateMD: "Errore interno del server durante la generazione del Markdown.",
+
+        logShutdownRequest: "🛑 Richiesta di spegnimento ricevuta dal client. Chiusura del server in corso...",
+        successShutdown: "Server in chiusura",
+
+        logServerListening: "🚀 Backend in ascolto su http://localhost:{port}",
+        errOpenBrowser: "Impossibile aprire il browser automaticamente (aprilo manualmente):",
+
+        
     };

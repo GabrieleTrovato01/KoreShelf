@@ -10,6 +10,27 @@ import sharp from 'sharp';
 import pdfParse from 'pdf-parse';
 import { fromPath } from 'pdf2pic';
 import * as htmlToText from 'html-to-text';
+import localeIt from './src/locales/it.js';
+import localeEn from './src/locales/en.js';
+
+const locales = { it: localeIt.default || localeIt, en: localeEn.default || localeEn };
+
+// 1. VARIABILE GLOBALE DEL SERVER
+// Parte con la lingua del sistema operativo, ma verrà sovrascritta dal browser
+let globalServerLang = process.env.LANG && process.env.LANG.startsWith('en') ? 'en' : 'it';
+
+// 2. TLOG AGGIORNATO
+function tLog(key, variables = {}, langOverride = null) {
+    // Usa la lingua globale del server (che verrà sincronizzata dal browser)
+    const lang = langOverride || globalServerLang; 
+    const dictionary = locales[lang] || locales['it'];
+    
+    let text = dictionary[key] || key;
+    for (const [varName, varValue] of Object.entries(variables)) {
+        text = text.replace(`{${varName}}`, varValue);
+    }
+    return text;
+}
 
 const app = express();
 const port = 3000;
@@ -24,21 +45,21 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 // --- Creiamo le cartelle e i file se non esistono ---
 if (!fsSync.existsSync(uploadDir)) {
     fsSync.mkdirSync(uploadDir, { recursive: true });
-    console.log("📁 Cartella 'uploads' creata automaticamente.");
+    console.log(tLog("logUploadDirCreated"));
 }
 
 if (!fsSync.existsSync(coversDir)) {
     fsSync.mkdirSync(coversDir, { recursive: true });
-    console.log("📁 Cartella 'covers' creata automaticamente.");
+    console.log(tLog("logCoversDirCreated"));
 }
 
 
 if (!fsSync.existsSync(booksJsonPath)) {
     fsSync.writeFileSync(booksJsonPath, '[]'); 
-    console.log("📄 File 'books.json' creato automaticamente.");
+    console.log(tLog("logBooksJsonCreated"));
 } else if (fsSync.statSync(booksJsonPath).isDirectory()) {
     // Protezione Docker
-    console.error("⚠️ ERRORE CRITICO: Docker ha creato 'books.json' come cartella invece che come file! Elimina la cartella e riavvia.");
+    console.error(tLog('errDockerBooksJson'));
 }
 // ----------------------------------------------------
 
@@ -59,6 +80,16 @@ if (process.pkg) {
 app.use(express.json());
 app.use(express.static(distPath)); 
 app.use(express.static(publicDir));
+
+// --- ROTTA DI SINCRONIZZAZIONE LINGUA ---
+app.post('/api/sync-language', (req, res) => {
+    const { lang } = req.body;
+    if (lang === 'it' || lang === 'en') {
+        globalServerLang = lang; // Aggiorna la lingua di tutto il terminale!
+        console.log(`🌐 Terminale sincronizzato in: ${lang.toUpperCase()}`);
+    }
+    res.json({ success: true });
+});
 
 // Fallback fondamentale per le Single Page Application
 app.get('/', (req, res) => {
@@ -84,7 +115,7 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
         // usiamo il nome del file!
         // PIANO B POTENZIATO: Se mancano i metadati o sono spazzatura, usiamo il nome del file!
         if (!extractedTitle || extractedTitle.trim() === '' || isJunkTitle) {
-            console.log(`⚠️ Metadati corrotti rilevati! Uso il nome del file...`);
+            console.log(tLog('logCorruptedMetadata'));
             
             // Rimuoviamo l'estensione .epub
             let cleanName = originalFileName.replace(/\.epub$/i, '');
@@ -102,7 +133,7 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
                 // Puliamo la seconda metà (Autore)
                 extractedAuthor = parts[1].replace(/[_-]/g, ' ').replace(/Ã/g, 'a').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
                 
-                console.log(`🪄 Trovato un trattino! Titolo: "${extractedTitle}", Autore: "${extractedAuthor}"`);
+                console.log(tLog('logFoundDash', { title: extractedTitle, author: extractedAuthor }));
             } else {
                 // Se non c'è il trattino, il server è costretto a buttare tutto nel titolo
                 cleanName = cleanName.replace(/[_-]/g, ' ');
@@ -135,7 +166,7 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
 
         const metadata = {
             title: extractedTitle,
-            author: extractedAuthor || 'Autore Sconosciuto',
+            author: extractedAuthor || tLog('unknownAuthor'),
             description: epub.metadata.description ? epub.metadata.description.replace(/<[^>]*>?/gm, '').trim() : null,
             coverPath: null,
             textLength: rawTextLength
@@ -162,12 +193,12 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
                     metadata.coverPath = `covers/${finalCoverName}`; 
                 }
             } catch (imgError) {
-                console.error("⚠️ Impossibile estrarre l'immagine dall'EPUB:", imgError.message);
+                console.error(tLog('errEpubImageExtract'), imgError.message);
             }
         }
         return metadata;
     } catch (error) {
-        throw new Error(`Errore di parsing EPUB: ${error.message}`);
+        throw new Error(`${tLog('errEpubParse')} ${error.message}`);
     }
 }
 
@@ -177,7 +208,6 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
         // 1. Estrazione Testo per calcolo pagine e IA
         const dataBuffer = await fsSync.promises.readFile(filePath);
         const pdfData = await pdfParse(dataBuffer);
-
         let extractedTitle = pdfData.info?.Title;
         let extractedAuthor = pdfData.info?.Author;
 
@@ -188,9 +218,9 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
             extractedTitle.toLowerCase().includes('word') ||
             extractedTitle.toLowerCase().includes('untitled')
         );
-
         if (!extractedTitle || extractedTitle.trim() === '' || isJunkTitle) {
-            console.log(`⚠️ Metadati PDF assenti o corrotti! Uso il nome del file...`);
+            
+            console.log(tLog('logCorruptedPdfMetadata'));
             let cleanName = originalFileName.replace(/\.pdf$/i, '');
             
             if (cleanName.includes('-')) {
@@ -200,15 +230,14 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
             } else {
                 cleanName = cleanName.replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ');
                 extractedTitle = cleanName.replace(/\s+/g, ' ').trim();
-                extractedAuthor = 'Autore Sconosciuto';
+                extractedAuthor = tLog('unknownAuthor');
             }
         }
-
         const rawTextLength = pdfData.text ? pdfData.text.length : 0;
 
         const metadata = {
             title: extractedTitle,
-            author: extractedAuthor || 'Autore Sconosciuto',
+            author: extractedAuthor || tLog('unknownAuthor'),
             description: null, // I PDF raramente includono la trama nei metadati
             coverPath: null,
             textLength: rawTextLength
@@ -226,19 +255,16 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
             };
             
             const storeAsImage = fromPath(filePath, options);
-            const resolveImg = await storeAsImage(1); // Fotografiamo la pagina 1
-            
-            console.log("📸 Prima pagina PDF trasformata con successo in copertina!");
+            const resolveImg = await storeAsImage(1); // Fotografiamo la pagina 1        
+            console.log(tLog('logPdfCoverGenerated'));
             metadata.coverPath = `covers/${resolveImg.name}`;
 
         } catch (imgError) {
-            console.error("⚠️ Impossibile generare la copertina dal PDF:", imgError.message);
+            console.error(tLog('errPdfCoverGen'), imgError.message);
         }
-
         return metadata;
-
     } catch (error) {
-        throw new Error(`Errore di parsing PDF: ${error.message}`);
+        throw new Error(`${tLog('errPdfParse')} ${error.message}`);
     }
 }
 
@@ -247,7 +273,7 @@ function parseEpubWithTimeout(filePath, coverFileName, originalFileName, timeout
     return Promise.race([
         parseEpub(filePath, coverFileName, originalFileName),
         new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Timeout: L'EPUB è malformato o troppo complesso e ha bloccato la lettura.")), timeoutMs)
+            setTimeout(() => reject(new Error(tLog('errEpubTimeout'))), timeoutMs)
         )
     ]);
 }
@@ -255,7 +281,7 @@ function parseEpubWithTimeout(filePath, coverFileName, originalFileName, timeout
 // Apple Books + calcolo pagine stimato
 async function fetchBestBookData(title, author, rawTextLength) {
     let result = {
-        description: "Trama non trovata.",
+        description: tLog('noPlotFound'),
         coverUrl: null,
         pageCount: 350, 
         googleTitle: null, 
@@ -263,14 +289,17 @@ async function fetchBestBookData(title, author, rawTextLength) {
         categories: []
     };
 
-    const searchTitle = title === 'Titolo Sconosciuto' ? '' : title;
-    const searchAuthor = author === 'Autore Sconosciuto' ? '' : author;
+    const searchTitle = title === tLog('unknownTitle') ? '' : title;
+    const searchAuthor = author === tLog('unknownAuthor') ? '' : author;
     const cleanQuery = `${searchTitle} ${searchAuthor}`.replace(/[_-]/g, ' ').trim();
 
-    // --- STEP 1: APPLE BOOKS (Per Copertina HQ e Trama in Italiano) ---
+    // --- STEP 1: APPLE BOOKS (Per Copertina HQ e Trama) ---
     try {
-        const appleUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQuery)}&media=ebook&country=it&limit=1`;
-        console.log(`🍏 Contatto Apple Books per la trama: ${appleUrl}`);
+        const storeCountry = globalServerLang === 'en' ? 'us' : 'it';
+        const appleUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(cleanQuery)}&media=ebook&country=${storeCountry}&limit=1`;
+        
+        console.log(tLog('logContactApple', { url: appleUrl }));
+        
         const appleResponse = await axios.get(appleUrl, { timeout: 6000 });
 
         if (appleResponse.data && appleResponse.data.results && appleResponse.data.results.length > 0) {
@@ -290,7 +319,7 @@ async function fetchBestBookData(title, author, rawTextLength) {
             }
         }
     } catch (error) {
-        console.error("⚠️ Apple Books non ha risposto in tempo.");
+        console.error(tLog('errAppleTimeout'));
     }
 
     if (rawTextLength && rawTextLength > 0) {
@@ -299,11 +328,13 @@ async function fetchBestBookData(title, author, rawTextLength) {
         
         // Aggiungiamo un 5% forfettario per simulare indici, titoli di capitolo e pagine bianche
         result.pageCount = Math.floor(calculatedPages * 1.05); 
-        console.log(`🧮 Pagine calcolate matematicamente dal testo: ${result.pageCount}`);
+        
+        console.log(tLog('logPagesCalculated', { count: result.pageCount }));
     } else {
         // Se l'EPUB era vuoto o rotto
         result.pageCount = 350; // Valore di default più realistico per un libro medio
-        console.log(`⚠️ Impossibile leggere il testo per il calcolo, uso spessore casuale.`);
+        
+        console.log(tLog('logPagesRandom'));
     }
 
     return result;
@@ -338,7 +369,7 @@ async function downloadCoverImage(url, fileName) {
             
         return `covers/${finalCoverName}`; 
     } catch (error) {
-        console.error("⚠️ Errore nel download della copertina da Apple Books:", error.message);
+        console.error(tLog('errAppleCoverDownload'), error.message);
         return null;
     }
 }
@@ -347,25 +378,26 @@ async function downloadCoverImage(url, fileName) {
 app.post('/api/upload', upload.single('ebook'), async (req, res) => {
     try {
         const file = req.file;
-        if (!file) return res.status(400).json({ success: false, message: 'Nessun file caricato.' });
+        if (!file) return res.status(400).json({ success: false, message: tLog('errNoFile') });
 
-        console.log(`\n📥 Inizio elaborazione di: ${file.originalname}...`);
+        console.log(tLog('logUploadStart', { file: file.originalname }));
 
         const timestamp = Date.now();
         const baseName = `book_${timestamp}`;
 
-        console.log(`⚙️  Estrazione metadati e copertina interna...`);
+        console.log(tLog('logExtractingMetadata'));
         const fileExt = path.extname(file.originalname).toLowerCase();
         let bookData;
 
         if (fileExt === '.epub') {
+            // Qui non serve passare lang, usiamo globalServerLang
             bookData = await parseEpubWithTimeout(file.path, baseName, file.originalname, 8000);
         } else if (fileExt === '.pdf') {
             bookData = await parsePdf(file.path, baseName, file.originalname);
         } else {
             // Se qualcuno forza il caricamento di un file non supportato
             try { await fs.unlink(file.path); } catch(e){}
-            return res.status(400).json({ success: false, message: 'Formato non supportato. Usa EPUB o PDF.' });
+            return res.status(400).json({ success: false, message: tLog('errFormat') });
         }
 
         let currentBooks = [];
@@ -380,16 +412,16 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         );
 
         if (isDuplicate) {
-            console.log(`🛑 Upload bloccato: "${bookData.title}" è già presente in libreria.`);
+            console.log(tLog('logUploadBlocked', { title: bookData.title }));
             try { await fs.unlink(file.path); } catch (err) {}
-            return res.json({ success: false, message: 'Questo libro è già presente nel tuo scaffale!' });
+            return res.json({ success: false, message: tLog('errDuplicate') });
         }
 
-        console.log(`✔️  Dati iniziali: "${bookData.title}" di ${bookData.author}`);
+        console.log(tLog('logInitialData', { title: bookData.title, author: bookData.author }));
         
-        console.log(`⏳ Attesa iniziale di 2 secondi per non sovraccaricare le API di Google...`);
+        console.log(tLog('logWaitAppleAPI'));
         
-        console.log(`🔍 Ricerca dati su  Books...`);
+        console.log(tLog('logSearchAppleBooks'));
         const googleData = await fetchBestBookData(bookData.title, bookData.author, bookData.textLength);
 
         let finalTitle = bookData.title;
@@ -400,29 +432,31 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
             const googleTitleLower = googleData.googleTitle.toLowerCase();
             const isRelated = titleWords.some(word => googleTitleLower.includes(word));
 
-            if (isRelated || bookData.title === 'Titolo Sconosciuto') {
+            // Confrontiamo con la stringa localizzata generata negli step precedenti
+            if (isRelated || bookData.title === tLog('unknownTitle')) {
                 finalTitle = googleData.googleTitle;
                 finalAuthor = googleData.googleAuthor || bookData.author;
-                console.log(`✨ Autocorrezione: Titolo corretto in "${finalTitle}"`);
+                console.log(tLog('logAutoCorrectTitle', { finalTitle: finalTitle }));
             }
         }
 
         let finalCoverPath = bookData.coverPath; 
         if (!finalCoverPath && googleData.coverUrl) {
-            console.log(`🖼️  Copertina assente nell'EPUB. Download in corso da Google Books...`);
+            console.log(tLog('logDownloadCoverMissing'));
             finalCoverPath = await downloadCoverImage(googleData.coverUrl, baseName);
         }
 
-        let finalDescription = "Nessuna trama disponibile per questo libro.";
+        let finalDescription = tLog('noDescriptionAvailable');
         let epubDesc = bookData.description;
 
         if (epubDesc) epubDesc = epubDesc.replace(/^(EDGT[0-9]+[\r\n\s]*)/i, '').trim();
 
         if (epubDesc && epubDesc.length > 30) {
-            console.log(`📖 Trama valida trovata all'interno dell'EPUB!`);
+            console.log(tLog('logValidEpubPlot'));
             finalDescription = epubDesc;
-        } else if (googleData.description && googleData.description !== "Trama non trovata su Google Books.") {
-            console.log(`🌐 Trama EPUB assente o non valida. Trama scaricata da Google Books.`);
+        } else if (googleData.description && googleData.description !== tLog('noPlotFound')) {
+            // Usiamo il tLog('noPlotFound') per verificare se fetchBestBookData ha fallito
+            console.log(tLog('logPlotDownloaded'));
             finalDescription = googleData.description;
         }
 
@@ -445,18 +479,18 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
             tags: []
         };
 
-        console.log(`📝 Aggiornamento della libreria...`);
+        console.log(tLog('logUpdatingLibrary'));
         currentBooks.push(newBook);
         await fs.writeFile(booksJsonPath, JSON.stringify(currentBooks, null, 4));
 
         try { await fs.unlink(file.path); } catch (unlinkError) {}
 
-        console.log(`✅ Successo! "${newBook.title}" aggiunto allo scaffale.\n`);
-        res.json({ success: true, message: 'Libro elaborato e aggiunto con successo!' });
+        console.log(tLog('logUploadSuccess', { title: newBook.title }));
+        res.json({ success: true, message: tLog('successUpload') });
 
     } catch (error) {
-        console.error("❌ Errore critico durante l'elaborazione del libro:", error);
-        res.status(500).json({ success: false, message: 'Errore interno del server.' });
+        console.error(tLog('errCriticalUpload'), error);
+        res.status(500).json({ success: false, message: tLog('errInternal') });
     }
 });
 
@@ -466,7 +500,7 @@ app.post('/api/books/:id/tags', async (req, res) => {
     const { tag } = req.body;
 
     if (!tag || tag.trim() === '') {
-        return res.status(400).json({ success: false, message: 'Tag non valido.' });
+        return res.status(400).json({ success: false, message: tLog('errInvalidTag') });
     }
 
     try {
@@ -474,7 +508,7 @@ app.post('/api/books/:id/tags', async (req, res) => {
         let books = JSON.parse(fileData);
         const bookIndex = books.findIndex(b => b.id === bookId);
 
-        if (bookIndex === -1) return res.status(404).json({ success: false, message: 'Libro non trovato.' });
+        if (bookIndex === -1) return res.status(404).json({ success: false, message: tLog('errNotFound') });
 
         // Inizializza l'array se non esiste
         if (!books[bookIndex].tags) books[bookIndex].tags = [];
@@ -486,12 +520,12 @@ app.post('/api/books/:id/tags', async (req, res) => {
         if (!tagExists) {
             books[bookIndex].tags.unshift(cleanTag); // unshift lo mette al primo posto
             await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
-            return res.json({ success: true, message: 'Tag aggiunto!' });
+            return res.json({ success: true, message: tLog('successTagAdded') });
         } else {
-            return res.json({ success: true, message: 'Tag già presente.' });
+            return res.json({ success: true, message: tLog('successTagExists') });
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Errore interno del server.' });
+        res.status(500).json({ success: false, message: tLog('errInternal') });
     }
 });
 
@@ -507,7 +541,7 @@ app.delete('/api/books/:id', async (req, res) => {
         const bookIndex = books.findIndex(b => b.id === bookId);
 
         if (bookIndex === -1) {
-            return res.status(404).json({ success: false, message: 'Libro non trovato.' });
+            return res.status(404).json({ success: false, message: tLog('errNotFound') });
         }
 
         const bookToDelete = books[bookIndex];
@@ -527,15 +561,15 @@ app.delete('/api/books/:id', async (req, res) => {
                 await fs.unlink(path.join(publicDir, bookToDelete.coverPath));
             }
         } catch (fileError) {
-            console.log(`⚠️ Libro rimosso dal database, ma i file fisici erano già assenti.`);
+            console.log(tLog('logFilesAlreadyMissing'));
         }
 
-        console.log(`🗑️ Eliminato con successo: "${bookToDelete.title}"`);
-        res.json({ success: true, message: 'Libro eliminato con successo!' });
+        console.log(tLog('logDeleteSuccess', { title: bookToDelete.title }));
+        res.json({ success: true, message: tLog('successDelete') });
 
     } catch (error) {
-        console.error("Errore durante l'eliminazione del libro:", error);
-        res.status(500).json({ success: false, message: 'Errore interno del server.' });
+        console.error(tLog('errDeleteBook'), error);
+        res.status(500).json({ success: false, message: tLog('errInternal') });
     }
 });
 
@@ -563,13 +597,13 @@ app.put('/api/categories', async (req, res) => {
 
         if (updatedCount > 0) {
             await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
-            res.json({ success: true, message: `Categoria aggiornata con successo su ${updatedCount} libri.` });
+            res.json({ success: true, message: tLog('successCatUpdate', { count: updatedCount }) });
         } else {
-            res.json({ success: false, message: 'Nessun libro trovato per questa categoria.' });
+            res.json({ success: false, message: tLog('errNoBooksCat') });
         }
     } catch (error) {
-        console.error("Errore nella gestione categorie:", error);
-        res.status(500).json({ success: false, message: 'Errore interno del server.' });
+        console.error(tLog('errCategoryManager'), error);
+        res.status(500).json({ success: false, message: tLog('errInternal') });
     }
 });
 
@@ -595,13 +629,13 @@ app.put('/api/books/bulk-tags', async (req, res) => {
 
         if (updatedCount > 0) {
             await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
-            res.json({ success: true, message: `Spostati ${updatedCount} libri.` });
+            res.json({ success: true, message: tLog('successBulkMove', { count: updatedCount }) });
         } else {
-            res.json({ success: false, message: 'Nessun libro aggiornato.' });
+            res.json({ success: false, message: tLog('errNoBooksUpdated') });
         }
     } catch (error) {
-        console.error("Errore nell'aggiornamento massivo:", error);
-        res.status(500).json({ success: false, message: 'Errore interno del server.' });
+        console.error(tLog('errBulkUpdate'), error);
+        res.status(500).json({ success: false, message: tLog('errInternal') });
     }
 });
 
@@ -616,11 +650,14 @@ app.put('/api/books/:id/progress', async (req, res) => {
         if (bookIndex !== -1) {
             books[bookIndex].progress = progress; // Salviamo un valore tra 0 e 1
             await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
-            res.json({ success: true });
+            res.json({ success: true }); // Nessun messaggio necessario per il frontend in caso di successo silenzioso
         } else {
-            res.status(404).json({ success: false });
+            res.status(404).json({ success: false, message: tLog('errNotFound') });
         }
-    } catch (e) { res.status(500).json({ success: false }); }
+    } catch (e) { 
+        console.error(tLog('errProgressUpdate'), e);
+        res.status(500).json({ success: false, message: tLog('errInternal') }); 
+    }
 });
 
 // --- ROTTA PER SALVARE LA RECENSIONE ---
@@ -639,10 +676,11 @@ app.put('/api/books/:id/review', async (req, res) => {
             await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
             res.json({ success: true });
         } else {
-            res.status(404).json({ success: false, message: 'Libro non trovato.' });
+            res.status(404).json({ success: false, message: tLog('errNotFound') });
         }
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Errore interno.' });
+        console.error(tLog('errSaveReview'), error);
+        res.status(500).json({ success: false, message: tLog('errInternal') });
     }
 });
 
@@ -650,13 +688,13 @@ app.put('/api/books/:id/review', async (req, res) => {
 // Cattura gli errori critici non gestiti dalle librerie esterne (come epub2) 
 // per evitare che il server Node.js si spenga improvvisamente.
 process.on('uncaughtException', (err) => {
-    console.warn('\n🛡️ SCUDO ATTIVATO: Un errore critico ha tentato di far crashare il server!');
+    console.warn(tLog('logShieldActivated'));
     
     if (err.message && err.message.includes('linkparts.shift')) {
-        console.warn('⚠️ Causa: Un file EPUB malformato ha fatto impazzire la libreria "epub2".');
-        console.warn('👉 Soluzione: Usa Calibre per convertire l\'EPUB in EPUB (così da pulire il codice interno) e ricaricalo.\n');
+        console.warn(tLog('errEpub2Crash'));
+        console.warn(tLog('solutionCalibre'));
     } else {
-        console.warn('❌ Errore imprevisto:', err);
+        console.warn(tLog('errUnexpected'), err);
     }
 });
 
@@ -670,25 +708,23 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
         const book = books.find(b => b.id === bookId);
 
         if (!book || !book.epubPath) {
-            return res.status(404).json({ success: false, message: 'Libro non trovato.' });
+            return res.status(404).json({ success: false, message: tLog('errNotFound') });
         }
-
-
 
         const physicalEpubPath = path.join(publicDir, book.epubPath);
         
-        console.log(`📦 Generazione Knowledge Base Markdown per: ${book.title}...`);
+        console.log(tLog('logExportStart', { title: book.title }));
 
         let fullText = "";
 
         // Bivio: Estrazione testo in base al formato
         if (book.epubPath.toLowerCase().endsWith('.pdf')) {
-            console.log(`📄 Lettura PDF rilevata. Estrazione testo grezzo in corso...`);
+            console.log(tLog('logPdfExtract'));
             const dataBuffer = await fs.readFile(physicalEpubPath);
             const pdfData = await pdfParse(dataBuffer);
             fullText = pdfData.text;
         } else {
-            console.log(`📚 Lettura EPUB rilevata. Estrazione tramite LangChain in corso...`);
+            console.log(tLog('logEpubExtract'));
             const epub = await EPub.createAsync(physicalEpubPath);
             const getChapterAsync = (id) => new Promise(resolve => {
                 epub.getChapter(id, (err, text) => {
@@ -730,7 +766,8 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
         
         // --- COSTRUZIONE DEL DOCUMENTO MARKDOWN (Self-Instructing) ---
         const now = new Date().toISOString().split('T')[0];
-        const mainCategory = (book.tags && book.tags.length > 0) ? book.tags[0] : "Senza Categoria";
+        
+        const mainCategory = (book.tags && book.tags.length > 0) ? book.tags[0] : tLog('uncategorized');
 
         const markdownHeader = `---
         title: "${book.title.replace(/"/g, '\\"')}"
@@ -743,42 +780,41 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
 
         # ${book.title}
 
-        > **KoreShelf Smart Document:** Questo file è stato generato automaticamente da KoreShelf come una Knowledge Base in formato Markdown, 
-        pronta per essere importata in qualsiasi sistema di gestione della conoscenza o IA esterna.
-        Contiene i metadati essenziali del libro, la trama (se disponibile) e il testo completo estratto dall'EPUB, pulito da qualsiasi formattazione HTML.
+        ${tLog('mdSmartDoc')}
 
         ---
 
-        ## 📖 Dettagli e Trama
-        - **Autore:** ${book.author}
-        - **Pagine stimante:** ${book.pageCount}
+        ${tLog('mdDetailsPlot')}
+        ${tLog('mdAuthor', { author: book.author })}
+        ${tLog('mdPages', { count: book.pageCount })}
 
-        ### Trama originale
+        ${tLog('mdOriginalPlot')}
         ${book.description}
 
         ---
 
-        ## 📂 Contenuto del Libro
+        ${tLog('mdBookContent')}
 
         ${fullText}
 
         ---
-        *Fine del documento - Generato da KoreShelf*
+        ${tLog('mdEndOfDoc')}
         `;
 
         res.write(markdownHeader);
         res.end();
 
     } catch (error) {
-        console.error("Errore durante l'esportazione Markdown:", error);
-        res.status(500).json({ success: false, message: 'Errore interno del server durante la generazione del Markdown.' });
+        console.error(tLog('errExportMD'), error);
+        res.status(500).json({ success: false, message: tLog('errGenerateMD') });
     }
 });
 
 // --- ROTTA PER SPEGNIMENTO SERVER ---
 app.post('/api/shutdown', (req, res) => {
-    console.log("🛑 Richiesta di spegnimento ricevuta dal client. Chiusura del server in corso...");
-    res.json({ success: true, message: "Server in chiusura" });
+    console.log(tLog('logShutdownRequest'));
+
+    res.json({ success: true, message: tLog('successShutdown') });
     
     setTimeout(() => {
         process.exit(0);
@@ -786,7 +822,8 @@ app.post('/api/shutdown', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`🚀 Backend in ascolto su http://localhost:${port}`);
+
+    console.log(tLog('logServerListening', { port: port }));
 
     // --- LOGICA PER APRIRE IL BROWSER IN AUTOMATICO ---
     const url = `http://localhost:${port}`;
@@ -806,7 +843,7 @@ app.listen(port, () => {
 
     exec(command, (error) => {
         if (error) {
-            console.error("Impossibile aprire il browser automaticamente(aprilo manualmente): ", error);
+            console.error(tLog('errOpenBrowser'), error);
         }
     });
 });

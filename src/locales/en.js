@@ -152,10 +152,123 @@ export default {
         fullPlotTitle: "Synopsis",
         noDescription: "No synopsis available.",
         closeBtn: "Close",
+
+        //update 
+        updateAvailable: "Update available!",
+        updateDownload: "Download now",
+
         //shutdown server
         shutdownBtn: "Shutdown",
         shutdownTooltip: "Shutdown KoreShelf local server",
         shutdownConfirm: "Do you really want to shutdown KoreShelf? The application will close.",
         shutdownTitle: "KoreShelf Shutdown",
-        shutdownMessage: "The local server has been shut down. You can safely close this window."
+        shutdownMessage: "The local server has been shut down. You can safely close this window.",
+
+        //server.js locales
+        errNoFile: "No file uploaded.",
+        errFormat: "Unsupported format. Use EPUB or PDF.",
+        errDuplicate: "This book is already on your shelf!",
+        successUpload: "Book processed and successfully added!",
+        errInternal: "Internal server error.",
+        errInvalidTag: "Invalid tag.",
+        errNotFound: "Book not found.",
+        successTagAdded: "Tag added!",
+        successTagExists: "Tag already exists.",
+        successDelete: "Book successfully deleted!",
+        errNoBooksCat: "No books found for this category.",
+        successBulkMove: "Moved {count} books.",
+        errNoBooksUpdated: "No books updated.",
+        successShutdown: "Server shutting down",
+
+        //--------------------------------------------------server.js locales-------------------------------------------------------------
+
+        logUploadDirCreated: "📁 Upload directory created automatically.",
+        logCoversDirCreated: "📁 Cover directory created automatically.",
+        logBooksJsonCreated: "📄 File 'books.json' created automatically.",
+        errDockerBooksJson: "⚠️ CRITICAL ERROR: Docker created 'books.json' as a directory instead of a file! Delete the directory and restart.",
+
+        logCorruptedMetadata: "⚠️ Corrupted metadata detected! Using filename...",
+        logFoundDash: "🪄 Found a dash! Title: \"{title}\", Author: \"{author}\"",
+        unknownAuthor: "Unknown Author",
+        errEpubImageExtract: "⚠️ Unable to extract image from EPUB:",
+        errEpubParse: "EPUB parsing error:",
+
+        logCorruptedPdfMetadata: "⚠️ PDF metadata missing or corrupted! Using filename...",
+        logPdfCoverGenerated: "📸 First PDF page successfully transformed into a cover!",
+        errPdfCoverGen: "⚠️ Unable to generate cover from PDF:",
+        errPdfParse: "PDF parsing error:",
+
+        errEpubTimeout: "Timeout: The EPUB is malformed or too complex and blocked the reading process.",
+
+        unknownTitle: "Unknown Title",
+        noPlotFound: "Plot not found.",
+        logContactApple: "🍏 Contacting Apple Books for synopsis: {url}",
+        errAppleTimeout: "⚠️ Apple Books did not respond in time.",
+        logPagesCalculated: "🧮 Pages calculated mathematically from text: {count}",
+        logPagesRandom: "⚠️ Unable to read text for calculation, using random thickness.",
+
+        errAppleCoverDownload: "⚠️ Error downloading cover from Apple Books:",
+
+        logUploadStart: "\n📥 Starting processing of: {file}...",
+        logExtractingMetadata: "⚙️  Extracting metadata and internal cover...",
+        logUploadBlocked: "🛑 Upload blocked: \"{title}\" is already in the library.",
+        logInitialData: "✔️  Initial data: \"{title}\" by {author}",
+        logWaitAppleAPI: "⏳ Initial wait to avoid overloading Apple APIs...",
+        logSearchAppleBooks: "🔍 Searching data on Apple Books...",
+        logAutoCorrectTitle: "✨ Autocorrection: Title corrected to \"{finalTitle}\"",
+        logDownloadCoverMissing: "🖼️  Cover missing in EPUB. Downloading from Apple Books...",
+        noDescriptionAvailable: "No synopsis available for this book.",
+        logValidEpubPlot: "📖 Valid synopsis found inside the EPUB!",
+        logPlotDownloaded: "🌐 EPUB synopsis missing or invalid. Synopsis downloaded from Apple Books.",
+        logUpdatingLibrary: "📝 Updating library...",
+        logUploadSuccess: "✅ Success! \"{title}\" added to the shelf.\n",
+        errCriticalUpload: "❌ Critical error during book processing:",
+
+        errInvalidTag: "Invalid tag.",
+        errNotFound: "Book not found.",
+        successTagAdded: "Tag added!",
+        successTagExists: "Tag already exists.",
+        errInternal: "Internal server error.",
+
+        logFilesAlreadyMissing: "⚠️ Book removed from database, but physical files were already missing.",
+        logDeleteSuccess: "🗑️ Successfully deleted: \"{title}\"",
+        errDeleteBook: "Error deleting book:",
+
+        successCatUpdate: "Category successfully updated for {count} books.",
+        errNoBooksCat: "No books found for this category.",
+        errCategoryManager: "Error managing categories:",
+
+        successBulkMove: "Moved {count} books.",
+        errNoBooksUpdated: "No books updated.",
+        errBulkUpdate: "Error during bulk update:",
+
+        errProgressUpdate: "Error saving reading progress:",
+
+        errSaveReview: "Error saving the review:",
+
+        logShieldActivated: "\n🛡️ SHIELD ACTIVATED: A critical error tried to crash the server!",
+        errEpub2Crash: "⚠️ Cause: A malformed EPUB file caused the \"epub2\" library to crash.",
+        solutionCalibre: "👉 Solution: Use Calibre to convert the EPUB to EPUB (to clean its internal code) and re-upload it.\n",
+        errUnexpected: "❌ Unexpected error:",
+
+        uncategorized: "Uncategorized",
+        logExportStart: "📦 Generating Markdown Knowledge Base for: {title}...",
+        logPdfExtract: "📄 PDF detected. Extracting raw text...",
+        logEpubExtract: "📚 EPUB detected. Extracting text...",
+        mdSmartDoc: "> **KoreShelf Smart Document:** This file was automatically generated by KoreShelf as a Markdown Knowledge Base,\n> ready to be imported into any knowledge management system or external AI.\n> It contains essential book metadata, the synopsis (if available), and the full text extracted from the EPUB, cleaned of any HTML formatting.",
+        mdDetailsPlot: "## 📖 Details and Synopsis",
+        mdAuthor: "- **Author:** {author}",
+        mdPages: "- **Estimated Pages:** {count}",
+        mdOriginalPlot: "### Original Synopsis",
+        mdBookContent: "## 📂 Book Content",
+        mdEndOfDoc: "*End of document - Generated by KoreShelf*",
+        errExportMD: "Error during Markdown export:",
+        errGenerateMD: "Internal server error during Markdown generation.",
+
+        logShutdownRequest: "🛑 Shutdown request received from client. Shutting down server...",
+        successShutdown: "Server shutting down",
+
+        logServerListening: "🚀 Backend listening on http://localhost:{port}",
+        errOpenBrowser: "Unable to open the browser automatically (please open it manually):",
+        
     };
