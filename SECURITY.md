@@ -5,7 +5,7 @@
 If you believe you have found a security vulnerability in KoreShelf, please **do not** report it in the public Issue tracker. 
 
 Instead, please report it via email to:
-**[trovato.gabriele10@gmail.com]**
+**[koreshelf@gmail.com]**
 
 ### What to include in your report:
 * A description of the security issue.
