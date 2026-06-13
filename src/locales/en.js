@@ -32,10 +32,8 @@ export default {
         shelfTitlePrefix: "📁 ",
         noCover: "[ No cover found ]",
         allCategories: "All Categories",
-        categoryPrompt: "Enter the new category name for this book:",
 
         // Help Modal
-        helpTitle: "KoreShelf Quick Guide",
         helpClose: "Got it!",
 
         // Reader
@@ -110,16 +108,13 @@ export default {
         deleteWarningTitle: "Warning!",
         deleteWarningText: "You are about to delete the category \"{cat}\".\nNo files will be deleted, but all books on this shelf will return to \"Uncategorized\".",
         confirmDeleteBtn: "Confirm Deletion",
-        selectToImport: "Select books to bring to",
-        allBooksAlreadyHere: "All library books are already here.",
-        importSelectedBtn: "📥 Import Selected Here",
+
 
         credits: "&copy; 2026 KoreShelf - All rights reserved. Created by",
 
         //help guide 
         closeReader: "Close Book",
         helpTitle: "📖 How it works",
-        helpClose: "Got it",
         helpContent: `
             <li><b>Upload a book:</b> Click the upload button (or drag a file) to add your personal <b>.epub</b> files to the shelf.</li>
             <li><b>Search:</b> Use the top bar to quickly find a book by typing the title, author, or category.</li>
@@ -224,22 +219,13 @@ export default {
         logUploadSuccess: "✅ Success! \"{title}\" added to the shelf.\n",
         errCriticalUpload: "❌ Critical error during book processing:",
 
-        errInvalidTag: "Invalid tag.",
-        errNotFound: "Book not found.",
-        successTagAdded: "Tag added!",
-        successTagExists: "Tag already exists.",
-        errInternal: "Internal server error.",
-
         logFilesAlreadyMissing: "⚠️ Book removed from database, but physical files were already missing.",
         logDeleteSuccess: "🗑️ Successfully deleted: \"{title}\"",
         errDeleteBook: "Error deleting book:",
 
         successCatUpdate: "Category successfully updated for {count} books.",
-        errNoBooksCat: "No books found for this category.",
         errCategoryManager: "Error managing categories:",
 
-        successBulkMove: "Moved {count} books.",
-        errNoBooksUpdated: "No books updated.",
         errBulkUpdate: "Error during bulk update:",
 
         errProgressUpdate: "Error saving reading progress:",
@@ -251,7 +237,6 @@ export default {
         solutionCalibre: "👉 Solution: Use Calibre to convert the EPUB to EPUB (to clean its internal code) and re-upload it.\n",
         errUnexpected: "❌ Unexpected error:",
 
-        uncategorized: "Uncategorized",
         logExportStart: "📦 Generating Markdown Knowledge Base for: {title}...",
         logPdfExtract: "📄 PDF detected. Extracting raw text...",
         logEpubExtract: "📚 EPUB detected. Extracting text...",
@@ -266,9 +251,10 @@ export default {
         errGenerateMD: "Internal server error during Markdown generation.",
 
         logShutdownRequest: "🛑 Shutdown request received from client. Shutting down server...",
-        successShutdown: "Server shutting down",
 
         logServerListening: "🚀 Backend listening on http://localhost:{port}",
         errOpenBrowser: "Unable to open the browser automatically (please open it manually):",
-        
+        terminal_sync: "Terminal synchronized in:",
+
+
     };

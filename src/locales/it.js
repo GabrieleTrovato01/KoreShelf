@@ -28,15 +28,12 @@ export default {
         readBook: "Leggi Libro",
 
         // Etichette dinamiche e stati
-        uncategorized: "Senza Categoria",
         shelfLabel: "📁 ",
         shelfTitlePrefix: "📁 ",
         noCover: "[ Nessuna copertina trovata ]",
         allCategories: "Tutte le categorie",
-        categoryPrompt: "Inserisci il nome della nuova categoria per questo libro:",
         
         // Help Modal (index.html/main.js logic)
-        helpTitle: "Guida Rapida KoreShelf",
         helpClose: "Ho capito!",
 
         // Reader (reader.js)
@@ -111,17 +108,12 @@ export default {
         deleteWarningText: "Stai per eliminare la categoria \"{cat}\".\nNessun file verrà cancellato, ma tutti i libri torneranno in \"Senza Categoria\".",
         confirmDeleteBtn: "Conferma Eliminazione",
 
-        selectToImport: "Seleziona i libri da portare su",
-        allBooksAlreadyHere: "Tutti i libri della libreria sono già qui.",
-        importSelectedBtn: "📥 Importa Selezionati Qui",
-
         credits: "&copy; 2026 KoreShelf - Tutti i diritti riservati. Creata da",
 
         // help guide
         // --- LETTORE E HELP MODAL ---
         closeReader: "Chiudi Libro",
         helpTitle: "📖 Come funziona",
-        helpClose: "Ho capito",
         helpContent: `
             <li><b>Carica un libro:</b> Clicca sul pulsante di caricamento (o trascina un file) per aggiungere i tuoi <b>.epub</b> personali.</li>
             <li><b>Cerca:</b> Usa la barra in alto per trovare rapidamente un libro scrivendo il titolo, l'autore o la categoria.</li>
@@ -223,22 +215,13 @@ export default {
         logUploadSuccess: "✅ Successo! \"{title}\" aggiunto allo scaffale.\n",
         errCriticalUpload: "❌ Errore critico durante l'elaborazione del libro:",
 
-        errInvalidTag: "Tag non valido.",
-        errNotFound: "Libro non trovato.",
-        successTagAdded: "Tag aggiunto!",
-        successTagExists: "Tag già presente.",
-        errInternal: "Errore interno del server.",
-
         logFilesAlreadyMissing: "⚠️ Libro rimosso dal database, ma i file fisici erano già assenti.",
         logDeleteSuccess: "🗑️ Eliminato con successo: \"{title}\"",
         errDeleteBook: "Errore durante l'eliminazione del libro:",
 
         successCatUpdate: "Categoria aggiornata con successo su {count} libri.",
-        errNoBooksCat: "Nessun libro trovato per questa categoria.",
         errCategoryManager: "Errore nella gestione categorie:",
 
-        successBulkMove: "Spostati {count} libri.",
-        errNoBooksUpdated: "Nessun libro aggiornato.",
         errBulkUpdate: "Errore nell'aggiornamento massivo:",
 
         errProgressUpdate: "Errore durante il salvataggio dei progressi di lettura:",
@@ -265,10 +248,10 @@ export default {
         errGenerateMD: "Errore interno del server durante la generazione del Markdown.",
 
         logShutdownRequest: "🛑 Richiesta di spegnimento ricevuta dal client. Chiusura del server in corso...",
-        successShutdown: "Server in chiusura",
 
         logServerListening: "🚀 Backend in ascolto su http://localhost:{port}",
         errOpenBrowser: "Impossibile aprire il browser automaticamente (aprilo manualmente):",
 
-        
+        terminal_sync: "Terminale sincronizzato in:",
+
     };

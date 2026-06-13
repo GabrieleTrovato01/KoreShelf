@@ -68,12 +68,8 @@ const upload = multer({ dest: uploadDir });
 let distPath;
 
 if (process.pkg) {
-    // Se gira dentro l'eseguibile, esbuild ha creato un ambiente CJS, 
-    // quindi __dirname esiste e punta alla cartella invisibile "build-output"
     distPath = path.join(__dirname, '../dist');
 } else {
-    // Se gira in locale sul tuo PC, usiamo semplicemente process.cwd() 
-    // esattamente come hai già fatto brillantemente per uploads e covers
     distPath = path.join(process.cwd(), 'dist');
 }
 
@@ -86,7 +82,7 @@ app.post('/api/sync-language', (req, res) => {
     const { lang } = req.body;
     if (lang === 'it' || lang === 'en') {
         globalServerLang = lang; // Aggiorna la lingua di tutto il terminale!
-        console.log(`🌐 Terminale sincronizzato in: ${lang.toUpperCase()}`);
+        console.log(`🌐 ${tLog('terminal_sync', { lang: lang.toUpperCase() }, lang)}`);
     }
     res.json({ success: true });
 });
