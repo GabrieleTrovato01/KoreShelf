@@ -46,6 +46,10 @@ jobs:
       - name: Bundle Backend (esbuild)
         run: npx esbuild server.js --bundle --platform=node --format=cjs --packages=external --outfile=build-output/server.bundle.js
 
+      - name: Fix pkg gitignore bug
+        shell: bash
+        run: rm -f .gitignore
+
       - name: Package Executable with pkg
         run: npx pkg package.json --targets ${{ matrix.target }} --output ${{ matrix.output_name }}
       
