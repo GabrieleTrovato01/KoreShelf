@@ -66,7 +66,7 @@ Basandoci sul feedback della community e sullo sviluppo interno, ecco su cosa la
 
 ### 🛠️ Infrastruttura & Usabilità
 
-* [ ] Standardizzare l'output del terminale/log in inglese (o adattivo in base alla lingua).
+* [X] Standardizzare l'output del terminale/log in inglese (o adattivo in base alla lingua).
 * [X] Implementare un'opzione di "Chiusura Libreria" semplificata (chiusura server + terminale).
 * [ ] Creare una "Guida alle Traduzioni" ufficiale per i contributi della community.
 
@@ -180,7 +180,7 @@ Based on community feedback and internal development, here is what we are workin
 
 ### 🛠️ Infrastructure & Usability
 
-* [ ] Standardize terminal/log output to English (or locale-aware).
+* [X] Standardize terminal/log output to English (or locale-aware).
 * [X] Implement a graceful "Shutdown Library" option (close server + terminal).
 * [ ] Create an official "Translation Guide" for community contributions.
 
