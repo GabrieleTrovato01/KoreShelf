@@ -80,6 +80,49 @@ window.openReader = function(epubUrl, bookId) {
         allowScriptedContent: true 
     });
 
+    rendition.hooks.content.register((contents) => {
+        const style = contents.document.createElement("style");
+        style.innerHTML = `
+            /* 1. Reset totale su tutte le immagini (incluse quelle dentro SVG) */
+            img, image {
+                max-width: 100% !important;
+                max-height: 100vh !important;
+                object-fit: contain !important;
+                margin: 0 auto !important;
+                display: block !important;
+                width: auto !important;
+                height: auto !important;
+            }
+            
+            /* 2. Disinnesco degli SVG giganti o con coordinate sballate */
+            svg {
+                max-width: 100% !important;
+                max-height: 100vh !important;
+                width: auto !important;
+                height: auto !important;
+                margin: 0 auto !important;
+                display: block !important;
+            }
+
+            /* 3. Il vero trucco: costringiamo i contenitori noti delle copertine a centrare l'immagine */
+            body[epub\\:type="cover"], 
+            div.cover, 
+            div#cover, 
+            body#cover,
+            .cover-wrap {
+                display: flex !important;
+                justify-content: center !important;
+                align-items: center !important;
+                height: 100vh !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: hidden !important;
+            }
+        `;
+        contents.document.head.appendChild(style);
+    });
+
     const existingSlider = document.querySelector('.glass-slider');
     if (existingSlider) {
         existingSlider.value = localStorage.getItem('readerZoom') || '100';
