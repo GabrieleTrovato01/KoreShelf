@@ -63,6 +63,7 @@ export default {
         moveSuccess: "Spostamento completato!",
         selectBookError: "Seleziona almeno un libro.",
         genericError: "Si è verificato un errore." , 
+        existingCategoriesSubtitle: "Categorie già presenti nella libreria:",
 
         //category manager
         catManagerTitle: "⚙️ Gestione Libreria",

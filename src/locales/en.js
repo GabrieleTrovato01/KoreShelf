@@ -61,6 +61,7 @@ export default {
         // Action Messages
         categoryCreated: "Category created!",
         categoryExisting: "Category already exists",
+        existingCategoriesSubtitle: "Existing categories in the library:",
         moveSuccess: "Move completed!",
         selectBookError: "Please select at least one book.",
         genericError: "An error occurred.",

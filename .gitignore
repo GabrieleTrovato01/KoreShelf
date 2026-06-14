@@ -26,8 +26,12 @@ dist-ssr
 uploads
 public/ebooks/
 public/covers/
-public/books.json
 
 build-win/
 build-exe.js
 
+# Database SQLite
+*.db
+*.sqlite
+*.sqlite3
+*-journal

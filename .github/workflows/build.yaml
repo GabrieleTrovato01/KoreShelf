@@ -68,6 +68,8 @@ jobs:
           if [ -d "node_modules/@img" ]; then
             cp -r node_modules/@img release_build/node_modules/
           fi
+
+          cp -r node_modules/better-sqlite3 release_build/node_modules/
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

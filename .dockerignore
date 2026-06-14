@@ -2,5 +2,9 @@ node_modules
 uploads
 public/covers
 public/ebooks
-public/books.json
+# Database SQLite
+*.db
+*.sqlite
+*.sqlite3
+*-journal
 dist

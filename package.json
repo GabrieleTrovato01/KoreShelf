@@ -30,6 +30,7 @@
     "@langchain/community": "^1.1.27",
     "@langchain/core": "^1.1.43",
     "axios": "^1.15.2",
+    "better-sqlite3": "^12.10.1",
     "cheerio": "^1.2.0",
     "epub2": "^3.0.2",
     "express": "^5.2.1",
@@ -37,7 +38,7 @@
     "html-to-text": "^10.0.0",
     "multer": "^2.1.1",
     "pdf-parse": "^1.1.1",
-    "pdf2pic": "^3.0.0",
+    "pdf2pic": "^3.2.0",
     "sharp": "^0.32.6",
     "three": "^0.184.0",
     "uuid": "^14.0.0"

@@ -758,33 +758,47 @@ infoBtn.onclick = () => {
     infoBtn.innerText = isShowingBack ? t('showCover') : t('showSynopsis');
     updateCarousel();
 };
+// --- LOGICA DI RICERCA (Connessa al Database e Debounce) ---
+let searchTimeout = null;
 
-// Logica di ricerca in tempo reale
 searchInput.addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase();
-    if (!query) return;
+    const query = e.target.value.trim();
+    
+    // 1. Annulliamo la ricerca precedente se l'utente sta ancora digitando
+    if (searchTimeout) clearTimeout(searchTimeout);
+    
+    if (!query) return; // Non facciamo query inutili se l'input è vuoto
 
-    // Cerca il primo libro che contiene il testo nel titolo o nell'autore
-    const foundIndex = booksArray.findIndex(book => {
-        // Cerchiamo in titolo e autore
-        const matchTitle = book.userData.title.toLowerCase().includes(query);
-        const matchAuthor = book.userData.author.toLowerCase().includes(query);
-        
-        // Cerchiamo nei tag (assicurandoci che esistano prima di fare map/some)
-        let matchTag = false;
-        if (book.userData.tags && book.userData.tags.length > 0) {
-            matchTag = book.userData.tags.some(tag => tag.toLowerCase().includes(query));
+    // 2. Impostiamo un timer di 400ms. Il server verrà interrogato solo 
+    // quando l'utente smette di digitare per quasi mezzo secondo.
+    searchTimeout = setTimeout(async () => {
+        try {
+            // Chiediamo a SQLite i risultati perfetti
+            const res = await fetch(`/api/books/search?q=${encodeURIComponent(query)}`);
+            const matches = await res.json();
+
+            // Se il database ha trovato qualcosa...
+            if (matches.length > 0) {
+                // Prendiamo l'ID del miglior risultato (il primo)
+                const targetBookId = matches[0].id;
+
+                // Cerchiamo a che indice si trova quel libro nel nostro scaffale 3D
+                const foundIndex = booksArray.findIndex(book => book.userData.id === targetBookId);
+
+                // Se lo troviamo, facciamo "volare" la telecamera su quel libro!
+                if (foundIndex !== -1 && foundIndex !== currentIndex) {
+                    currentIndex = foundIndex;
+                    isShowingBack = false;
+                    
+                    if (typeof infoBtn !== 'undefined') infoBtn.innerText = t('showSynopsis');
+                    
+                    updateCarousel();
+                }
+            }
+        } catch (err) {
+            console.error("Errore durante la ricerca backend:", err);
         }
-
-        return matchTitle || matchAuthor || matchTag;
-    });
-
-    if (foundIndex !== -1 && foundIndex !== currentIndex) {
-        currentIndex = foundIndex;
-        isShowingBack = false;
-        infoBtn.innerText = t('showSynopsis');
-        updateCarousel();
-    }
+    }, 150); // 400 millisecondi di anti-spam
 });
 
 // --- GESTIONE UPLOAD MULTIPLO ---
@@ -1043,7 +1057,7 @@ function createFrontPlaceholderTexture(title, author) {
 // --- 4. CARICAMENTO E LOGICA CAROSELLO (Con Modellazione Reale dello spessore) ---
 async function loadBooks() {
     try {
-        const response = await fetch('/books.json');
+        const response = await fetch('/api/books');
         const booksData = await response.json();
 
         // 1. Raggruppiamo i libri per Categoria

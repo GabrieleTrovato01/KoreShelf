@@ -542,7 +542,7 @@ window.openReviewModal = async function(bookId) {
     let textArea = document.createElement('textarea');
 
     try {
-        const res = await fetch('/books.json');
+        const res = await fetch('/api/books');
         const books = await res.json();
         const book = books.find(b => b.id === bookId);
         if (book) {

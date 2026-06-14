@@ -12,6 +12,7 @@ import { fromPath } from 'pdf2pic';
 import * as htmlToText from 'html-to-text';
 import localeIt from './src/locales/it.js';
 import localeEn from './src/locales/en.js';
+import Database from 'better-sqlite3';
 
 const locales = { it: localeIt.default || localeIt, en: localeEn.default || localeEn };
 
@@ -39,7 +40,86 @@ const port = 3000;
 const uploadDir = path.join(process.cwd(), 'uploads');
 const publicDir = path.join(process.cwd(), 'public');
 const coversDir = path.join(publicDir, 'covers');
-const booksJsonPath = path.join(publicDir, 'books.json');
+// --------------------DB SQLITE PER LA LIBRERIA-------------------------
+
+const db = new Database(path.join(publicDir, 'koreshelf.db'));
+db.exec(`
+    CREATE TABLE IF NOT EXISTS books (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        author TEXT,
+        description TEXT,
+        coverPath TEXT,
+        epubPath TEXT,
+        pageCount INTEGER DEFAULT 350,
+        progress REAL DEFAULT 0,
+        rating INTEGER DEFAULT 0,
+        review TEXT,
+        tags TEXT DEFAULT '[]'
+    )
+`);
+// Helper per leggere tutti i libri dal DB
+function getAllBooks() {
+    const rows = db.prepare('SELECT * FROM books').all();
+    return rows.map(row => ({
+        ...row,
+        tags: JSON.parse(row.tags || '[]')
+    }));
+}
+// Helper per salvare un libro nel DB
+function upsertBook(book) {
+    const stmt = db.prepare(`
+        INSERT INTO books (id, title, author, description, coverPath, epubPath, pageCount, progress, rating, review, tags)
+        VALUES (@id, @title, @author, @description, @coverPath, @epubPath, @pageCount, @progress, @rating, @review, @tags)
+        ON CONFLICT(id) DO UPDATE SET
+            title = @title,
+            author = @author,
+            description = @description,
+            coverPath = @coverPath,
+            epubPath = @epubPath,
+            pageCount = @pageCount,
+            progress = @progress,
+            rating = @rating,
+            review = @review,
+            tags = @tags
+    `);
+    stmt.run({ 
+        ...book, 
+        tags: JSON.stringify(book.tags || []),
+        rating: book.rating || 0,
+        review: book.review || null,
+        progress: book.progress || 0,
+        description: book.description || null,
+        coverPath: book.coverPath || null
+    });
+}
+
+// Migrazione dati da books.json a SQLite
+function migrateFromJson() {
+    const count = db.prepare('SELECT COUNT(*) as count FROM books').get();
+    if (count.count > 0) return; // DB già popolato, skip
+
+    try {
+        if (fsSync.existsSync(booksJsonPath)) {
+            const data = fsSync.readFileSync(booksJsonPath, 'utf-8');
+            const books = JSON.parse(data);
+            
+            const migrate = db.transaction((books) => {
+                books.forEach(book => upsertBook(book));
+            });
+            
+            migrate(books);
+            console.log(`✅ Migrati ${books.length} libri da books.json a SQLite`);
+        }
+    } catch(e) {
+        console.error('❌ Errore migrazione:', e);
+    }
+}
+
+migrateFromJson();
+
+//--------------------------------------------------------------------
+
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
 // --- Creiamo le cartelle e i file se non esistono ---
@@ -51,15 +131,6 @@ if (!fsSync.existsSync(uploadDir)) {
 if (!fsSync.existsSync(coversDir)) {
     fsSync.mkdirSync(coversDir, { recursive: true });
     console.log(tLog("logCoversDirCreated"));
-}
-
-
-if (!fsSync.existsSync(booksJsonPath)) {
-    fsSync.writeFileSync(booksJsonPath, '[]'); 
-    console.log(tLog("logBooksJsonCreated"));
-} else if (fsSync.statSync(booksJsonPath).isDirectory()) {
-    // Protezione Docker
-    console.error(tLog('errDockerBooksJson'));
 }
 // ----------------------------------------------------
 
@@ -90,6 +161,11 @@ app.post('/api/sync-language', (req, res) => {
 // Fallback fondamentale per le Single Page Application
 app.get('/', (req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
+});
+
+app.get('/books.json', (req, res) => {
+    const books = getAllBooks();
+    res.json(books);
 });
 
 // --- FUNZIONI HELPER ---
@@ -370,6 +446,48 @@ async function downloadCoverImage(url, fileName) {
     }
 }
 
+// --- ROTTA PER LEGGERE TUTTI I LIBRI DAL DB ---
+app.get('/api/books', (req, res) => {
+    try {
+        const books = getAllBooks();
+        res.json(books);
+    } catch (error) {
+        console.error("Errore lettura libri dal DB:", error);
+        res.status(500).json([]);
+    }
+});
+
+// --- ROTTA PER LA RICERCA SQL AVANZATA ---
+app.get('/api/books/search', (req, res) => {
+    const query = req.query.q;
+    if (!query) return res.json([]); // Se la query è vuota, restituisci nulla
+
+    try {
+        const searchTerm = `%${query}%`; 
+        
+        // Eseguiamo la query contemporaneamente su Titolo, Autore e Categoria
+        const stmt = db.prepare(`
+            SELECT * FROM books 
+            WHERE title LIKE ? 
+               OR author LIKE ? 
+               OR tags LIKE ?
+        `);
+        
+        const rows = stmt.all(searchTerm, searchTerm, searchTerm);
+        
+        // Formattiamo il JSON dei tags come sempre
+        const formattedBooks = rows.map(row => ({
+            ...row,
+            tags: JSON.parse(row.tags || '[]')
+        }));
+
+        res.json(formattedBooks);
+    } catch (error) {
+        console.error("Errore di ricerca nel DB:", error);
+        res.status(500).json([]);
+    }
+});
+
 // --- API UPLOAD ---
 app.post('/api/upload', upload.single('ebook'), async (req, res) => {
     try {
@@ -386,38 +504,18 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         let bookData;
 
         if (fileExt === '.epub') {
-            // Qui non serve passare lang, usiamo globalServerLang
             bookData = await parseEpubWithTimeout(file.path, baseName, file.originalname, 8000);
         } else if (fileExt === '.pdf') {
             bookData = await parsePdf(file.path, baseName, file.originalname);
         } else {
-            // Se qualcuno forza il caricamento di un file non supportato
             try { await fs.unlink(file.path); } catch(e){}
             return res.status(400).json({ success: false, message: tLog('errFormat') });
         }
 
-        let currentBooks = [];
-        try {
-            const fileData = await fs.readFile(booksJsonPath, 'utf-8');
-            currentBooks = JSON.parse(fileData);
-        } catch (e) {}
-
-        const isDuplicate = currentBooks.some(book => 
-            book.title.toLowerCase().trim() === bookData.title.toLowerCase().trim() && 
-            book.author.toLowerCase().trim() === bookData.author.toLowerCase().trim()
-        );
-
-        if (isDuplicate) {
-            console.log(tLog('logUploadBlocked', { title: bookData.title }));
-            try { await fs.unlink(file.path); } catch (err) {}
-            return res.json({ success: false, message: tLog('errDuplicate') });
-        }
-
         console.log(tLog('logInitialData', { title: bookData.title, author: bookData.author }));
-        
         console.log(tLog('logWaitAppleAPI'));
-        
         console.log(tLog('logSearchAppleBooks'));
+        
         const googleData = await fetchBestBookData(bookData.title, bookData.author, bookData.textLength);
 
         let finalTitle = bookData.title;
@@ -428,12 +526,21 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
             const googleTitleLower = googleData.googleTitle.toLowerCase();
             const isRelated = titleWords.some(word => googleTitleLower.includes(word));
 
-            // Confrontiamo con la stringa localizzata generata negli step precedenti
             if (isRelated || bookData.title === tLog('unknownTitle')) {
                 finalTitle = googleData.googleTitle;
                 finalAuthor = googleData.googleAuthor || bookData.author;
                 console.log(tLog('logAutoCorrectTitle', { finalTitle: finalTitle }));
             }
+        }
+
+        const isDuplicate = db.prepare('SELECT id FROM books WHERE LOWER(title) = LOWER(?)').get(finalTitle.trim());
+
+        if (isDuplicate) {
+            console.log(`[BLOCCATO] Il libro "${finalTitle}" è già presente nella libreria!`);
+            try { await fs.unlink(file.path); } catch (err) {}
+            
+            // Restituisce l'errore al frontend in modo che mostri l'alert "già presente"
+            return res.json({ success: false, message: 'Libro già presente nella libreria.' });
         }
 
         let finalCoverPath = bookData.coverPath; 
@@ -451,7 +558,6 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
             console.log(tLog('logValidEpubPlot'));
             finalDescription = epubDesc;
         } else if (googleData.description && googleData.description !== tLog('noPlotFound')) {
-            // Usiamo il tLog('noPlotFound') per verificare se fetchBestBookData ha fallito
             console.log(tLog('logPlotDownloaded'));
             finalDescription = googleData.description;
         }
@@ -460,7 +566,6 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         if (!fsSync.existsSync(ebooksDir)) fsSync.mkdirSync(ebooksDir, { recursive: true });
         
         const finalEpubPath = `ebooks/${baseName}${fileExt}`;
-        // SOLUZIONE EXDEV: Copiamo il file e poi cancelliamo l'originale
         await fs.copyFile(file.path, path.join(publicDir, finalEpubPath));
         await fs.unlink(file.path);
         
@@ -472,16 +577,15 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
             coverPath: finalCoverPath,
             pageCount: googleData.pageCount || 350,
             epubPath: finalEpubPath,
-            tags: []
+            tags: [],
+            progress: 0,
+            rating: 0,
+            review: null
         };
 
         console.log(tLog('logUpdatingLibrary'));
-        currentBooks.push(newBook);
-        await fs.writeFile(booksJsonPath, JSON.stringify(currentBooks, null, 4));
+        upsertBook(newBook);
 
-        try { await fs.unlink(file.path); } catch (unlinkError) {}
-
-        console.log(tLog('logUploadSuccess', { title: newBook.title }));
         res.json({ success: true, message: tLog('successUpload') });
 
     } catch (error) {
@@ -491,7 +595,7 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
 });
 
 // --- ROTTA PER AGGIUNGERE TAG PERSONALIZZATI ---
-app.post('/api/books/:id/tags', async (req, res) => {
+app.post('/api/books/:id/tags', (req, res) => {
     const bookId = req.params.id;
     const { tag } = req.body;
 
@@ -500,27 +604,22 @@ app.post('/api/books/:id/tags', async (req, res) => {
     }
 
     try {
-        const fileData = await fs.readFile(booksJsonPath, 'utf-8');
-        let books = JSON.parse(fileData);
-        const bookIndex = books.findIndex(b => b.id === bookId);
+        const row = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
+        if (!row) return res.status(404).json({ success: false, message: tLog('errNotFound') });
 
-        if (bookIndex === -1) return res.status(404).json({ success: false, message: tLog('errNotFound') });
-
-        // Inizializza l'array se non esiste
-        if (!books[bookIndex].tags) books[bookIndex].tags = [];
-
+        const book = { ...row, tags: JSON.parse(row.tags || '[]') };
         const cleanTag = tag.trim();
-        // Aggiungiamo il tag in cima, così diventa la categoria "Principale" per la mensola
-        const tagExists = books[bookIndex].tags.some(t => t.toLowerCase() === cleanTag.toLowerCase());
+        const tagExists = book.tags.some(t => t.toLowerCase() === cleanTag.toLowerCase());
         
         if (!tagExists) {
-            books[bookIndex].tags.unshift(cleanTag); // unshift lo mette al primo posto
-            await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
+            book.tags.unshift(cleanTag);
+            upsertBook(book);
             return res.json({ success: true, message: tLog('successTagAdded') });
         } else {
             return res.json({ success: true, message: tLog('successTagExists') });
         }
     } catch (error) {
+        console.error(error);
         res.status(500).json({ success: false, message: tLog('errInternal') });
     }
 });
@@ -530,32 +629,19 @@ app.delete('/api/books/:id', async (req, res) => {
     const bookId = req.params.id;
 
     try {
-        const fileData = await fs.readFile(booksJsonPath, 'utf-8');
-        let books = JSON.parse(fileData);
+        const bookToDelete = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
         
-        // Troviamo l'indice del libro
-        const bookIndex = books.findIndex(b => b.id === bookId);
-
-        if (bookIndex === -1) {
+        if (!bookToDelete) {
             return res.status(404).json({ success: false, message: tLog('errNotFound') });
         }
 
-        const bookToDelete = books[bookIndex];
+        // Eliminazione dal database
+        db.prepare('DELETE FROM books WHERE id = ?').run(bookId);
 
-        // 1. Rimuoviamo il libro dall'array
-        books.splice(bookIndex, 1);
-        
-        // 2. Salviamo il database JSON aggiornato
-        await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
-
-        // 3. IGIENE DEL DISCO: Eliminiamo i file fisici!
+        // IGIENE DEL DISCO: Eliminiamo i file fisici
         try {
-            if (bookToDelete.epubPath) {
-                await fs.unlink(path.join(publicDir, bookToDelete.epubPath));
-            }
-            if (bookToDelete.coverPath) {
-                await fs.unlink(path.join(publicDir, bookToDelete.coverPath));
-            }
+            if (bookToDelete.epubPath) await fs.unlink(path.join(publicDir, bookToDelete.epubPath));
+            if (bookToDelete.coverPath) await fs.unlink(path.join(publicDir, bookToDelete.coverPath));
         } catch (fileError) {
             console.log(tLog('logFilesAlreadyMissing'));
         }
@@ -570,30 +656,33 @@ app.delete('/api/books/:id', async (req, res) => {
 });
 
 // --- ROTTA PER GESTIRE LE CATEGORIE IN BLOCCO (Rinomina/Elimina) ---
-app.put('/api/categories', async (req, res) => {
+app.put('/api/categories', (req, res) => {
     const { oldName, newName, action } = req.body;
 
     try {
-        const fileData = await fs.readFile(booksJsonPath, 'utf-8');
-        let books = JSON.parse(fileData);
-        let updatedCount = 0;
+        const books = getAllBooks();
+        const toUpdate = [];
 
         books.forEach(book => {
-            // Se il libro ha tag e il primo tag corrisponde alla categoria che stiamo modificando
             if (book.tags && book.tags.length > 0 && book.tags[0] === oldName) {
                 if (action === 'rename' && newName) {
                     book.tags[0] = newName.trim();
-                    updatedCount++;
+                    toUpdate.push(book);
                 } else if (action === 'delete') {
-                    book.tags = []; // Resettiamo i tag: il libro tornerà "Senza Categoria"
-                    updatedCount++;
+                    book.tags = []; 
+                    toUpdate.push(book);
                 }
             }
         });
 
-        if (updatedCount > 0) {
-            await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
-            res.json({ success: true, message: tLog('successCatUpdate', { count: updatedCount }) });
+        if (toUpdate.length > 0) {
+            // Esecuzione in blocco sicura
+            const updateMany = db.transaction((booksToSave) => {
+                booksToSave.forEach(b => upsertBook(b));
+            });
+            updateMany(toUpdate);
+            
+            res.json({ success: true, message: tLog('successCatUpdate', { count: toUpdate.length }) });
         } else {
             res.json({ success: false, message: tLog('errNoBooksCat') });
         }
@@ -604,28 +693,29 @@ app.put('/api/categories', async (req, res) => {
 });
 
 // --- ROTTA PER SPOSTARE PIU' LIBRI INSIEME (BULK) ---
-app.put('/api/books/bulk-tags', async (req, res) => {
+app.put('/api/books/bulk-tags', (req, res) => {
     const { bookIds, newTag } = req.body;
 
     try {
-        const fileData = await fs.readFile(booksJsonPath, 'utf-8');
-        let books = JSON.parse(fileData);
-        let updatedCount = 0;
+        const books = getAllBooks();
+        const toUpdate = [];
 
         books.forEach(book => {
             if (bookIds.includes(book.id)) {
                 if (!book.tags) book.tags = [];
-                // Rimuoviamo il tag se per caso ce l'aveva già in seconda posizione
                 book.tags = book.tags.filter(t => t.toLowerCase() !== newTag.toLowerCase());
-                // Inseriamo la nuova categoria in prima posizione
                 book.tags.unshift(newTag.trim());
-                updatedCount++;
+                toUpdate.push(book);
             }
         });
 
-        if (updatedCount > 0) {
-            await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
-            res.json({ success: true, message: tLog('successBulkMove', { count: updatedCount }) });
+        if (toUpdate.length > 0) {
+            const updateMany = db.transaction((booksToSave) => {
+                booksToSave.forEach(b => upsertBook(b));
+            });
+            updateMany(toUpdate);
+
+            res.json({ success: true, message: tLog('successBulkMove', { count: toUpdate.length }) });
         } else {
             res.json({ success: false, message: tLog('errNoBooksUpdated') });
         }
@@ -636,17 +726,13 @@ app.put('/api/books/bulk-tags', async (req, res) => {
 });
 
 // Aggiorna la percentuale di lettura nel database
-app.put('/api/books/:id/progress', async (req, res) => {
+app.put('/api/books/:id/progress', (req, res) => {
     const { progress } = req.body;
     try {
-        const fileData = await fs.readFile(booksJsonPath, 'utf-8');
-        let books = JSON.parse(fileData);
-        const bookIndex = books.findIndex(b => b.id === req.params.id);
+        const info = db.prepare('UPDATE books SET progress = ? WHERE id = ?').run(progress, req.params.id);
         
-        if (bookIndex !== -1) {
-            books[bookIndex].progress = progress; // Salviamo un valore tra 0 e 1
-            await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
-            res.json({ success: true }); // Nessun messaggio necessario per il frontend in caso di successo silenzioso
+        if (info.changes > 0) {
+            res.json({ success: true });
         } else {
             res.status(404).json({ success: false, message: tLog('errNotFound') });
         }
@@ -657,19 +743,14 @@ app.put('/api/books/:id/progress', async (req, res) => {
 });
 
 // --- ROTTA PER SALVARE LA RECENSIONE ---
-app.put('/api/books/:id/review', async (req, res) => {
+app.put('/api/books/:id/review', (req, res) => {
     const bookId = req.params.id;
     const { rating, reviewText } = req.body;
 
     try {
-        const fileData = await fs.readFile(booksJsonPath, 'utf-8');
-        let books = JSON.parse(fileData);
-        const bookIndex = books.findIndex(b => b.id === bookId);
+        const info = db.prepare('UPDATE books SET rating = ?, review = ? WHERE id = ?').run(rating, reviewText, bookId);
 
-        if (bookIndex !== -1) {
-            books[bookIndex].rating = rating; // Numero da 1 a 5
-            books[bookIndex].review = reviewText; // Testo della recensione
-            await fs.writeFile(booksJsonPath, JSON.stringify(books, null, 4));
+        if (info.changes > 0) {
             res.json({ success: true });
         } else {
             res.status(404).json({ success: false, message: tLog('errNotFound') });
@@ -699,14 +780,13 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
     const bookId = req.params.id;
 
     try {
-        const fileData = await fs.readFile(booksJsonPath, 'utf-8');
-        const books = JSON.parse(fileData);
-        const book = books.find(b => b.id === bookId);
-
-        if (!book || !book.epubPath) {
+        const row = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
+        
+        if (!row || !row.epubPath) {
             return res.status(404).json({ success: false, message: tLog('errNotFound') });
         }
-
+        
+        const book = { ...row, tags: JSON.parse(row.tags || '[]') };
         const physicalEpubPath = path.join(publicDir, book.epubPath);
         
         console.log(tLog('logExportStart', { title: book.title }));
@@ -734,7 +814,6 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
                     if (chapter.id) {
                         const htmlText = await getChapterAsync(chapter.id);
                         if (htmlText && htmlText.trim() !== '') {
-                            // Usiamo html-to-text per pulire l'HTML in un Markdown perfetto
                             const cleanText = htmlToText.convert(htmlText, {
                                 wordwrap: false,
                                 selectors: [ 
@@ -751,51 +830,47 @@ app.get('/api/books/:id/export-ai', async (req, res) => {
             fullText = chaptersText.join("\n\n---\n\n");
         }
 
-        // Prepariamo il nome del file
         const safeTitle = book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `KoreShelf_${safeTitle}.md`; // Estensione .md
+        const fileName = `KoreShelf_${safeTitle}.md`;
 
-        // Configurazione Header per il download di un file Markdown
         res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
         res.setHeader('Content-type', 'text/markdown');
         res.charset = 'UTF-8';
         
-        // --- COSTRUZIONE DEL DOCUMENTO MARKDOWN (Self-Instructing) ---
         const now = new Date().toISOString().split('T')[0];
-        
         const mainCategory = (book.tags && book.tags.length > 0) ? book.tags[0] : tLog('uncategorized');
 
         const markdownHeader = `---
-        title: "${book.title.replace(/"/g, '\\"')}"
-        author: "${book.author.replace(/"/g, '\\"')}"
-        category: "${mainCategory}"
-        exported_from: "KoreShelf"
-        export_date: ${now}
-        tags: [KoreShelf, KnowledgeBase, ${mainCategory.replace(/\s+/g, '')}]
-        ---
+title: "${book.title.replace(/"/g, '\\"')}"
+author: "${book.author.replace(/"/g, '\\"')}"
+category: "${mainCategory}"
+exported_from: "KoreShelf"
+export_date: ${now}
+tags: [KoreShelf, KnowledgeBase, ${mainCategory.replace(/\s+/g, '')}]
+---
 
-        # ${book.title}
+# ${book.title}
 
-        ${tLog('mdSmartDoc')}
+${tLog('mdSmartDoc')}
 
-        ---
+---
 
-        ${tLog('mdDetailsPlot')}
-        ${tLog('mdAuthor', { author: book.author })}
-        ${tLog('mdPages', { count: book.pageCount })}
+${tLog('mdDetailsPlot')}
+${tLog('mdAuthor', { author: book.author })}
+${tLog('mdPages', { count: book.pageCount })}
 
-        ${tLog('mdOriginalPlot')}
-        ${book.description}
+${tLog('mdOriginalPlot')}
+${book.description}
 
-        ---
+---
 
-        ${tLog('mdBookContent')}
+${tLog('mdBookContent')}
 
-        ${fullText}
+${fullText}
 
-        ---
-        ${tLog('mdEndOfDoc')}
-        `;
+---
+${tLog('mdEndOfDoc')}
+`;
 
         res.write(markdownHeader);
         res.end();
