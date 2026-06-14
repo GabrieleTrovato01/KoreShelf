@@ -116,7 +116,7 @@ The app is smart and syncs data with your computer. Inside the project folder, y
 
 * `ebooks/`: Your books (EPUBs/PDFs) are physically saved here.
 * `covers/`: Extracted covers for 3D visualization are saved here.
-* `books.json`: This file is the database of your library.
+* `koreshelf.db` : This is the robust SQLite database containing your library's metadata, reading progress, and tags.
 
 **Note:** These folders are protected and ignored by Git (thanks to `.gitignore`). You can add as many books as you want without risking accidentally uploading them online if you publish the code on GitHub!
 
@@ -249,7 +249,7 @@ L'app è intelligente e sincronizza i dati con il tuo computer. All'interno dell
 
 * `ebooks/`: Qui vengono salvati fisicamente i tuoi libri (EPUB).
 * `covers/`: Qui vengono salvate le copertine estratte per la visualizzazione 3D.
-* `books.json`: Questo file è il database della tua libreria.   
+* `koreshelf.db` : Questo è il solido database SQLite che contiene i metadati, il progresso di lettura e le categorie della tua libreria.
 
 **Nota:** Queste cartelle sono protette e ignorate da Git (grazie al `.gitignore`). Puoi aggiungere quanti libri vuoi senza rischiare di caricarli accidentalmente online se pubblichi il codice su GitHub!
 
