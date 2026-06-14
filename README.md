@@ -78,10 +78,6 @@ Once the terminal has finished loading, the library is ready!
 Open your favorite browser (Chrome, Edge, Safari) and go to the address:
 
 👉 **http://localhost:3000**
-
-**💡 Tip for the ultimate experience:** You don't need to open the browser every time! You can transform this page into a desktop app:
-On Google Chrome or Edge, go to the menu (the three dots) -> "Save and share" / "Apps" -> **Install page as App / Create shortcut** (remember to check "Open as window"). You will have an icon on your desktop, and it will look just like a native installed program!
-
 ---
 
 ### 📖 Integrated EPUB & PDF Reader & Reading Memories
