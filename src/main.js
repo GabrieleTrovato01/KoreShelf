@@ -1688,7 +1688,7 @@ window.addEventListener('resize', () => {
 });
 
 // --- 7. CONTROLLO AGGIORNAMENTI GITHUB ---
-const CURRENT_VERSION = "v2.0.3"; 
+const CURRENT_VERSION = "v2.0.4"; 
 const GITHUB_API_URL = "https://api.github.com/repos/GabrieleTrovato01/LoreKeeper/releases/latest";
 
 async function checkForUpdates() {
