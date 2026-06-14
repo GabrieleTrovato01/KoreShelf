@@ -40,6 +40,26 @@ const port = 3000;
 const uploadDir = path.join(process.cwd(), 'uploads');
 const publicDir = path.join(process.cwd(), 'public');
 const coversDir = path.join(publicDir, 'covers');
+
+
+//--------------------------------------------------------------------
+
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
+// --- Creiamo le cartelle e i file se non esistono ---
+if (!fsSync.existsSync(publicDir)) {
+    fsSync.mkdirSync(publicDir, { recursive: true });
+}  
+if (!fsSync.existsSync(uploadDir)) {
+    fsSync.mkdirSync(uploadDir, { recursive: true });
+    console.log(tLog("logUploadDirCreated"));
+}
+
+if (!fsSync.existsSync(coversDir)) {
+    fsSync.mkdirSync(coversDir, { recursive: true });
+    console.log(tLog("logCoversDirCreated"));
+}
+
 // --------------------DB SQLITE PER LA LIBRERIA-------------------------
 
 const db = new Database(path.join(publicDir, 'koreshelf.db'));
@@ -118,21 +138,7 @@ function migrateFromJson() {
 
 migrateFromJson();
 
-//--------------------------------------------------------------------
 
-const delay = ms => new Promise(res => setTimeout(res, ms));
-
-// --- Creiamo le cartelle e i file se non esistono ---
-if (!fsSync.existsSync(uploadDir)) {
-    fsSync.mkdirSync(uploadDir, { recursive: true });
-    console.log(tLog("logUploadDirCreated"));
-}
-
-if (!fsSync.existsSync(coversDir)) {
-    fsSync.mkdirSync(coversDir, { recursive: true });
-    console.log(tLog("logCoversDirCreated"));
-}
-// ----------------------------------------------------
 
 const upload = multer({ dest: uploadDir });
 // --- FIX PER I PERCORSI DI PKG ED ESBUILD ---
