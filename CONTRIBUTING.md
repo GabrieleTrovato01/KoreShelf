@@ -82,7 +82,7 @@ Basandoci sul feedback della community e sullo sviluppo interno, ecco su cosa la
 
 ### 📖 Revisione UI del Reader
 
-* [ ] Risolvere il bug della copertina distorta nel lettore.
+* [X] Risolvere il bug della copertina distorta nel lettore.
 * [ ] Risolvere il problema dell'inversione dei colori in modalità scura.
 * [ ] Correggere le discrepanze tra la copertina nella libreria e quella nel lettore.
 * [ ] Aggiungere modalità di scorrimento a pagina singola e continua.
@@ -196,7 +196,7 @@ Based on community feedback and internal development, here is what we are workin
 
 ### 📖 Reader UI Overhaul
 
-* [ ] Fix stretched cover page bug in the reader.
+* [X] Fix stretched cover page bug in the reader.
 * [ ] Fix dark mode image inversion issue.
 * [ ] Fix cover page mismatches between library and reader mode.
 * [ ] Add single-page and continuous scrolling modes.
