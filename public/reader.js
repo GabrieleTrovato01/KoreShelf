@@ -38,6 +38,18 @@ window.openReader = function(epubUrl, bookId) {
     readerOverlay.style.display = 'block';
     setTimeout(() => readerOverlay.style.opacity = '1', 50);
 
+    if (viewer) {
+        viewer.style.width = "90%";            // Adattamento dinamico
+        viewer.style.maxWidth = "850px";       // Limite massimo anti-affaticamento
+
+        viewer.style.height = "88vh"; // Altezza totale schermo MENO 120px (spazio per menu sopra e sotto)
+        viewer.style.margin = "2vh auto 0 auto";    // Spinge il div giù di 60px e lo centra orizzontalmente
+        // Centratura automatica
+        viewer.style.padding = "0";            
+        viewer.style.boxSizing = "border-box";
+        viewer.style.position = "relative";    // Annulla eventuali margini forzati dall'HTML
+    }
+
     currentBook = ePub(epubUrl);
 
     currentBook.ready.then(() => {
@@ -418,6 +430,7 @@ window.applyCurrentTheme = function() {
     const themeBtn = document.getElementById('theme-toggle-btn');
     const readingProgress = document.getElementById('reading-progress');
     const bottomBarZoom = document.getElementById('bottom-bar-zoom');
+    const closeReaderBtn = document.getElementById('close-reader-btn');
 
     if (isDarkMode) {
         const pdfCanvas = document.getElementById('pdf-canvas');
@@ -433,7 +446,12 @@ window.applyCurrentTheme = function() {
             scrollIndicator.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
         }
         if (readerOverlay) readerOverlay.style.background = '#121212';
-        if (themeBtn) themeBtn.innerText = '☀️ Light Mode';
+        if (themeBtn) {
+            themeBtn.innerText = '☀️ Light Mode';
+            themeBtn.style.color = '#ffffff';
+            themeBtn.style.background = 'rgba(255, 255, 255, 0.08)';
+            themeBtn.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+        }
         if (readingProgress) {
             readingProgress.style.color = '#ffffff';
             readingProgress.style.background = 'rgba(255, 255, 255, 0.08)';
@@ -441,6 +459,11 @@ window.applyCurrentTheme = function() {
         if (bottomBarZoom) {
             bottomBarZoom.style.color = '#ffffff';
             bottomBarZoom.style.background = 'rgba(255, 255, 255, 0.08)';
+        }
+        if (closeReaderBtn) {
+            closeReaderBtn.style.color = '#ffffff';
+            closeReaderBtn.style.background = 'rgba(255, 255, 255, 0.08)';
+            closeReaderBtn.style.border = '1px solid rgba(255, 255, 255, 0.2)';
         }
     } else {
         const pdfCanvas = document.getElementById('pdf-canvas');
@@ -456,7 +479,12 @@ window.applyCurrentTheme = function() {
             scrollIndicator.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
         }
         if (readerOverlay) readerOverlay.style.background = '#faf9f6';
-        if (themeBtn) themeBtn.innerText = '🌙 Dark Mode';
+        if (themeBtn) {
+            themeBtn.innerText = '🌙 Dark Mode';
+            themeBtn.style.color = '#000000';
+            themeBtn.style.background = 'rgba(0, 0, 0, 0.1)';
+            themeBtn.style.border = '1px solid rgba(0, 0, 0, 0.1)';
+        }
         if (readingProgress) {
             readingProgress.style.color = '#000000';
             readingProgress.style.background = 'rgba(0, 0, 0, 0.1)';
@@ -464,6 +492,11 @@ window.applyCurrentTheme = function() {
         if (bottomBarZoom) {
             bottomBarZoom.style.color = '#000000';
             bottomBarZoom.style.background = 'rgba(0, 0, 0, 0.1)';
+        }
+        if (closeReaderBtn) {
+            closeReaderBtn.style.color = '#000000';
+            closeReaderBtn.style.background = 'rgba(0, 0, 0, 0.1)';
+            closeReaderBtn.style.border = '1px solid rgba(0, 0, 0, 0.1)';
         }
     }
 
@@ -483,15 +516,31 @@ window.applyCurrentTheme = function() {
 
             if (isDarkMode) {
                 styleTag.innerHTML = `
-                    html, body { background-color: #121212 !important; }
-                    * { color: #e0e0e0 !important; background-color: transparent !important; }
+                    html, body { 
+                        background-color: #121212 !important; 
+                        line-height: 1.65 !important; /* Aumenta il respiro tra le righe */
+                    }
+                    /* Miriamo ai tag di testo anziché usare l'asterisco, così salviamo gli stili originali dell'editore */
+                    h1, h2, h3, h4, h5, h6, p, span, li, blockquote, div, section { 
+                        color: #e0e0e0 !important; 
+                        background-color: transparent; 
+                    }
+                    p { text-align: justify !important; } /* Giustifica il testo per un look più pulito */
                     a, a * { color: #4da6ff !important; }
                     img, svg { filter: brightness(0.85); }
                 `;
             } else {
                 styleTag.innerHTML = `
-                    html, body { background-color: #faf9f6 !important; }
-                    * { color: #000000 !important; background-color: transparent !important; }
+                    html, body { 
+                        background-color: #faf9f6 !important; 
+                        line-height: 1.65 !important; /* Aumenta il respiro tra le righe */
+                    }
+                    /* Miriamo ai tag di testo anziché usare l'asterisco */
+                    h1, h2, h3, h4, h5, h6, p, span, li, blockquote, div, section { 
+                        color: #2b2b2b !important; /* Un grigio scuro ammorbidito, meno faticoso del nero puro */
+                        background-color: transparent; 
+                    }
+                    p { text-align: justify !important; } /* Giustifica il testo per un look più pulito */
                     a, a * { color: #0066cc !important; }
                     img, svg { filter: brightness(1); }
                 `;
@@ -638,8 +687,6 @@ window.openReviewModal = async function(bookId) {
 document.addEventListener('DOMContentLoaded', () => {
     const nextBtn = document.getElementById('next-page-btn');
     const prevBtn = document.getElementById('prev-page-btn');
-    const themeBtn = document.getElementById('theme-toggle-btn');
-    const closeReaderBtn = document.getElementById('close-reader-btn');
     const pdfContainer = document.getElementById('pdf-container');
 
     if (pdfContainer) {
@@ -654,14 +701,46 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pdfDoc) onNextPage();
         else if (rendition) rendition.next(); 
     };
+    
 
-    if (themeBtn) {
+    
+    const readerOverlay = document.getElementById('reader-overlay');
+    if (readerOverlay) {
+        // --- COSTRUZIONE BARRA SUPERIORE (THEME, CLOSE BUTTON ) ---
+
+        const topBar = document.createElement('div');
+        topBar.style.position = 'absolute';
+        topBar.style.top = '10px';
+        topBar.style.right = '20px';
+        topBar.style.zIndex = '1000';
+        topBar.style.display = 'flex';
+        topBar.style.gap = '10px';
+
+        const themeBtn = document.createElement('button');
+        themeBtn.id = 'theme-toggle-btn';
+        themeBtn.className = 'glass-effect modern-btn';
+        themeBtn.innerText = isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+        themeBtn.style.padding = '8px 20px';
+        themeBtn.style.borderRadius = '50px';
+        themeBtn.style.fontWeight = 'bold';
+        themeBtn.style.cursor = 'pointer';
+        themeBtn.style.backdropFilter = 'blur(10px)';
+
+        const closeReaderBtn = document.createElement('button');
+        closeReaderBtn.id = 'close-reader-btn';
+        closeReaderBtn.className = 'glass-effect modern-btn';
+        closeReaderBtn.innerHTML = '&times; Chiudi Libro';
+        closeReaderBtn.style.padding = '8px 20px';
+        closeReaderBtn.style.borderRadius = '50px';
+        closeReaderBtn.style.fontWeight = 'bold';
+        closeReaderBtn.style.cursor = 'pointer';
+        closeReaderBtn.style.backdropFilter = 'blur(10px)';
+
         themeBtn.onclick = () => {
             isDarkMode = !isDarkMode; 
             localStorage.setItem('readerDarkMode', isDarkMode); 
             window.applyCurrentTheme(); 
             
-            // Se il bottone recensione è visibile, aggiorniamogli il tema in tempo reale!
             const reviewBtn = document.getElementById('reader-review-btn');
             if (reviewBtn && reviewBtn.style.display !== 'none') {
                 reviewBtn.style.background = isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)';
@@ -670,15 +749,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 reviewBtn.style.boxShadow = isDarkMode ? '0 4px 15px rgba(0,0,0,0.5)' : '0 4px 15px rgba(0,0,0,0.1)';
             }
         };
-    }
 
-    if (closeReaderBtn) {
         closeReaderBtn.onclick = () => window.closeReader();
-    }
 
-    // --- COSTRUZIONE BARRA INFERIORE (Zoom + Recensione + Percentuale) ---
-    const readerOverlay = document.getElementById('reader-overlay');
-    if (readerOverlay) {
+        topBar.appendChild(themeBtn);
+        topBar.appendChild(closeReaderBtn);
+        readerOverlay.appendChild(topBar);
+
+        // --- COSTRUZIONE BARRA INFERIORE (Zoom + Recensione + Percentuale) ---
+
         const bottomBar = document.createElement('div');
         bottomBar.style.position = 'fixed';
         bottomBar.style.bottom = '20px';
