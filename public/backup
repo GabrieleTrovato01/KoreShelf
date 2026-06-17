@@ -6,10 +6,8 @@ let pdfDoc = null;
 let pageNum = 1;
 let pageRendering = false;
 let pageNumPending = null;
-let pdfPagesRendered = {}; // Tiene traccia di quali pagine hanno un canvas attivo { pageNum: true/false }
 const scaleBase = 1.5; // Scala di base per una buona risoluzione
-let currentPdfId = null; 
-let currentPdfUrl = null;
+let currentPdfId = null;
 
 // La variabile globale per ricordare lo stato
 let isDarkMode = localStorage.getItem('readerDarkMode') === 'true';
@@ -114,10 +112,6 @@ window.openReader = function(epubUrl, bookId) {
         `;
         document.head.appendChild(style);
     }
-    const fontS = document.getElementById('sidebar-font-select');
-    const lineS = document.getElementById('sidebar-line-height-slider');
-    if (fontS && fontS.parentElement) fontS.parentElement.style.display = 'block';
-    if (lineS && lineS.parentElement) lineS.parentElement.style.display = 'block';
 
     rendition = currentBook.renderTo("viewer", {
         width: "100%",
@@ -372,34 +366,21 @@ window.updateScrollIndicator = function() {
 function onPrevPage() {
     if (pageNum <= 1) return;
     pageNum--;
-    if (localStorage.getItem('readerFlow') === 'scrolled-doc') {
-        const target = document.getElementById(`pdf-page-wrapper-${pageNum}`);
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-        queueRenderPage(pageNum);
-    }
+    queueRenderPage(pageNum);
 }
 
 function onNextPage() {
     if (pageNum >= pdfDoc.numPages) return;
     pageNum++;
-    if (localStorage.getItem('readerFlow') === 'scrolled-doc') {
-        const target = document.getElementById(`pdf-page-wrapper-${pageNum}`);
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-        queueRenderPage(pageNum);
-    }
+    queueRenderPage(pageNum);
 }
+
 // La funzione che viene chiamata da main.js
 window.openPdfReader = function(pdfUrl, bookId) {
-    currentPdfUrl = pdfUrl; 
     currentPdfId = bookId;
     const readerOverlay = document.getElementById('reader-overlay');
-    const pdfContainer = document.getElementById('pdf-container');
     
-    const savedFlow = localStorage.getItem('readerFlow') || 'paginated';
-    const isContinuous = (savedFlow === 'scrolled-doc');
-
+    // Resetta il bottone recensione
     const readerReviewBtn = document.getElementById('reader-review-btn');
     if (readerReviewBtn) {
         readerReviewBtn.style.display = 'none';
@@ -407,242 +388,38 @@ window.openPdfReader = function(pdfUrl, bookId) {
         readerReviewBtn.onclick = () => window.openReviewModal(bookId); 
     }
 
-    if (readerOverlay) readerOverlay.style.display = 'block'; 
-    setTimeout(() => { if (readerOverlay) readerOverlay.style.opacity = '1'; }, 50);
+    readerOverlay.style.display = 'block'; 
 
-    if (!pdfContainer) return;
-    pdfContainer.innerHTML = ''; 
-    pdfContainer.style.display = 'block';
-
-    const fontS = document.getElementById('sidebar-font-select');
-    const lineS = document.getElementById('sidebar-line-height-slider');
-
-    if (fontS && fontS.parentElement) fontS.parentElement.style.display = 'none';
-    if (lineS && lineS.parentElement) lineS.parentElement.style.display = 'none';
-
-    // --- GESTIONE LAYOUT (CONTINUO vs PAGINATO) ---
-    const pBtn = document.getElementById('prev-page-btn');
-    const nBtn = document.getElementById('next-page-btn');
-
-    if (isContinuous) {
-        if (pBtn) pBtn.style.display = 'none';
-        if (nBtn) nBtn.style.display = 'none';
-        pdfContainer.style.overflowY = 'auto'; // Abilita rotellina
-    } else {
-        if (pBtn) pBtn.style.display = 'flex';
-        if (nBtn) nBtn.style.display = 'flex';
-        pdfContainer.style.overflowY = 'auto'; // Blocca rotellina
-        
-        // Ricrea il canvas singolo per la modalità paginata
-        const singleCanvas = document.createElement('canvas');
-        singleCanvas.id = 'pdf-canvas';
-        singleCanvas.style.display = 'block';
-        singleCanvas.style.margin = '0 auto';
-        pdfContainer.appendChild(singleCanvas);
-    }
-    
-    pdfPagesRendered = {}; 
-
+    // --- GESTIONE FRECCE TASTIERA PER PDF ---
     const pdfKeyListener = function(e) {
         if (e.key === "ArrowRight") onNextPage();
         if (e.key === "ArrowLeft") onPrevPage();
     };
     document.addEventListener("keydown", pdfKeyListener);
+    
     window.addEventListener('readerClosed', () => {
         document.removeEventListener("keydown", pdfKeyListener);
     }, { once: true });
+
+    setTimeout(() => readerOverlay.style.opacity = '1', 50);
 
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     const loadingTask = pdfjsLib.getDocument(pdfUrl);
     loadingTask.promise.then(function(pdf) {
         pdfDoc = pdf;
+        
+        // Ripristina l'ultima pagina letta
         const savedPage = localStorage.getItem(`pdf_bookmark_${bookId}`);
         pageNum = savedPage ? parseInt(savedPage) : 1;
         if (pageNum > pdf.numPages) pageNum = pdf.numPages;
-
-        if (isContinuous) {
-            // Costruzione Colonna Infinita
-            pdf.getPage(1).then(function(firstPage) {
-                const containerWidth = pdfContainer.clientWidth - 40;
-                const unscaledViewport = firstPage.getViewport({ scale: 1.0 });
-                const bestFitScale = containerWidth / unscaledViewport.width;
-                const savedZoom = parseInt(localStorage.getItem('readerZoom') || '100') / 100;
-                const finalScale = bestFitScale * savedZoom;
-                const viewport = firstPage.getViewport({ scale: finalScale });
-
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const pageWrapper = document.createElement('div');
-                    pageWrapper.id = `pdf-page-wrapper-${i}`;
-                    pageWrapper.className = 'pdf-page-wrapper';
-                    pageWrapper.style.width = `${viewport.width}px`;
-                    pageWrapper.style.height = `${viewport.height}px`;
-                    pageWrapper.style.margin = '25px auto';
-                    pageWrapper.style.position = 'relative';
-                    pageWrapper.style.backgroundColor = isDarkMode ? '#1e1e1e' : '#ffffff';
-                    pageWrapper.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-                    pageWrapper.setAttribute('data-page-num', i);
-                    pdfContainer.appendChild(pageWrapper);
-                }
-
-                setupPdfLazyLoading();
-
-                if (pageNum > 1) {
-                    const targetWrapper = document.getElementById(`pdf-page-wrapper-${pageNum}`);
-                    if (targetWrapper) setTimeout(() => targetWrapper.scrollIntoView({ block: 'start' }), 150);
-                }
-                window.applyCurrentTheme();
-            });
-        } else {
-            // Rendering Classico Singolo
-            renderPage(pageNum);
-            window.applyCurrentTheme();
-        }
+        
+        renderPage(pageNum);
+        window.applyCurrentTheme();
     }).catch(err => {
         alert("Errore caricamento PDF: " + err.message);
     });
 };
-
-window.updatePdfZoom = function() {
-    if (!pdfDoc) return;
-    if (localStorage.getItem('readerFlow') !== 'scrolled-doc') {
-        queueRenderPage(pageNum);
-        return;
-    }
-    
-    const pdfContainer = document.getElementById('pdf-container');
-    if (!pdfContainer) return;
-
-    // Ricalcoliamo le dimensioni ottimali in base al nuovo livello di zoom
-    pdfDoc.getPage(1).then(function(firstPage) {
-        const containerWidth = pdfContainer.clientWidth - 40;
-        const unscaledViewport = firstPage.getViewport({ scale: 1.0 });
-        const bestFitScale = containerWidth / unscaledViewport.width;
-        const savedZoom = parseInt(localStorage.getItem('readerZoom') || '100') / 100;
-        const finalScale = bestFitScale * savedZoom;
-        const viewport = firstPage.getViewport({ scale: finalScale });
-
-        // Aggiorniamo tutti i contenitori (wrapper) nel documento
-        const wrappers = document.querySelectorAll('.pdf-page-wrapper');
-        wrappers.forEach(wrapper => {
-            wrapper.style.width = `${viewport.width}px`;
-            wrapper.style.height = `${viewport.height}px`;
-            
-            const num = parseInt(wrapper.getAttribute('data-page-num'));
-            
-            // Se la pagina è attualmente visibile a schermo, la ridisegniamo ad alta risoluzione
-            if (pdfPagesRendered[num]) {
-                wrapper.innerHTML = ''; // Puliamo la vecchia tela
-                renderContinuousPdfPage(num, wrapper);
-            }
-        });
-    });
-};
-
-function setupPdfLazyLoading() {
-    const pdfContainer = document.getElementById('pdf-container');
-    if (!pdfContainer) return;
-
-    const options = {
-        root: pdfContainer,
-        rootMargin: '600px 0px', // Inizia a renderizzare 600px prima che appaia nello schermo
-        threshold: 0.01
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            const num = parseInt(entry.target.getAttribute('data-page-num'));
-            if (entry.isIntersecting) {
-                // Se la pagina è vicina allo schermo e non è renderizzata, creiamo il canvas
-                if (!pdfPagesRendered[num]) {
-                    renderContinuousPdfPage(num, entry.target);
-                }
-            } else {
-                // Se la pagina è lontana, distruggiamo il canvas per liberare istantaneamente la RAM
-                if (pdfPagesRendered[num]) {
-                    entry.target.innerHTML = ''; 
-                    pdfPagesRendered[num] = false;
-                }
-            }
-        });
-    }, options);
-
-    // Colleghiamo l'observer a tutti i wrapper generati
-    document.querySelectorAll('.pdf-page-wrapper').forEach(wrapper => observer.observe(wrapper));
-
-    // Monitoriamo lo scroll per aggiornare la percentuale e i segnalibri in tempo reale
-    pdfContainer.addEventListener('scroll', updatePdfScrollProgress);
-}
-
-function renderContinuousPdfPage(num, wrapper) {
-    pdfPagesRendered[num] = true;
-    wrapper.innerHTML = '';
-
-    pdfDoc.getPage(num).then(function(page) {
-        const canvas = document.createElement('canvas');
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        wrapper.appendChild(canvas);
-
-        const ctx = canvas.getContext('2d');
-        const containerWidth = document.getElementById('pdf-container').clientWidth - 40;
-        const unscaledViewport = page.getViewport({ scale: 1.0 });
-        const bestFitScale = containerWidth / unscaledViewport.width;
-        const savedZoom = parseInt(localStorage.getItem('readerZoom') || '100') / 100;
-        const finalScale = bestFitScale * savedZoom;
-        
-        const viewport = page.getViewport({ scale: finalScale });
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        const renderContext = {
-            canvasContext: ctx,
-            viewport: viewport
-        };
-        page.render(renderContext);
-    });
-}
-
-function updatePdfScrollProgress() {
-    const pdfContainer = document.getElementById('pdf-container');
-    if (!pdfContainer || !pdfDoc) return;
-
-    // Calcoliamo la pagina centrale rispetto al viewport attuale del container
-    const containerCenter = pdfContainer.scrollTop + (pdfContainer.clientHeight / 2);
-    const wrappers = document.querySelectorAll('.pdf-page-wrapper');
-    let currentPageNum = 1;
-
-    wrappers.forEach(wrapper => {
-        const top = wrapper.offsetTop;
-        const bottom = top + wrapper.clientHeight;
-        if (containerCenter >= top && containerCenter <= bottom) {
-            currentPageNum = parseInt(wrapper.getAttribute('data-page-num'));
-        }
-    });
-
-    // Sincronizziamo la variabile di pagina globale
-    pageNum = currentPageNum;
-
-    // Aggiorna percentuale visiva
-    const percentage = currentPageNum / pdfDoc.numPages;
-    const progressEl = document.getElementById('reading-progress');
-    if (progressEl) {
-        progressEl.innerText = Math.round(percentage * 100) + "%";
-    }
-
-    // Gestione bottone recensione a fine documento
-    const reviewBtn = document.getElementById('reader-review-btn');
-    if (reviewBtn) {
-        if (currentPageNum === pdfDoc.numPages) {
-            reviewBtn.style.display = 'block';
-        } else {
-            reviewBtn.style.display = 'none';
-        }
-    }
-
-    // Salva la posizione
-    localStorage.setItem(`pdf_bookmark_${currentPdfId}`, currentPageNum);
-}
 
 window.closeReader = function() {
     const readerOverlay = document.getElementById('reader-overlay');
@@ -663,11 +440,13 @@ window.closeReader = function() {
         // Pulisci il PDF
         if (pdfDoc) {
             pdfDoc = null;
-            pdfPagesRendered = {};
+            const canvas = document.getElementById('pdf-canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
         const pdfContainer = document.getElementById('pdf-container');
-        if (pdfContainer) pdfContainer.innerHTML = '';
+        if (pdfContainer) pdfContainer.style.display = 'none';
 
         const scrollIndicator = document.getElementById('scroll-indicator');
         if (scrollIndicator) scrollIndicator.style.display = 'none';
@@ -688,17 +467,16 @@ window.applyCurrentTheme = function() {
     const hamburgerBtn = document.getElementById('hamburger-menu-btn');
     const fontSelect = document.getElementById('sidebar-font-select');
     const flowSelect = document.getElementById('sidebar-flow-select');
-    const pdfContainer = document.getElementById('pdf-container');
 
     // Recupera i settaggi salvati per l'EPUB
     const savedFont = localStorage.getItem('readerFont') || 'inherit';
     const savedLineHeight = localStorage.getItem('readerLineHeight') || '1.65';
 
     if (isDarkMode) {
-        if (pdfContainer) {
-            // Applica il filtro a tutto il contenitore (anche ai futuri canvas dinamici)
-            pdfContainer.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85)';
-            pdfContainer.style.mixBlendMode = 'screen'; 
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        if (pdfCanvas) {
+            pdfCanvas.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.85)';
+            pdfCanvas.style.mixBlendMode = 'screen'; 
         }
         const scrollIndicator = document.getElementById('scroll-indicator');
         if (scrollIndicator) {
@@ -741,9 +519,10 @@ window.applyCurrentTheme = function() {
             flowSelect.style.backgroundColor = '#222222';
         }
     } else {
-        if (pdfContainer) {
-            pdfContainer.style.filter = 'none';
-            pdfContainer.style.mixBlendMode = 'multiply'; 
+        const pdfCanvas = document.getElementById('pdf-canvas');
+        if (pdfCanvas) {
+            pdfCanvas.style.filter = 'none';
+            pdfCanvas.style.mixBlendMode = 'multiply'; 
         }
         const scrollIndicator = document.getElementById('scroll-indicator');
         if (scrollIndicator) {
@@ -1134,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Font</label>
+                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Font (Solo EPUB)</label>
                 <select id="sidebar-font-select" class="modern-input glass-effect" style="width: 100%; padding: 12px; border-radius: 12px; outline: none; cursor: pointer;">
                     <option value="inherit">Predefinito del libro</option>
                     <option value="'Georgia', serif">Georgia (Serif)</option>
@@ -1150,12 +929,12 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Interlinea</label>
+                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Interlinea (Solo EPUB)</label>
                 <input type="range" id="sidebar-line-height-slider" class="glass-slider" min="1.0" max="3.0" step="0.1" value="${localStorage.getItem('readerLineHeight') || '1.65'}" style="width: 100%;">
             </div>
 
             <div style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Modalità di Lettura</label>
+                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Modalità di Lettura (Solo EPUB)</label>
                 <select id="sidebar-flow-select" class="modern-input glass-effect" style="width: 100%; padding: 12px; border-radius: 12px; outline: none; cursor: pointer;">
                     <option value="paginated">Sfoglia Pagine (Orizzontale)</option>
                     <option value="scrolled-doc">Scorrimento (Verticale)</option>
@@ -1218,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof rendition !== 'undefined' && rendition) {
                     rendition.themes.fontSize(`${val}%`);
                 } else if (typeof pdfDoc !== 'undefined' && pdfDoc) {
-                    window.updatePdfZoom();
+                    queueRenderPage(pageNum);
                 }
             });
         }
@@ -1232,14 +1011,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Impostazioni Modalità Scorrimento (IBRIDO EPUB E PDF)
+        // Impostazioni Modalità Scorrimento
         if (flowSelect) {
             flowSelect.value = localStorage.getItem('readerFlow') || 'paginated';
             flowSelect.addEventListener('change', async (e) => {
                 const newFlow = e.target.value;
                 localStorage.setItem('readerFlow', newFlow);
-                
-                // Nascondi o mostra le frecce istantaneamente
+
                 const pBtn = document.getElementById('prev-page-btn');
                 const nBtn = document.getElementById('next-page-btn');
                 if (newFlow === 'scrolled-doc') {
@@ -1250,17 +1028,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (nBtn) nBtn.style.display = 'flex';
                 }
                 
-                // Aggiornamento EPUB
                 if (typeof rendition !== 'undefined' && rendition) {
+                    // Salva la posizione esatta in cui si trova l'utente
                     let currentCfi = null;
                     try { currentCfi = rendition.currentLocation().start.cfi; } catch(err) {}
+                    
+                    // Cambia il flusso in tempo reale
                     rendition.flow(newFlow);
-                    if (currentCfi) rendition.display(currentCfi);
-                } 
-                // Aggiornamento PDF
-                else if (typeof pdfDoc !== 'undefined' && pdfDoc) {
-                    // Ricarica tutto il PDF nella nuova veste grafica mantenendo la pagina salvata!
-                    window.openPdfReader(currentPdfUrl, currentPdfId);
+                    
+                    // Riporta l'utente alla frase che stava leggendo
+                    if (currentCfi) {
+                        rendition.display(currentCfi);
+                    }
                 }
             });
         }
