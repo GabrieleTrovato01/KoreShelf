@@ -114,20 +114,35 @@ export default {
         // help guide
         // --- LETTORE E HELP MODAL ---
         closeReader: "Chiudi Libro",
+        personalizeReader: "Personalizza",
+        defaultfromBook: "Predefinito del libro",
+        font: "Font",
+        lineHeight: "Interlinea",
+        textSize: "Dimensione Testo",
+        readingMode: "Modalità di Lettura",
+        horizontal: "Sfoglia Pagine (Orizzontale)",
+        vertical: "Scorrimento (Verticale)",
+        readerError: "ERRORE: Manca l'HTML del lettore in index.html!",
+        // --- HELP MODAL ---
+
         helpTitle: "📖 Come funziona",
         helpContent: `
-            <li><b>Carica un libro:</b> Clicca sul pulsante di caricamento (o trascina un file) per aggiungere i tuoi <b>.epub</b> personali.</li>
+            <li><b>Carica un libro:</b> Clicca sul pulsante di caricamento (o trascina un file) per aggiungere i tuoi <b>.epub</b> o <b>.pdf</b> personali.</li>
             <li><b>Cerca:</b> Usa la barra in alto per trovare rapidamente un libro scrivendo il titolo, l'autore o la categoria.</li>
-            <li><b>Scorri i libri (Orizzontale):</b> Usa lo swipe a destra/sinistra, la rotellina del mouse o le frecce (← e →).</li>
-            <li><b>Cambia Mensola (Verticale):</b> Usa lo swipe in alto/basso, o le frecce (↑ e ↓).</li>
-            <li><b>Organizza e Gestisci:</b> Usa "🏷️ Assegna Categoria" in basso per spostare un singolo libro, oppure "⚙️ Gestisci" in alto.</li>
-            <li><b>Leggi:</b> Clicca sul libro al centro per aprirlo e tuffarti nella lettura.</li>
-            <li><b>Gira Pagina:</b> Durante la lettura, usa le frecce della tastiera (← e →) o i pulsanti a schermo.</li>
-            <li><b>Esplora:</b> Usa "Mostra Trama" per voltare il libro 3D e leggere il retro.</li>
-            <li><b>Dark Mode:</b> Clicca l'icona della luna nel lettore per non affaticare la vista.</li>
-            <li><b style="color: #ba55d3;">🤖 Knowledge Base (Markdown):</b> Esporta per IA per estrarre una Knowledge Base formattata in <strong>Markdown (.md)</strong>. È pronta per Obsidian, Notion, ChatGPT o Claude!</li>
-            <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto "Spegni" in alto a destra per chiudere il server locale e l'applicazione in totale sicurezza quando hai finito di leggere.</li>
-            ` ,
+            <li><b>Navigazione Mensola:</b> Scorri lateralmente (swipe o frecce ←/→) per le opere, e verticalmente (↑/↓) per cambiare categoria.</li>
+            <li><b>Organizza e Gestisci:</b> Usa "🏷️ Assegna Categoria" per classificare i volumi, o "⚙️ Gestisci" per le operazioni avanzate sulla libreria.</li>
+            <li><b>Lettura Avanzata:</b> Clicca sul libro per aprirlo. Il lettore supporta nativamente sia <b>EPUB</b> (formato fluido) che <b>PDF</b> (formato fisso).</li>
+            <li><b>Personalizzazione Lettore (Menu Hamburger):</b> Apri il menu laterale (≡) per regolare:
+                <ul>
+                    <li><b>Zoom:</b> Ingrandisci il testo o le pagine per una lettura ottimale.</li>
+                    <li><b>Font & Interlinea:</b> Personalizza lo stile tipografico (solo per EPUB).</li>
+                    <li><b>Modalità di Flusso:</b> Scegli tra "Sfoglia Pagine" (orizzontale) o "Scorrimento Continuo" (verticale) per un'esperienza stile web.</li>
+                </ul>
+            </li>
+            <li><b>Dark/Light Mode:</b> Clicca l'icona in alto a destra per alternare i temi ed evitare l'affaticamento visivo.</li>
+            <li><b>Esplora:</b> Usa "Mostra Trama" per ruotare il libro 3D e leggere la sinossi sul retro.</li>
+            <li><b style="color: #ba55d3;">🤖 Knowledge Base (Markdown):</b> Esporta le tue annotazioni in formato <strong>Markdown (.md)</strong>, ottimizzate per Obsidian, Notion, ChatGPT o Claude.</li>
+            <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto "Spegni" in alto a destra per terminare la sessione e chiudere il server locale in totale sicurezza.</li>` ,
         donateBtn: "💙 Supporta",
         // Aggiungi questo in fondo all'oggetto export default
         emptyLibraryMessage: "La tua libreria è vuota. Clicca su '+ Carica Ebook' per iniziare la tua collezione!",

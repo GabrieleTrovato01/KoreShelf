@@ -1794,8 +1794,12 @@ async function startApp() {
         }
         await initI18n(); 
 
-        // 2. Traduci l'interfaccia statica (ora che initI18n è fatto, t() funzionerà)
+        // 2. Traduci l'interfaccia statica
         translateStaticHTML();
+
+        if (typeof window.translateReaderUI === 'function') {
+            window.translateReaderUI();
+        }
 
         // 3. Carica i libri
         if (loadingText) {

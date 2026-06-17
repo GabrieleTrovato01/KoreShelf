@@ -115,19 +115,32 @@ export default {
 
         //help guide 
         closeReader: "Close Book",
+        personalizeReader: "Personalize",
+        defaultfromBook: "Default from Book",
+        font: "Font",
+        lineHeight: "Line Height",
+        textSize: "Text Size",
+        readingMode: "Reading Mode",
+        horizontal: "Paginated (Horizontal)",
+        vertical: "Continuous Scroll (Vertical)",
         helpTitle: "📖 How it works",
         helpContent: `
-            <li><b>Upload a book:</b> Click the upload button (or drag a file) to add your personal <b>.epub</b> files to the shelf.</li>
-            <li><b>Search:</b> Use the top bar to quickly find a book by typing the title, author, or category.</li>
-            <li><b>Scroll books (Horizontal):</b> Swipe left/right, use the mouse wheel, or arrows (← and →) to browse books on the same shelf.</li>
-            <li><b>Change Shelf (Vertical):</b> Swipe up/down, or use arrows (↑ and ↓) to "fly" to upper or lower categories.</li>
-            <li><b>Organize and Manage:</b> Use "🏷️ Assign Category" at the bottom to move a single book, or "⚙️ Manage" at the top to rename or delete the entire shelf.</li>
-            <li><b>Read:</b> Click the book in the center to open it and dive into reading.</li>
-            <li><b>Turn Page:</b> While reading, use the keyboard arrows (← and →) or on-screen buttons.</li>
-            <li><b>Explore:</b> Use "Show Synopsis" to flip the 3D book and read the back cover.</li>
-            <li><b>Dark Mode:</b> Click the moon icon in the reader to reduce eye strain.</li>
-            <li><b style="color: #ba55d3;">🤖 Knowledge Base (Markdown):</b> Export for AI to extract a formatted <strong>Markdown (.md)</strong> Knowledge Base. It's ready to be stored in your Obsidian/Notion vault or analyzed by ChatGPT and Claude!</li>
-            <li><b style="color: #d9534f;">⏻ Shutdown:</b> Use the "Shutdown" button in the top right corner to safely close the local server and the application when you are done reading.</li>
+            <li><b>Upload a book:</b> Click the upload button (or drag and drop a file) to add your personal <b>.epub</b> or <b>.pdf</b> files.</li>
+            <li><b>Search:</b> Use the top bar to quickly find a book by entering the title, author, or category.</li>
+            <li><b>Shelf Navigation:</b> Scroll horizontally (swipe or ←/→ arrows) to browse works, and vertically (↑/↓) to switch categories.</li>
+            <li><b>Organize and Manage:</b> Use "🏷️ Assign Category" to classify volumes, or "⚙️ Manage" for advanced library operations.</li>
+            <li><b>Advanced Reading:</b> Click on a book to open it. The reader natively supports both <b>EPUB</b> (reflowable format) and <b>PDF</b> (fixed format).</li>
+            <li><b>Reader Customization (Hamburger Menu):</b> Open the side menu (≡) to adjust:
+                <ul>
+                    <li><b>Zoom:</b> Magnify text or pages for optimal reading.</li>
+                    <li><b>Font & Line Height:</b> Customize typographical style (EPUB only).</li>
+                    <li><b>Flow Mode:</b> Choose between "Paginated" (horizontal) or "Continuous Scroll" (vertical) for a web-style experience.</li>
+                </ul>
+            </li>
+            <li><b>Dark/Light Mode:</b> Click the icon in the top right corner to toggle themes and reduce eye strain.</li>
+            <li><b>Explore:</b> Use "Show Plot" to rotate the 3D book and read the synopsis on the back cover.</li>
+            <li><b style="color: #ba55d3;">🤖 Knowledge Base (Markdown):</b> Export your annotations in <strong>Markdown (.md)</strong> format, optimized for Obsidian, Notion, ChatGPT, or Claude.</li>
+            <li><b style="color: #d9534f;">⏻ Shutdown:</b> Use the "Shutdown" button in the top right corner to end your session and safely close the local server.</li>
             `,
         donateBtn: "💙 Donate",
 

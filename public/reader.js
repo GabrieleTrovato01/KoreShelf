@@ -25,7 +25,7 @@ window.openReader = function(epubUrl, bookId) {
     // ---------------------------------------------------------
     
     if (!epubUrl) {
-        alert("File EPUB non trovato per questo libro!");
+        alert(window.t('epubError'));
         return;
     }
 
@@ -33,7 +33,7 @@ window.openReader = function(epubUrl, bookId) {
     const viewer = document.getElementById('viewer');
 
     if (!readerOverlay || !viewer) {
-        console.error("ERRORE: Manca l'HTML del lettore in index.html!");
+        console.error(window.t('readerError'));
         return;
     }
 
@@ -265,6 +265,20 @@ window.openReader = function(epubUrl, bookId) {
             }
         }
     });
+};
+
+// -- FUNZINI DI TRADUZIONE
+window.translateReaderUI = function() {
+    const el = (id) => document.getElementById(id);
+    
+    if(el('sidebar-title')) el('sidebar-title').innerText = window.t('personalizeReader');
+    if(el('sidebar-font-label')) el('sidebar-font-label').innerText = window.t('font');
+    if(el('sidebar-font-default')) el('sidebar-font-default').innerText = window.t('defaultfromBook');
+    if(el('sidebar-zoom-label')) el('sidebar-zoom-label').innerText = window.t('textSize');
+    if(el('sidebar-line-label')) el('sidebar-line-label').innerText = window.t('lineHeight');
+    if(el('sidebar-flow-label')) el('sidebar-flow-label').innerText = window.t('readingMode');
+    if(el('sidebar-flow-horiz')) el('sidebar-flow-horiz').innerText = window.t('horizontal');
+    if(el('sidebar-flow-vert')) el('sidebar-flow-vert').innerText = window.t('vertical');
 };
 
 // --- FUNZIONI DI RENDERING PDF ---
@@ -1034,7 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const closeReaderBtn = document.createElement('button');
         closeReaderBtn.id = 'close-reader-btn';
         closeReaderBtn.className = 'glass-effect modern-btn';
-        closeReaderBtn.innerHTML = '&times; Chiudi Libro';
+        closeReaderBtn.innerHTML = '&times; ' + window.t('closeReader');
         closeReaderBtn.style.padding = '8px 20px';
         closeReaderBtn.style.borderRadius = '50px';
         closeReaderBtn.style.fontWeight = 'bold';
@@ -1129,14 +1143,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sidebar.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
-                <h2 style="margin: 0; font-size: 22px;">Personalizza</h2>
+                <h2 id="sidebar-title" style="margin: 0; font-size: 22px;"></h2>
                 <button id="close-sidebar-btn" style="background: transparent; border: none; font-size: 28px; cursor: pointer;">&times;</button>
             </div>
 
             <div style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Font</label>
+                <label id="sidebar-font-label" style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;"></label>
                 <select id="sidebar-font-select" class="modern-input glass-effect" style="width: 100%; padding: 12px; border-radius: 12px; outline: none; cursor: pointer;">
-                    <option value="inherit">Predefinito del libro</option>
+                    <option id="sidebar-font-default" value="inherit"></option>
                     <option value="'Georgia', serif">Georgia (Serif)</option>
                     <option value="'Times New Roman', serif">Times New Roman</option>
                     <option value="'Arial', sans-serif">Arial (Sans-serif)</option>
@@ -1145,20 +1159,20 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
 
             <div style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Dimensione Testo</label>
+                <label id="sidebar-zoom-label" style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;"></label>
                 <input type="range" id="sidebar-zoom-slider" class="glass-slider" min="80" max="250" value="${localStorage.getItem('readerZoom') || '100'}" style="width: 100%;">
             </div>
 
             <div style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Interlinea</label>
+                <label id="sidebar-line-label" style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;"></label>
                 <input type="range" id="sidebar-line-height-slider" class="glass-slider" min="1.0" max="3.0" step="0.1" value="${localStorage.getItem('readerLineHeight') || '1.65'}" style="width: 100%;">
             </div>
 
             <div style="margin-bottom: 25px;">
-                <label style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;">Modalità di Lettura</label>
+                <label id="sidebar-flow-label" style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;"></label>
                 <select id="sidebar-flow-select" class="modern-input glass-effect" style="width: 100%; padding: 12px; border-radius: 12px; outline: none; cursor: pointer;">
-                    <option value="paginated">Sfoglia Pagine (Orizzontale)</option>
-                    <option value="scrolled-doc">Scorrimento (Verticale)</option>
+                    <option id="sidebar-flow-horiz" value="paginated"></option>
+                    <option id="sidebar-flow-vert" value="scrolled-doc"></option>
                 </select>
             </div>
         `;
