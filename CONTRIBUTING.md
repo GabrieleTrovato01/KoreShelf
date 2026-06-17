@@ -85,7 +85,7 @@ Basandoci sul feedback della community e sullo sviluppo interno, ecco su cosa la
 * [X] Risolvere il bug della copertina distorta nel lettore.
 * [ ] Risolvere il problema dell'inversione dei colori in modalità scura.
 * [ ] Correggere le discrepanze tra la copertina nella libreria e quella nel lettore.
-* [ ] Aggiungere modalità di scorrimento a pagina singola e continua.
+* [X] Aggiungere modalità di scorrimento a pagina singola e continua.
 * [ ] Aggiungere il pulsante "Apri nell'applicazione predefinita" per lettori esterni.
 * [ ] Modalità Lettura Veloce (RSVP): Implementare una funzione di speed-reading per aiutare gli utenti a leggere più velocemente.
 
@@ -199,7 +199,7 @@ Based on community feedback and internal development, here is what we are workin
 * [X] Fix stretched cover page bug in the reader.
 * [ ] Fix dark mode image inversion issue.
 * [ ] Fix cover page mismatches between library and reader mode.
-* [ ] Add single-page and continuous scrolling modes.
+* [X] Add single-page and continuous scrolling modes.
 * [ ] Add "Open in default application" button for external readers.
 * [ ] Fast-Reading Mode (RSVP): Implement a speed-reading feature to help users digest text faster.
 
