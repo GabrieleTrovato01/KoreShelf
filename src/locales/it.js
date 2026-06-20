@@ -206,6 +206,7 @@ export default {
         errPdfParse: "Errore di parsing PDF:",
 
         errEpubTimeout: "Timeout: L'EPUB è malformato o troppo complesso e ha bloccato la lettura.",
+        errPdfTimeout: "⚠️ Timeout di ${timeoutMs}ms superato per il PDF. Estrazione interrotta per salvare la RAM.",
 
         unknownTitle: "Titolo Sconosciuto",
         noPlotFound: "Trama non trovata.",

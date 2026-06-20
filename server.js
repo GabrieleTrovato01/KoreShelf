@@ -356,6 +356,29 @@ function parseEpubWithTimeout(filePath, coverFileName, originalFileName, timeout
     ]);
 }
 
+// --- TIMER DI SICUREZZA PER I PDF GIGANTI ---
+function parsePdfWithTimeout(filePath, coverFileName, originalFileName, timeoutMs = 10000) {
+    return Promise.race([
+        parsePdf(filePath, coverFileName, originalFileName),
+        new Promise((resolve) => 
+            setTimeout(() => {
+                console.log(tLog('errPdfTimeout', { timeoutMs }));
+                
+                // Puliamo il nome del file da usare come titolo di emergenza
+                let cleanName = originalFileName.replace(/\.pdf$/i, '').replace(/[_-]/g, ' ');
+                
+                resolve({
+                    title: cleanName.trim(),
+                    author: tLog('unknownAuthor'),
+                    description: null,
+                    coverPath: null, // Il frontend genererà la copertina 3D di fallback
+                    textLength: 0
+                });
+            }, timeoutMs)
+        )
+    ]);
+}
+
 // Apple Books + calcolo pagine stimato
 async function fetchBestBookData(title, author, rawTextLength) {
     let result = {
@@ -405,7 +428,10 @@ async function fetchBestBookData(title, author, rawTextLength) {
         const calculatedPages = Math.ceil(rawTextLength / 1500);
         
         // Aggiungiamo un 5% forfettario per simulare indici, titoli di capitolo e pagine bianche
-        result.pageCount = Math.floor(calculatedPages * 1.05); 
+        let estimatedPages = Math.floor(calculatedPages * 1.05); 
+        
+        // LIMITATORE DI SICUREZZA 3D: Massimo 1000 pagine per non rompere il carosello
+        result.pageCount = Math.min(estimatedPages, 1000);
         
         console.log(tLog('logPagesCalculated', { count: result.pageCount }));
     } else {
@@ -512,7 +538,7 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         if (fileExt === '.epub') {
             bookData = await parseEpubWithTimeout(file.path, baseName, file.originalname, 8000);
         } else if (fileExt === '.pdf') {
-            bookData = await parsePdf(file.path, baseName, file.originalname);
+            bookData = await parsePdfWithTimeout(file.path, baseName, file.originalname, 10000);
         } else {
             try { await fs.unlink(file.path); } catch(e){}
             return res.status(400).json({ success: false, message: tLog('errFormat') });

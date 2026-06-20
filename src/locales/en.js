@@ -208,6 +208,7 @@ export default {
         errPdfParse: "PDF parsing error:",
 
         errEpubTimeout: "Timeout: The EPUB is malformed or too complex and blocked the reading process.",
+        errPdfTimeout: "⚠️ Timeout of ${timeoutMs}ms exceeded for the PDF. Extraction interrupted to save RAM.",
 
         unknownTitle: "Unknown Title",
         noPlotFound: "Plot not found.",

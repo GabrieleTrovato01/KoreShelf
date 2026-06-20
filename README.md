@@ -11,6 +11,7 @@
 <img width="800" height="500" alt="demo-reader" src="https://github.com/user-attachments/assets/8fca0fcd-2a92-40d9-a1cc-f8a2d552e57a" />
 
 ---
+[![Launched on DevGlobe](https://devglobe.app/badges/launched-on-devglobe-dark.svg)](https://devglobe.app/projects/koreshelf?utm_source=badge&utm_medium=embed)
 
 <a name="english"></a>
 ## 🇬🇧 English
