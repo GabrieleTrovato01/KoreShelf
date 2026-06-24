@@ -121,6 +121,12 @@ The app is smart and syncs data with your computer. Inside the project folder, y
 * `covers/`: Extracted covers for 3D visualization are saved here.
 * `koreshelf.db` : This is the robust SQLite database containing your library's metadata, reading progress, and tags.
 
+**✏️ Custom Metadata (Hot-Swap):**
+You are in full control of your data. Click the "Edit" button on any book to manually modify the title, author, description, or assign a custom category. You can even upload a high-definition custom cover. The SQLite database and the `covers/` folder are updated instantly, and the 3D model reflects the changes in real-time without reloading the page!
+
+**📱 Responsive UI:**
+To best manage your workspace, the interface automatically adapts to smaller screens and windows. Button text gracefully collapses into clean icons to prevent overlap, ensuring a seamless experience on any device or window size.
+
 **Note:** These folders are protected and ignored by Git (thanks to `.gitignore`). You can add as many books as you want without risking accidentally uploading them online if you publish the code on GitHub!
 
 ---
@@ -257,6 +263,12 @@ L'app è intelligente e sincronizza i dati con il tuo computer. All'interno dell
 * `ebooks/`: Qui vengono salvati fisicamente i tuoi libri (EPUB).
 * `covers/`: Qui vengono salvate le copertine estratte per la visualizzazione 3D.
 * `koreshelf.db` : Questo è il solido database SQLite che contiene i metadati, il progresso di lettura e le categorie della tua libreria.
+
+**✏️ Metadati Personalizzati (Hot-Swap):**
+Hai il pieno controllo sui tuoi dati. Clicca su "Modifica" su qualsiasi libro per correggere manualmente titolo, autore, descrizione o assegnare una categoria personalizzata. Puoi anche caricare una copertina in alta definizione. Il database SQLite e la cartella `covers/` si aggiornano all'istante, e il modello 3D riflette le modifiche in tempo reale senza ricaricare la pagina!
+
+**📱 Interfaccia Responsive:**
+Per gestire al meglio il tuo spazio di lavoro, l'interfaccia si adatta automaticamente agli schermi o alle finestre più piccole. Il testo dei bottoni scompare lasciando spazio a icone pulite ed eleganti per evitare sovrapposizioni, garantendo un'esperienza fluida ovunque.
 
 **Nota:** Queste cartelle sono protette e ignorate da Git (grazie al `.gitignore`). Puoi aggiungere quanti libri vuoi senza rischiare di caricarli accidentalmente online se pubblichi il codice su GitHub!
 
