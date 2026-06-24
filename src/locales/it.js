@@ -84,6 +84,18 @@ export default {
         emptyNameAlert: "Il nome della mensola non può essere vuoto!",
         sameNameAlert: "Inserisci un nome diverso da quello attuale.",
         saving: "Salvataggio...",
+
+        // Vista Modifica Metadati
+        editMetadata: "✏️ Modifica Metadati",
+        editMetadataTitle: "Modifica Metadati",
+        editTitle: "Titolo",
+        editAuthor: "Autore",
+        editCategory: "Categoria",
+        editDescription: "Descrizione",
+        editCover: "Nuova Copertina (Opzionale)",
+        clickToChooseFile: "📁 Clicca per scegliere un file...",
+        errorSaving: "Errore durante il salvataggio:",
+        errorGeneric: "Errore!",
         
         // Vista Crea e Sposta
         createMoveTitle: "📦 Crea e Sposta",

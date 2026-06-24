@@ -30,7 +30,7 @@
     "@langchain/community": "^1.1.27",
     "@langchain/core": "^1.1.43",
     "axios": "^1.15.2",
-    "better-sqlite3": "^11.3.0",
+    "better-sqlite3": "^11.10.0",
     "cheerio": "^1.0.0-rc.12",
     "epub2": "^3.0.2",
     "express": "^5.2.1",

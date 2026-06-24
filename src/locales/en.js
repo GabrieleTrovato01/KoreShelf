@@ -85,6 +85,18 @@ export default {
         emptyNameAlert: "Shelf name cannot be empty!",
         sameNameAlert: "Please enter a name different from the current one.",
         saving: "Saving...",
+
+        //edit 
+        editMetadata: "✏️ Edit Metadata",
+        editMetadataTitle: "Edit Metadata",
+        editTitle: "Title",
+        editAuthor: "Author",
+        editCategory: "Category",
+        editDescription: "Description",
+        editCover: "New Cover (Optional)",
+        clickToChooseFile: "📁 Click to choose a file...",
+        errorSaving: "Error while saving:",
+        errorGeneric: "Error!",
         
         // Create and Move View
         createMoveTitle: "📦 Create and Move",
