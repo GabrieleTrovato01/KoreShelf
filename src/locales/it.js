@@ -135,6 +135,7 @@ export default {
         horizontal: "Sfoglia Pagine (Orizzontale)",
         vertical: "Scorrimento (Verticale)",
         readerError: "ERRORE: Manca l'HTML del lettore in index.html!",
+        textAlignment: "Allineamento",
         // --- HELP MODAL ---
 
         helpTitle: "📖 Come funziona",

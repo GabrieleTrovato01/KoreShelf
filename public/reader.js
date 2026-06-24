@@ -116,8 +116,11 @@ window.openReader = function(epubUrl, bookId) {
     }
     const fontS = document.getElementById('sidebar-font-select');
     const lineS = document.getElementById('sidebar-line-height-slider');
+    const alignS = document.getElementById('alignment-section');
+
     if (fontS && fontS.parentElement) fontS.parentElement.style.display = 'block';
     if (lineS && lineS.parentElement) lineS.parentElement.style.display = 'block';
+    if (alignS) alignS.style.display = 'block';
 
     rendition = currentBook.renderTo("viewer", {
         width: "100%",
@@ -279,6 +282,7 @@ window.translateReaderUI = function() {
     if(el('sidebar-flow-label')) el('sidebar-flow-label').innerText = window.t('readingMode');
     if(el('sidebar-flow-horiz')) el('sidebar-flow-horiz').innerText = window.t('horizontal');
     if(el('sidebar-flow-vert')) el('sidebar-flow-vert').innerText = window.t('vertical');
+    if(el('sidebar-align-label')) el('sidebar-align-label').innerText = window.t('textAlignment') || 'Allineamento';
 };
 
 // --- FUNZIONI DI RENDERING PDF ---
@@ -430,10 +434,12 @@ window.openPdfReader = function(pdfUrl, bookId) {
 
     const fontS = document.getElementById('sidebar-font-select');
     const lineS = document.getElementById('sidebar-line-height-slider');
+    const alignS = document.getElementById('alignment-section');
 
     if (fontS && fontS.parentElement) fontS.parentElement.style.display = 'none';
     if (lineS && lineS.parentElement) lineS.parentElement.style.display = 'none';
-
+    if (alignS) alignS.style.display = 'none';
+    
     // --- GESTIONE LAYOUT (CONTINUO vs PAGINATO) ---
     const pBtn = document.getElementById('prev-page-btn');
     const nBtn = document.getElementById('next-page-btn');
@@ -707,6 +713,7 @@ window.applyCurrentTheme = function() {
     // Recupera i settaggi salvati per l'EPUB
     const savedFont = localStorage.getItem('readerFont') || 'inherit';
     const savedLineHeight = localStorage.getItem('readerLineHeight') || '1.65';
+    const savedAlign = localStorage.getItem('readerTextAlign') || 'justify'; 
 
     if (isDarkMode) {
         if (pdfContainer) {
@@ -835,7 +842,7 @@ window.applyCurrentTheme = function() {
                         background-color: transparent; 
                         font-family: ${savedFont} !important;
                     }
-                    p { text-align: justify !important; }
+                    p { text-align: ${savedAlign} !important; }
                     a, a * { color: #4da6ff !important; }
                     img, svg { filter: brightness(0.85); }
                 `;
@@ -859,7 +866,7 @@ window.applyCurrentTheme = function() {
                         background-color: transparent; 
                         font-family: ${savedFont} !important;
                     }
-                    p { text-align: justify !important; }
+                    p { text-align: ${savedAlign} !important; }
                     a, a * { color: #0066cc !important; }
                     img, svg { filter: brightness(1); }
                 `;
@@ -1175,6 +1182,46 @@ document.addEventListener('DOMContentLoaded', () => {
                     <option id="sidebar-flow-vert" value="scrolled-doc"></option>
                 </select>
             </div>
+
+            <!-- NUOVA SEZIONE ALLINEAMENTO TESTO -->
+            <div id="alignment-section" style="margin-bottom: 25px;">
+                <label id="sidebar-align-label" style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;"></label>
+                <div style="display: flex; gap: 8px; justify-content: space-between; width: 100%;">
+                    
+                    <button id="align-left-btn" class="glass-effect modern-btn" style="flex: 1; padding: 10px 0; display: flex; justify-content: center; align-items: center;" title="Sinistra">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="15" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+
+                    <button id="align-center-btn" class="glass-effect modern-btn" style="flex: 1; padding: 10px 0; display: flex; justify-content: center; align-items: center;" title="Centro">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="7" y1="12" x2="17" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+
+                    <button id="align-right-btn" class="glass-effect modern-btn" style="flex: 1; padding: 10px 0; display: flex; justify-content: center; align-items: center;" title="Destra">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="9" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+
+                    <button id="align-justify-btn" class="glass-effect modern-btn" style="flex: 1; padding: 10px 0; display: flex; justify-content: center; align-items: center;" title="Giustificato">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    
+                </div>
+            </div>
         `;
 
         const sidebarBackdrop = document.createElement('div');
@@ -1278,6 +1325,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        // Impostazioni Allineamento Testo
+        const btnAlignLeft = document.getElementById('align-left-btn');
+        const btnAlignCenter = document.getElementById('align-center-btn');
+        const btnAlignRight = document.getElementById('align-right-btn');
+        const btnAlignJustify = document.getElementById('align-justify-btn');
+
+        const updateAlignment = (alignment) => {
+            localStorage.setItem('readerTextAlign', alignment);
+            window.applyCurrentTheme(); // Riapplica il tema CSS istantaneamente
+        };
+
+        if (btnAlignLeft) btnAlignLeft.onclick = () => updateAlignment('left');
+        if (btnAlignCenter) btnAlignCenter.onclick = () => updateAlignment('center');
+        if (btnAlignRight) btnAlignRight.onclick = () => updateAlignment('right');
+        if (btnAlignJustify) btnAlignJustify.onclick = () => updateAlignment('justify');
     }
 });
 

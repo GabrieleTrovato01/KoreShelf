@@ -135,6 +135,7 @@ export default {
         readingMode: "Reading Mode",
         horizontal: "Paginated (Horizontal)",
         vertical: "Continuous Scroll (Vertical)",
+        textAlignment: "Text Alignment",
         helpTitle: "📖 How it works",
         helpContent: `
             <li><b>Upload a book:</b> Click the upload button (or drag and drop a file) to add your personal <b>.epub</b> or <b>.pdf</b> files.</li>
