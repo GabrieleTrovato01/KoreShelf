@@ -141,6 +141,7 @@ export default {
             <li><b>Search:</b> Use the top bar to quickly find a book by entering the title, author, or category.</li>
             <li><b>Shelf Navigation:</b> Scroll horizontally (swipe or ←/→ arrows) to browse works, and vertically (↑/↓) to switch categories.</li>
             <li><b>Organize and Manage:</b> Use "🏷️ Assign Category" to classify volumes, or "⚙️ Manage" for advanced library operations.</li>
+            <li><b>✏️ Edit Metadata:</b> Click the "Edit" button on any book to manually modify the title, author, description, or category. You can also upload a custom high-res cover, and the 3D model will update instantly.</li>
             <li><b>Advanced Reading:</b> Click on a book to open it. The reader natively supports both <b>EPUB</b> (reflowable format) and <b>PDF</b> (fixed format).</li>
             <li><b>Reader Customization (Hamburger Menu):</b> Open the side menu (≡) to adjust:
                 <ul>

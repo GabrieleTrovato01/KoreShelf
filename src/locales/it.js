@@ -143,6 +143,7 @@ export default {
             <li><b>Cerca:</b> Usa la barra in alto per trovare rapidamente un libro scrivendo il titolo, l'autore o la categoria.</li>
             <li><b>Navigazione Mensola:</b> Scorri lateralmente (swipe o frecce ←/→) per le opere, e verticalmente (↑/↓) per cambiare categoria.</li>
             <li><b>Organizza e Gestisci:</b> Usa "🏷️ Assegna Categoria" per classificare i volumi, o "⚙️ Gestisci" per le operazioni avanzate sulla libreria.</li>
+            <li><b>✏️ Modifica Metadati:</b> Clicca il pulsante "Modifica" su qualsiasi libro per modificare manualmente il titolo, l'autore, la descrizione o la categoria. Puoi anche caricare una copertina personalizzata, e il modello 3D si aggiornerà istantaneamente.</li>
             <li><b>Lettura Avanzata:</b> Clicca sul libro per aprirlo. Il lettore supporta nativamente sia <b>EPUB</b> (formato fluido) che <b>PDF</b> (formato fisso).</li>
             <li><b>Personalizzazione Lettore (Menu Hamburger):</b> Apri il menu laterale (≡) per regolare:
                 <ul>
