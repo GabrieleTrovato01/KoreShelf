@@ -1,6 +1,6 @@
 export default {
         // Top Bar
-        manageShelf: "⚙️ Manage",
+        manageShelf: " Manage",
         manageShelfTooltip: "Rename or delete this category",
         searchPlaceholder: "Search by title or author...",
         uploadBtn: "+ Upload Ebook",
@@ -10,16 +10,16 @@ export default {
         // Info Panel (Bottom)
         showSynopsis: "Show Synopsis",
         showCover: "Show Cover",
-        exportAI: "🤖 Export for AI",
-        generatingMD: "⏳ Generating MD ...",
+        exportAI: " Export for AI",
+        generatingMD: " Generating MD ...",
         exportToastMessage: "Generating Knowledge Base (.md) for Obsidian/IA ...",
 
-        assignCategory: "🏷️ Assign Category ",
+        assignCategory: " Assign Category ",
         moveBookTitle: "Move",
         saveBtn: "Save",
         categoryPrompt: "Enter the new category name for this book:",
 
-        deleteBook: "🗑️ Delete",
+        deleteBook: " Delete",
         deleteConfirm: "Are you sure you want to PERMANENTLY delete \"{title}\"?\nThis action will remove the file from your computer and cannot be undone.",
         serverError: "Error connecting to the server.",
         cancelBtn: "Cancel",
@@ -87,7 +87,7 @@ export default {
         saving: "Saving...",
 
         //edit 
-        editMetadata: "✏️ Edit Metadata",
+        editMetadata: " Edit Metadata",
         editMetadataTitle: "Edit Metadata",
         editTitle: "Title",
         editAuthor: "Author",

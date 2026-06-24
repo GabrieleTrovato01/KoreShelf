@@ -1,6 +1,6 @@
 export default {
         // Top Bar
-        manageShelf: "⚙️ Gestisci",
+        manageShelf: " Gestisci",
         manageShelfTooltip: "Rinomina o elimina questa categoria",
         searchPlaceholder: "Cerca per titolo o autore...",
         uploadBtn: "+ Carica Ebook",
@@ -11,16 +11,16 @@ export default {
         showSynopsis: "Mostra Trama",
         showCover: "Mostra Copertina",
 
-        exportAI: "🤖 Esporta per IA",
-        generatingMD: "⏳ Generazione MD ...",
+        exportAI: "Esporta per IA",
+        generatingMD: "Generazione MD ...",
         exportToastMessage: "Generazione Knowledge Base (.md) per Obsidian/ IA ...",
         
-        assignCategory: "🏷️ Assegna Categoria",
+        assignCategory: " Assegna Categoria",
         moveBookTitle: "Sposta",
         saveBtn: "Salva",
         categoryPrompt: "Scrivi il nome della categoria...",
         
-        deleteBook: "🗑️ Elimina",
+        deleteBook: " Elimina",
         deleteConfirm: "Sei sicuro di voler eliminare DEFINITIVAMENTE \"{title}\"?\nL'azione cancellerà il file dal tuo computer e non può essere annullata.",
         serverError: "Errore di connessione al server.",
         cancelBtn: "Annulla",
@@ -86,7 +86,7 @@ export default {
         saving: "Salvataggio...",
 
         // Vista Modifica Metadati
-        editMetadata: "✏️ Modifica Metadati",
+        editMetadata: " Modifica Metadati",
         editMetadataTitle: "Modifica Metadati",
         editTitle: "Titolo",
         editAuthor: "Autore",
@@ -155,7 +155,7 @@ export default {
             <li><b>Esplora:</b> Usa "Mostra Trama" per ruotare il libro 3D e leggere la sinossi sul retro.</li>
             <li><b style="color: #ba55d3;">🤖 Knowledge Base (Markdown):</b> Esporta le tue annotazioni in formato <strong>Markdown (.md)</strong>, ottimizzate per Obsidian, Notion, ChatGPT o Claude.</li>
             <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto "Spegni" in alto a destra per terminare la sessione e chiudere il server locale in totale sicurezza.</li>` ,
-        donateBtn: "💙 Supporta",
+        donateBtn: " Supporta",
         // Aggiungi questo in fondo all'oggetto export default
         emptyLibraryMessage: "La tua libreria è vuota. Clicca su '+ Carica Ebook' per iniziare la tua collezione!",
         //recensione
