@@ -285,4 +285,7 @@ export default {
 
         terminal_sync: "Terminale sincronizzato in:",
 
+        logFoundISBN: "🏷️ [Scanner] ISBN identificato: {isbn}",
+        logNoISBNFound: "🏷️ [Scanner] Nessun ISBN trovato nel file. Procedo con fallback testuale."
+
     };

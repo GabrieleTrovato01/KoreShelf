@@ -578,9 +578,9 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
 
         const isbn = await extractISBN(file.path, fileExt);
         if (isbn) {
-            console.log(`🏷️ [Scanner] ISBN identificato: ${isbn}`);
+            console.log(tLog('logFoundISBN', { isbn }));
         } else {
-            console.log(`🏷️ [Scanner] Nessun ISBN trovato nel file. Procedo con fallback testuale.`);
+            console.log(tLog('logNoISBNFound'));
         }
 
         if (fileExt === '.epub') {

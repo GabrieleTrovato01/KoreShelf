@@ -285,5 +285,6 @@ export default {
         errOpenBrowser: "Unable to open the browser automatically (please open it manually):",
         terminal_sync: "Terminal synchronized in:",
 
-
+        logFoundISBN: "🏷️ [Scanner] ISBN found: {isbn}",
+        logNoISBNFound: "🏷️ [Scanner] No ISBN found in the file. Proceeding with text fallback."
     };
