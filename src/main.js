@@ -1814,7 +1814,7 @@ async function checkForUpdates() {
 async function generateMissingPdfCovers() {
     // 1. Controlliamo se pdf.js è disponibile nel browser
     if (typeof pdfjsLib === 'undefined') {
-        console.warn(tLog('logpdfjs'));
+        console.warn(t('logpdfjs'));
         return;
     }
 
@@ -1829,7 +1829,7 @@ async function generateMissingPdfCovers() {
 
     if (pdfsMissingCover.length === 0) return;
 
-    console.log(tLog('logGeneratePdfCovers', { count: pdfsMissingCover.length }));
+    console.log(t('logGeneratePdfCovers', { count: pdfsMissingCover.length }));
 
     // Assicuriamoci che il worker di pdf.js sia configurato
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -1839,7 +1839,7 @@ async function generateMissingPdfCovers() {
     // 4. Processiamo i PDF uno alla volta per non affollare la rete
     for (const book of pdfsMissingCover) {
         try {
-            console.log(tLog('logGeneratePdfCover', { title: book.title }));
+            console.log(t('logGeneratePdfCover', { title: book.title }));
 
             const loadingTask = pdfjsLib.getDocument(`/${book.epubPath}`);
             const pdf = await loadingTask.promise;
@@ -1874,7 +1874,7 @@ async function generateMissingPdfCovers() {
                 
                 if (uploadRes.ok) {
                     const result = await uploadRes.json();
-                    console.log(tLog('logCoverGenerated', { title: book.title }));
+                    console.log(t('logCoverGenerated', { title: book.title }));
                     
                     // BONUS: Aggiorniamo la texture 3D in tempo reale senza ricaricare la pagina!
                     const mesh = booksArray.find(b => b.userData.id === book.id);
@@ -1886,14 +1886,14 @@ async function generateMissingPdfCovers() {
                         mesh.material[4].needsUpdate = true;
                     }
                 } else {
-                    console.warn(tLog('logCoverGenerationError', { title: book.title, statusText: uploadRes.statusText }));
+                    console.warn(t('logCoverGenerationError', { title: book.title, statusText: uploadRes.statusText }));
                 }
             }
         } catch (err) {
-            console.warn(tLog('logCoverGenerationFailed', { title: book.title, errorMessage: err.message }));
+            console.warn(t('logCoverGenerationFailed', { title: book.title, errorMessage: err.message }));
         }
     }
-    console.log(tLog('logPdfCoversGenerated'));
+    console.log(t('logPdfCoversGenerated'));
 }
 
 function showUpdateNotification(newVersion, downloadUrl) {
