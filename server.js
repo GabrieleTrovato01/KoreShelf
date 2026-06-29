@@ -13,6 +13,7 @@ import * as htmlToText from 'html-to-text';
 import localeIt from './src/locales/it.js';
 import localeEn from './src/locales/en.js';
 import Database from 'better-sqlite3';
+import { extractISBN } from './src/metadata-extractor.js';
 
 const locales = { it: localeIt.default || localeIt, en: localeEn.default || localeEn };
 
@@ -380,7 +381,7 @@ function parsePdfWithTimeout(filePath, coverFileName, originalFileName, timeoutM
 }
 
 // Apple Books + calcolo pagine stimato
-async function fetchBestBookData(title, author, rawTextLength) {
+async function fetchBestBookData(isbn,title, author, rawTextLength) {
     let result = {
         description: tLog('noPlotFound'),
         coverUrl: null,
@@ -393,6 +394,46 @@ async function fetchBestBookData(title, author, rawTextLength) {
     const searchTitle = title === tLog('unknownTitle') ? '' : title;
     const searchAuthor = author === tLog('unknownAuthor') ? '' : author;
     const cleanQuery = `${searchTitle} ${searchAuthor}`.replace(/[_-]/g, ' ').trim();
+    
+    // --- STEP 0: RICERCA TRAMITE ISBN SU GOOGLE BOOKS ---
+
+    if (isbn) {
+        try {
+            console.log(`🔍 [Metadata] Cerco su Google Books con ISBN: ${isbn}`);
+            const googleUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`;
+            const response = await axios.get(googleUrl, { timeout: 6000 });
+
+            if (response.data && response.data.items && response.data.items.length > 0) {
+                const volumeInfo = response.data.items[0].volumeInfo;
+                
+                result.googleTitle = volumeInfo.title;
+                if (volumeInfo.authors) result.googleAuthor = volumeInfo.authors.join(', ');
+                
+                if (volumeInfo.description) {
+                    result.description = volumeInfo.description.replace(/<[^>]*>?/gm, '').trim();
+                }
+
+                if (volumeInfo.pageCount) {
+                    result.pageCount = volumeInfo.pageCount;
+                }
+
+                // Il trucco della copertina ad Alta Risoluzione di Google Books
+                if (volumeInfo.imageLinks && volumeInfo.imageLinks.thumbnail) {
+                    let cover = volumeInfo.imageLinks.thumbnail;
+                    // Forza zoom=0 (massima risoluzione), togli l'effetto piega e forza HTTPS
+                    cover = cover.replace(/zoom=[0-9]/, 'zoom=0').replace('&edge=curl', '').replace(/^http:\/\//i, 'https://');
+                    result.coverUrl = cover;
+                }
+                
+                console.log(`✅ [Metadata] Trovato su Google Books: ${result.googleTitle}`);
+                return result; // Se troviamo il libro con l'ISBN, usciamo subito e restituiamo i dati!
+            } else {
+                console.log(`⚠️ [Metadata] ISBN non trovato su Google Books, passo al fallback testuale...`);
+            }
+        } catch (error) {
+            console.error(`❌ [Metadata] Errore API Google Books:`, error.message);
+        }
+    }
 
     // --- STEP 1: APPLE BOOKS (Per Copertina HQ e Trama) ---
     try {
@@ -535,6 +576,13 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         const fileExt = path.extname(file.originalname).toLowerCase();
         let bookData;
 
+        const isbn = await extractISBN(file.path, fileExt);
+        if (isbn) {
+            console.log(`🏷️ [Scanner] ISBN identificato: ${isbn}`);
+        } else {
+            console.log(`🏷️ [Scanner] Nessun ISBN trovato nel file. Procedo con fallback testuale.`);
+        }
+
         if (fileExt === '.epub') {
             bookData = await parseEpubWithTimeout(file.path, baseName, file.originalname, 8000);
         } else if (fileExt === '.pdf') {
@@ -548,7 +596,7 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         console.log(tLog('logWaitAppleAPI'));
         console.log(tLog('logSearchAppleBooks'));
         
-        const googleData = await fetchBestBookData(bookData.title, bookData.author, bookData.textLength);
+        const googleData = await fetchBestBookData(isbn, bookData.title, bookData.author, bookData.textLength);
 
         let finalTitle = bookData.title;
         let finalAuthor = bookData.author;
