@@ -187,6 +187,16 @@ export default {
         shutdownTitle: "KoreShelf disattivato",
         shutdownMessage: "Il server locale è stato spento. Puoi chiudere questa finestra.",
 
+         // cover image generator
+         
+        logpdfjs: "⚠️ pdf.js non disponibile, impossibile generare copertine PDF.",
+        logGeneratePdfCovers: "🎨 Trovati {count} PDF senza copertina. Generazione in corso...",
+        logGeneratePdfCover: "📖 Generazione copertina per: {title}",
+        logCoverGenerated: "✅ Copertina generata per: {title}",
+        logCoverGenerationError: "⚠️ Errore caricamento copertina per {title}: {statusText}",
+        logCoverGenerationFailed: "⚠️ Impossibile generare copertina per {title}: {errorMessage}",
+        logPdfCoversGenerated: "🎉 Generazione copertine PDF terminata!",
+
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",
         errFormat: "Formato non supportato. Usa EPUB o PDF.",
@@ -286,6 +296,13 @@ export default {
         terminal_sync: "Terminale sincronizzato in:",
 
         logFoundISBN: "🏷️ [Scanner] ISBN identificato: {isbn}",
-        logNoISBNFound: "🏷️ [Scanner] Nessun ISBN trovato nel file. Procedo con fallback testuale."
+        logNoISBNFound: "🏷️ [Scanner] Nessun ISBN trovato nel file. Procedo con fallback testuale.",
 
+        shieldUnhandledRejection: "🛡️ SCUDO ATTIVATO: Unhandled Rejection catturato!",
+        shieldReason: "Motivo:",
+        shieldServerContinues: "Il server continua a funzionare normalmente.",
+        monkeyPatchSuccess: "✅ Monkey-patch epub2 applicato con successo!",
+        monkeyPatchError: "⚠️ Impossibile applicare il monkey-patch per epub2:",
+        epubCorruptedFallback: "⚠️ EPUB corrotto o malformato. Uso il nome del file come fallback.",
+        
     };

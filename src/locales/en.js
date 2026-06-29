@@ -203,6 +203,16 @@ export default {
         errNoBooksUpdated: "No books updated.",
         successShutdown: "Server shutting down",
 
+         // cover image generator
+         
+        logpdfjs: "⚠️ pdf.js not available, unable to generate PDF covers.",
+        logGeneratePdfCovers: "🎨 Found {count} PDFs without covers. Generation in progress...",
+        logGeneratePdfCover: "📖 Generating cover for: {title}",
+        logCoverGenerated: "✅ Cover generated for: {title}",
+        logCoverGenerationError: "⚠️ Error loading cover for {title}: {statusText}",
+        logCoverGenerationFailed: "⚠️ Unable to generate cover for {title}: {errorMessage}",
+        logPdfCoversGenerated: "🎉 PDF covers generated!",
+
         //--------------------------------------------------server.js locales-------------------------------------------------------------
 
         logUploadDirCreated: "📁 Upload directory created automatically.",
@@ -286,5 +296,15 @@ export default {
         terminal_sync: "Terminal synchronized in:",
 
         logFoundISBN: "🏷️ [Scanner] ISBN found: {isbn}",
-        logNoISBNFound: "🏷️ [Scanner] No ISBN found in the file. Proceeding with text fallback."
+        logNoISBNFound: "🏷️ [Scanner] No ISBN found in the file. Proceeding with text fallback.",
+
+            // --- NUOVE TRADUZIONI PER RESILIENZA SERVER ---
+        shieldUnhandledRejection: "🛡️ SHIELD ACTIVATED: Unhandled Rejection caught!",
+        shieldReason: "Reason:",
+        shieldServerContinues: "The server continues to function normally.",
+        monkeyPatchSuccess: "✅ epub2 monkey-patch applied successfully!",
+        monkeyPatchError: "⚠️ Unable to apply epub2 monkey-patch:",
+        epubCorruptedFallback: "⚠️ Corrupted or malformed EPUB. Using filename as fallback.",
+        
+  
     };

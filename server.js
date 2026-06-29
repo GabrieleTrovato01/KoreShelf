@@ -33,6 +33,52 @@ function tLog(key, variables = {}, langOverride = null) {
     return text;
 }
 
+try {
+    const originalWalkNavMap = EPub.prototype.walkNavMap;
+    
+    EPub.prototype.walkNavMap = function(branch, id, prefix) {
+        // Patch robusto: gestisce array, oggetti singoli e valori complessi
+        if (branch) {
+            // Normalizziamo sempre in array per sicurezza
+            const items = Array.isArray(branch) ? branch : [branch];
+            
+            const fixNavLabel = (item) => {
+                if (!item || !item.navLabel) return;
+                
+                let textValue = item.navLabel.text || item.navLabel;
+                
+                // Se è un oggetto complesso (es. da XML parsing con xml2js), estraiamo il testo
+                if (typeof textValue === 'object' && textValue !== null) {
+                    // Prova vari formati comuni di parsing XML
+                    textValue = textValue['#text'] || textValue._ || textValue.text || textValue[0] || '';
+                }
+                
+                // Forza la conversione in stringa e rimuovi spazi
+                const cleanText = String(textValue || '').trim();
+                
+                // Ristrutturiamo navLabel come oggetto valido con text stringa
+                item.navLabel = { text: cleanText };
+            };
+            
+            // Applichiamo la correzione a tutti gli elementi
+            items.forEach(fixNavLabel);
+        }
+        
+        // Chiamata alla funzione originale con try-catch di sicurezza
+        try {
+            return originalWalkNavMap.call(this, branch, id, prefix);
+        } catch (e) {
+            // Se comunque crasha, ignoriamo l'errore e continuiamo
+            console.warn('⚠️ walkNavMap error caught and suppressed:', e.message);
+            return;
+        }
+    };
+    
+    console.log('✅ Monkey-patch epub2 applicato con successo!');
+} catch (e) {
+    console.warn('⚠️ Impossibile applicare il monkey-patch per epub2:', e.message);
+}
+
 const app = express();
 const port = 3000;
 
@@ -279,7 +325,19 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
         }
         return metadata;
     } catch (error) {
-        throw new Error(`${tLog('errEpubParse')} ${error.message}`);
+        // Invece di fare throw (che crasha il server), restituiamo metadati di emergenza
+        console.error(tLog('errEpubParse'), error.message);
+        
+        // Estraiamo un titolo pulito dal nome del file
+        let cleanName = originalFileName.replace(/\.epub$/i, '').replace(/[_-]/g, ' ').trim();
+        
+        return {
+            title: cleanName || tLog('unknownTitle'),
+            author: tLog('unknownAuthor'),
+            description: null,
+            coverPath: null,
+            textLength: 0
+        };
     }
 }
 
@@ -886,6 +944,12 @@ process.on('uncaughtException', (err) => {
     } else {
         console.warn(tLog('errUnexpected'), err);
     }
+});
+// --- CATCHER PER PROMISE NON GESTITE (Impedisce il crash asincrono) ---
+process.on('unhandledRejection', (reason, promise) => {
+    console.warn(`\n${tLog('shieldUnhandledRejection')}`);
+    console.warn(`${tLog('shieldReason')}`, reason?.message || reason);
+    console.warn(`${tLog('shieldServerContinues')}\n`);
 });
 
 // --- ROTTA PER ESPORTARE IL LIBRO COME KNOWLEDGE BASE IN FORMATO MARKDOWN (.md) ---
