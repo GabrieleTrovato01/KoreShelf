@@ -8,7 +8,6 @@ import { EPub } from 'epub2';
 import axios from 'axios';
 import sharp from 'sharp';
 import pdfParse from 'pdf-parse';
-import { fromPath } from 'pdf2pic';
 import * as htmlToText from 'html-to-text';
 import localeIt from './src/locales/it.js';
 import localeEn from './src/locales/en.js';
@@ -204,15 +203,18 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
             // Se nel nome del file c'est un trattino "-", lo usiamo per separare!
             // -----------------------------------------------------
             if (cleanName.includes('-')) {
-                const parts = cleanName.split('-'); // Taglia la stringa a metà
+                const parts = cleanName.split('-');
                 
-                // Puliamo la prima metà (Titolo)
-                extractedTitle = parts[0].replace(/[_-]/g, ' ').replace(/Ã/g, 'a').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-                
-                // Puliamo la seconda metà (Autore)
-                extractedAuthor = parts[1].replace(/[_-]/g, ' ').replace(/Ã/g, 'a').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-                
-                console.log(tLog('logFoundDash', { title: extractedTitle, author: extractedAuthor }));
+                // Se ci sono più di 2 parti, assumiamo che l'ultima sia l'autore e il resto il titolo
+                if (parts.length > 2) {
+                    extractedAuthor = parts.pop().replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                    extractedTitle = parts.join(' ').replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                } else {
+                    // Comportamento originale se c'è un solo trattino
+                    extractedTitle = parts[0].replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                    extractedAuthor = parts[1].replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                }
+            console.log(tLog('logFoundDash', { title: extractedTitle, author: extractedAuthor }));
             } else {
                 // Se non c'è il trattino, il server è costretto a buttare tutto nel titolo
                 cleanName = cleanName.replace(/[_-]/g, ' ');
@@ -304,9 +306,18 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
             
             if (cleanName.includes('-')) {
                 const parts = cleanName.split('-');
-                extractedTitle = parts[0].replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-                extractedAuthor = parts[1].replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-            } else {
+                
+                // Se ci sono più di 2 parti, assumiamo che l'ultima sia l'autore e il resto il titolo
+                if (parts.length > 2) {
+                    extractedAuthor = parts.pop().replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                    extractedTitle = parts.join(' ').replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                } else {
+                    // Comportamento originale se c'è un solo trattino
+                    extractedTitle = parts[0].replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                    extractedAuthor = parts[1].replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                }
+                console.log(tLog('logFoundDash', { title: extractedTitle, author: extractedAuthor }));
+            }else {
                 cleanName = cleanName.replace(/[_-]/g, ' ').replace(/[^a-zA-Z0-9\s]/g, ' ');
                 extractedTitle = cleanName.replace(/\s+/g, ' ').trim();
                 extractedAuthor = tLog('unknownAuthor');
@@ -321,26 +332,6 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
             coverPath: null,
             textLength: rawTextLength
         };
-
-        // 2. Scattiamo la foto alla prima pagina per la copertina
-        try {
-            const options = {
-                density: 150,           // Risoluzione DPI per nitidezza
-                saveFilename: coverFileName,
-                savePath: coversDir,
-                format: "jpg",
-                width: 512,
-                height: 768
-            };
-            
-            const storeAsImage = fromPath(filePath, options);
-            const resolveImg = await storeAsImage(1); // Fotografiamo la pagina 1        
-            console.log(tLog('logPdfCoverGenerated'));
-            metadata.coverPath = `covers/${resolveImg.name}`;
-
-        } catch (imgError) {
-            console.error(tLog('errPdfCoverGen'), imgError.message);
-        }
         return metadata;
     } catch (error) {
         throw new Error(`${tLog('errPdfParse')} ${error.message}`);
@@ -519,6 +510,44 @@ async function downloadCoverImage(url, fileName) {
     }
 }
 
+// --- ROTTA PER RICEVERE LA COPERTINA "FOTOGRAFATA" DAL FRONTEND ---
+app.post('/api/books/:id/cover', upload.single('cover'), async (req, res) => {
+    const bookId = req.params.id;
+    const file = req.file;
+    if (!file) return res.status(400).json({ success: false, message: 'Nessun file ricevuto.' });
+
+    try {
+        const row = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
+        if (!row) {
+            await fs.unlink(file.path).catch(() => {});
+            return res.status(404).json({ success: false, message: 'Libro non trovato.' });
+        }
+
+        // Ottimizziamo l'immagine con sharp (esattamente come fai per gli EPUB)
+        const newCoverName = `cover_${bookId}_frontend.jpg`;
+        const fullCoverPath = path.join(coversDir, newCoverName);
+
+        await sharp(file.path)
+            .resize(512, 768, { fit: 'cover', position: 'center' }) // Ritaglia e adatta al formato libro
+            .jpeg({ quality: 80, progressive: true })
+            .toFile(fullCoverPath);
+
+        // Pulizia file temporaneo di multer
+        await fs.unlink(file.path).catch(() => {});
+
+        // Aggiorniamo il database
+        const book = { ...row, tags: JSON.parse(row.tags || '[]') };
+        book.coverPath = `covers/${newCoverName}`;
+        upsertBook(book);
+
+        res.json({ success: true, coverPath: book.coverPath });
+    } catch (error) {
+        console.error("Errore upload copertina frontend:", error);
+        if (req.file) await fs.unlink(req.file.path).catch(() => {});
+        res.status(500).json({ success: false, message: 'Errore server.' });
+    }
+});
+
 // --- ROTTA PER LEGGERE TUTTI I LIBRI DAL DB ---
 app.get('/api/books', (req, res) => {
     try {
@@ -623,11 +652,15 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
             return res.json({ success: false, message: 'Libro già presente nella libreria.' });
         }
 
-        let finalCoverPath = bookData.coverPath; 
-        if (!finalCoverPath && googleData.coverUrl) {
-            console.log(tLog('logDownloadCoverMissing'));
-            finalCoverPath = await downloadCoverImage(googleData.coverUrl, baseName);
-        }
+            let finalCoverPath = bookData.coverPath; 
+            const isPdf = fileExt === '.pdf';
+            
+            if (!finalCoverPath && googleData.coverUrl && !isPdf) {
+                console.log(tLog('logDownloadCoverMissing'));
+                finalCoverPath = await downloadCoverImage(googleData.coverUrl, baseName);
+            } else if (!finalCoverPath && isPdf) {
+                console.log("🎨 PDF senza copertina interna. Il frontend genererà la copertina dalla prima pagina.");
+            }
 
         let finalDescription = tLog('noDescriptionAvailable');
         let epubDesc = bookData.description;

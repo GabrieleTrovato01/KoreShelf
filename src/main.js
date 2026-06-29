@@ -1810,6 +1810,91 @@ async function checkForUpdates() {
         console.error("Errore nel controllo aggiornamenti:", error);
     }
 }
+// --- GENERATORE COPERTINE PDF IN BACKGROUND (Frontend) ---
+async function generateMissingPdfCovers() {
+    // 1. Controlliamo se pdf.js è disponibile nel browser
+    if (typeof pdfjsLib === 'undefined') {
+        console.warn("⚠️ pdf.js non disponibile, impossibile generare copertine PDF.");
+        return;
+    }
+
+    // 2. Chiediamo al server la lista aggiornata dei libri
+    const res = await fetch('/api/books');
+    const booksData = await res.json();
+
+    // 3. Filtra solo i PDF che NON hanno ancora una copertina
+    const pdfsMissingCover = booksData.filter(b => 
+        b.epubPath && b.epubPath.toLowerCase().endsWith('.pdf') && !b.coverPath
+    );
+
+    if (pdfsMissingCover.length === 0) return;
+
+    console.log(`🎨 Trovati ${pdfsMissingCover.length} PDF senza copertina. Generazione in corso...`);
+
+    // Assicuriamoci che il worker di pdf.js sia configurato
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // 4. Processiamo i PDF uno alla volta per non affollare la rete
+    for (const book of pdfsMissingCover) {
+        try {
+            console.log(`📖 Generazione copertina per: ${book.title}`);
+
+            const loadingTask = pdfjsLib.getDocument(`/${book.epubPath}`);
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(1);
+            
+            // Calcoliamo la scala per ottenere un'immagine larga circa 512px
+            const unscaledViewport = page.getViewport({ scale: 1.0 });
+            const scale = 512 / unscaledViewport.width;
+            const viewport = page.getViewport({ scale });
+
+            // Creiamo un canvas "fantasma" (non serve aggiungerlo al DOM)
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+
+            // Renderizziamo la prima pagina
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            // Convertiamo il canvas in un'immagine JPEG
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+            
+            if (blob) {
+                const formData = new FormData();
+                formData.append('cover', blob, `cover_${book.id}.jpg`);
+                
+                // Inviamo al server
+                const uploadRes = await fetch(`/api/books/${book.id}/cover`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (uploadRes.ok) {
+                    const result = await uploadRes.json();
+                    console.log(`✅ Copertina generata per: ${book.title}`);
+                    
+                    // BONUS: Aggiorniamo la texture 3D in tempo reale senza ricaricare la pagina!
+                    const mesh = booksArray.find(b => b.userData.id === book.id);
+                    if (mesh) {
+                        const newUrl = `/${result.coverPath}`;
+                        const tex = await libLoader.loadTexture(newUrl);
+                        mesh.material[4].map = tex;
+                        mesh.material[4].color.setHex(0xffffff); // Rimuovi il colore scuro del placeholder
+                        mesh.material[4].needsUpdate = true;
+                    }
+                } else {
+                    console.warn(`⚠️ Errore caricamento copertina per ${book.title}:`, uploadRes.statusText);
+                }
+            }
+        } catch (err) {
+            console.warn(`⚠️ Impossibile generare copertina per ${book.title}:`, err.message);
+        }
+    }
+    console.log("🎉 Generazione copertine PDF terminata!");
+}
 
 function showUpdateNotification(newVersion, downloadUrl) {
     if (document.getElementById('lorekeeper-update-banner')) return; 
@@ -1910,6 +1995,8 @@ async function startApp() {
             loadingText.innerText = savedLang === 'it' ? "Allestimento scaffali..." : "Setting up shelves...";
         }
         await loadBooks();
+
+        generateMissingPdfCovers().catch(err => {console.warn("Errore generazione copertine PDF:", err);}); 
 
         // 4. Avvia l'animazione 3D
         animate();
