@@ -1,6 +1,6 @@
 export default {
         // Top Bar
-        manageShelf: "⚙️ Manage",
+        manageShelf: " Manage",
         manageShelfTooltip: "Rename or delete this category",
         searchPlaceholder: "Search by title or author...",
         uploadBtn: "+ Upload Ebook",
@@ -10,16 +10,16 @@ export default {
         // Info Panel (Bottom)
         showSynopsis: "Show Synopsis",
         showCover: "Show Cover",
-        exportAI: "🤖 Export for AI",
-        generatingMD: "⏳ Generating MD ...",
+        exportAI: " Export for AI",
+        generatingMD: " Generating MD ...",
         exportToastMessage: "Generating Knowledge Base (.md) for Obsidian/IA ...",
 
-        assignCategory: "🏷️ Assign Category ",
+        assignCategory: " Assign Category ",
         moveBookTitle: "Move",
         saveBtn: "Save",
         categoryPrompt: "Enter the new category name for this book:",
 
-        deleteBook: "🗑️ Delete",
+        deleteBook: " Delete",
         deleteConfirm: "Are you sure you want to PERMANENTLY delete \"{title}\"?\nThis action will remove the file from your computer and cannot be undone.",
         serverError: "Error connecting to the server.",
         cancelBtn: "Cancel",
@@ -85,6 +85,18 @@ export default {
         emptyNameAlert: "Shelf name cannot be empty!",
         sameNameAlert: "Please enter a name different from the current one.",
         saving: "Saving...",
+
+        //edit 
+        editMetadata: " Edit Metadata",
+        editMetadataTitle: "Edit Metadata",
+        editTitle: "Title",
+        editAuthor: "Author",
+        editCategory: "Category",
+        editDescription: "Description",
+        editCover: "New Cover (Optional)",
+        clickToChooseFile: "📁 Click to choose a file...",
+        errorSaving: "Error while saving:",
+        errorGeneric: "Error!",
         
         // Create and Move View
         createMoveTitle: "📦 Create and Move",
@@ -123,12 +135,14 @@ export default {
         readingMode: "Reading Mode",
         horizontal: "Paginated (Horizontal)",
         vertical: "Continuous Scroll (Vertical)",
+        textAlignment: "Text Alignment",
         helpTitle: "📖 How it works",
         helpContent: `
             <li><b>Upload a book:</b> Click the upload button (or drag and drop a file) to add your personal <b>.epub</b> or <b>.pdf</b> files.</li>
             <li><b>Search:</b> Use the top bar to quickly find a book by entering the title, author, or category.</li>
             <li><b>Shelf Navigation:</b> Scroll horizontally (swipe or ←/→ arrows) to browse works, and vertically (↑/↓) to switch categories.</li>
             <li><b>Organize and Manage:</b> Use "🏷️ Assign Category" to classify volumes, or "⚙️ Manage" for advanced library operations.</li>
+            <li><b>✏️ Edit Metadata:</b> Click the "Edit" button on any book to manually modify the title, author, description, or category. You can also upload a custom high-res cover, and the 3D model will update instantly.</li>
             <li><b>Advanced Reading:</b> Click on a book to open it. The reader natively supports both <b>EPUB</b> (reflowable format) and <b>PDF</b> (fixed format).</li>
             <li><b>Reader Customization (Hamburger Menu):</b> Open the side menu (≡) to adjust:
                 <ul>

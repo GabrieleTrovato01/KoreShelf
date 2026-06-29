@@ -3,6 +3,7 @@ import { openCategoryManager } from './category-manager.js';
 import { LibraryLoader } from './loader-optimizer.js';
 import { t, initI18n, setLanguage } from './i18n.js';
 import {openHelpModal} from './help-modal.js';
+import {openMetadataManager} from './metadata-manager.js';
 import './style.css';
 import * as THREE from 'three';
 
@@ -16,7 +17,7 @@ function translateStaticHTML() {
     const lang = localStorage.getItem('KoreShelf_lang') || 'it';
 
     if (typeof shutdownBtn !== 'undefined') {
-        shutdownBtn.innerHTML = '⏻ ' + t('shutdownBtn');
+        shutdownBtn.innerHTML = '<span class="btn-icon">⏻</span><span class="btn-text">' + t('shutdownBtn') + '</span>';
         shutdownBtn.title = t('shutdownTooltip');
     }
     
@@ -34,22 +35,28 @@ function translateStaticHTML() {
     // 2. AGGIORNAMENTO TESTI BOTTONI (La vera soluzione al tuo problema!)
     // Dato che la lingua ora è caricata, applichiamo i testi corretti ai bottoni creati in alto
     if (typeof manageCatBtn !== 'undefined') {
-        manageCatBtn.innerHTML = t('manageShelf');
+        manageCatBtn.innerHTML = '<span class="btn-icon">📁</span><span class="btn-text">' + t('manageShelf') + '</span>';
         manageCatBtn.title = t('manageShelfTooltip');
     }
     if (typeof searchInput !== 'undefined') searchInput.placeholder = t('searchPlaceholder');
-    if (typeof uploadLabel !== 'undefined') uploadLabel.innerText = t('uploadBtn');
+    if (typeof uploadLabel !== 'undefined') uploadLabel.innerHTML = '<span class="btn-icon">📤</span><span class="btn-text">' + t('uploadBtn') + '</span>';
     
     // Bottoni in basso
-    if (typeof infoBtn !== 'undefined') infoBtn.innerText = t('showSynopsis');
-    if (typeof exportAIBtn !== 'undefined') exportAIBtn.innerHTML = t('exportAI');
-    if (typeof assignCatBtn !== 'undefined') assignCatBtn.innerHTML = t('assignCategory');
-    if (typeof deleteBookBtn !== 'undefined') deleteBookBtn.innerHTML = t('deleteBook');
-    
+    if (typeof infoBtn !== 'undefined') {
+        // infoBtn cambia icona a seconda di cosa sta mostrando
+        infoBtn.innerHTML = isShowingBack 
+            ? '<span class="btn-icon">📖</span><span class="btn-text">' + t('showCover') + '</span>' 
+            : '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
+    }
+    if (typeof exportAIBtn !== 'undefined') exportAIBtn.innerHTML = '<span class="btn-icon">🤖</span><span class="btn-text">' + t('exportAI') + '</span>';
+    if (typeof assignCatBtn !== 'undefined') assignCatBtn.innerHTML = '<span class="btn-icon">🏷️</span><span class="btn-text">' + t('assignCategory') + '</span>';
+    if (typeof deleteBookBtn !== 'undefined') deleteBookBtn.innerHTML = '<span class="btn-icon">🗑️</span><span class="btn-text">' + t('deleteBook') + '</span>';
+    if (typeof editMetadataBtn !== 'undefined') editMetadataBtn.innerHTML = '<span class="btn-icon">✏️</span><span class="btn-text">' + (t('editMetadata') || 'Modifica') + '</span>';
+
     if (typeof creditsFooter !== 'undefined') {
         creditsFooter.innerHTML = `${t('credits')} <a href="https://github.com/GabrieleTrovato01" target="_blank">GabrieleTrovato01</a>`;
     }
-    if (typeof donateBtn !== 'undefined') donateBtn.innerText = t('donateBtn');
+    if (typeof donateBtn !== 'undefined') donateBtn.innerHTML = '<span class="btn-icon">☕</span><span class="btn-text">' + t('donateBtn') + '</span>';
     if (emptyLibraryHint) emptyLibraryHint.innerText = t('emptyLibraryMessage');
 }
 
@@ -191,9 +198,38 @@ styleStyle.innerHTML = `
         border-color: rgba(255, 255, 255, 0.5);
         box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
     }
-    
+
     /* Nascondiamo l'input file originale brutto da vedere */
     #file-upload { display: none; }
+
+    /* --- NUOVO: Stili per Icone e Responsività --- */
+    .btn-icon { display: inline-block; margin-right: 6px; font-size: 15px; }
+    .btn-text { display: inline-block; }
+
+    /* Quando lo schermo scende sotto gli 850px di larghezza... */
+    @media (max-width: 850px) {
+        .btn-text { display: none !important; } /* Nascondi il testo */
+        .btn-icon { margin-right: 0 !important; font-size: 18px; } /* Ingrandisci leggermente l'icona e centrala */
+        
+        .modern-btn { 
+            padding: 12px 15px !important; /* Rendi i bottoni più "quadrati" */
+            min-width: 48px;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
+        
+        .top-bar { width: 98%; gap: 8px; top: 15px; }
+        .modern-input { padding: 12px 15px; font-size: 13px; }
+        
+        /* Evita che nomi di categorie lunghissimi rompano la top bar */
+        #category-label-id { 
+            max-width: 120px; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; 
+        }
+    }
 `;
 document.head.appendChild(styleStyle);
 
@@ -299,7 +335,9 @@ topBar.appendChild(shutdownBtn);
 const langBtn = document.createElement('button');
 // Leggiamo la lingua salvata (o 'it' di default) per impostare il testo del bottone
 const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
-langBtn.innerText = savedLang === 'it' ? '🇬🇧 EN' : '🇮🇹 IT';
+langBtn.innerHTML = savedLang === 'it' 
+    ? '<span class="btn-icon">🇬🇧</span><span class="btn-text">EN</span>' 
+    : '<span class="btn-icon">🇮🇹</span><span class="btn-text">IT</span>';
 langBtn.className = 'glass-effect modern-btn';
 langBtn.style.padding = '12px 15px';
 langBtn.style.fontWeight = 'bold';
@@ -435,6 +473,67 @@ deleteBookBtn.onmouseout = () => {
 };
 uiContainer.appendChild(deleteBookBtn);
 
+const editMetadataBtn = document.createElement('button');
+// Puoi aggiungere la traduzione in i18n, per ora usiamo un testo fisso con fallback
+editMetadataBtn.innerHTML = t('editMetadata') || '✏️ Modifica'; 
+editMetadataBtn.className = 'glass-effect modern-btn';
+uiContainer.appendChild(editMetadataBtn);
+
+
+editMetadataBtn.onclick = () => {
+    if (booksArray.length === 0) return;
+    const activeBook = booksArray[currentIndex];
+    
+    openMetadataManager(activeBook.userData, (updatedData) => {
+        console.log("Metadati salvati! Aggiornamento 3D in corso...", updatedData);
+        
+        // 1. Gestione Categoria: Se è cambiata, la struttura delle mensole cambia. 
+        // L'approccio più sicuro e pulito è ricaricare la pagina.
+        const oldCategory = activeBook.userData.category;
+        const newCategory = (updatedData.tags && updatedData.tags.length > 0) ? updatedData.tags[0] : t('uncategorized');
+        
+        if (oldCategory !== newCategory) {
+            location.reload();
+            return;
+        }
+
+        // 2. Aggiorniamo i dati base nell'oggetto 3D
+        activeBook.userData = { ...activeBook.userData, ...updatedData };
+
+        // 3. HOT-SWAP DEL DORSO (Ridisegnamo titolo e autore sul lato)
+        const newSpineTex = createSpineTexture(updatedData.title, updatedData.author);
+        activeBook.material[1].map = newSpineTex;
+        activeBook.material[1].needsUpdate = true;
+
+        // 4. HOT-SWAP DELLA COPERTINA FRONTALE
+        if (updatedData.coverPath) {
+            // Se c'è un'immagine reale, la scarichiamo e la applichiamo subito
+            textureLoader.load(`/${updatedData.coverPath}`, (tex) => {
+                tex.generateMipmaps = false;
+                tex.minFilter = THREE.LinearFilter;
+                tex.magFilter = THREE.LinearFilter;
+                activeBook.material[4].map = tex;
+                activeBook.material[4].color.setHex(0xffffff); // Togliamo eventuali scurimenti del placeholder
+                activeBook.material[4].needsUpdate = true;
+            });
+        } else {
+            // Se non c'è, generiamo il fallback testuale con i nuovi dati
+            const placeholderTex = createFrontPlaceholderTexture(updatedData.title, updatedData.author);
+            activeBook.material[4].map = placeholderTex;
+            activeBook.material[4].needsUpdate = true;
+        }
+
+        // 5. HOT-SWAP DEL RETRO (Ridisegnamo la nuova trama e i tag dietro)
+        const backMesh = activeBook.children.find(child => child.name === "backCover_mesh");
+        if (backMesh) {
+            backMesh.userData = { ...backMesh.userData, ...updatedData }; // Aggiorna anche per il click della trama
+            const newBackTex = createBackCoverTexture(updatedData.description, updatedData.tags, updatedData.rating);
+            backMesh.material.map = newBackTex;
+            backMesh.material.needsUpdate = true;
+        }
+    });
+};
+
 // --- CREAZIONE CREDITI INFERIORI ---
 const creditsFooter = document.createElement('div');
 creditsFooter.id = 'credits-footer';
@@ -447,7 +546,7 @@ exportAIBtn.onclick = () => {
     
     // Feedback visivo: usiamo lo spinner e specifichiamo il formato MD
     const originalText = exportAIBtn.innerHTML;
-    exportAIBtn.innerHTML = t('generatingMD');
+    exportAIBtn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">' + (t('generatingMD') || 'Generando...') + '</span>';
     exportAIBtn.disabled = true;
 
     
@@ -460,7 +559,7 @@ exportAIBtn.onclick = () => {
 
     // Ripristiniamo il pulsante dopo 4 secondi
     setTimeout(() => {
-        exportAIBtn.innerHTML = originalText;
+        exportAIBtn.innerHTML = '<span class="btn-icon">🤖</span><span class="btn-text">' + t('exportAI') + '</span>';
         exportAIBtn.disabled = false;
     }, 4000);
 };
@@ -638,7 +737,7 @@ deleteBookBtn.onclick = async () => {
     const isConfirmed = confirm(confirmMessage);
     
     if (isConfirmed) {
-        deleteBookBtn.innerHTML = '⏳...';
+        deleteBookBtn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">...</span>';
         deleteBookBtn.disabled = true;
 
         try {
@@ -658,7 +757,7 @@ deleteBookBtn.onclick = async () => {
         } catch (e) {
             console.error(e);
             alert(t('serverError'));
-            deleteBookBtn.innerHTML = t('deleteBook');
+            deleteBookBtn.innerHTML = '<span class="btn-icon">🗑️</span><span class="btn-text">' + t('deleteBook') + '</span>';
             deleteBookBtn.disabled = false;
         }
     }
@@ -755,7 +854,9 @@ rightArrow.onclick = () => changeBook(1);
 // --- EVENTI UI ---
 infoBtn.onclick = () => {
     isShowingBack = !isShowingBack;
-    infoBtn.innerText = isShowingBack ? t('showCover') : t('showSynopsis');
+    infoBtn.innerHTML = isShowingBack 
+        ? '<span class="btn-icon">📖</span><span class="btn-text">' + (t('showCover') || 'Copertina') + '</span>' 
+        : '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
     updateCarousel();
 };
 // --- LOGICA DI RICERCA (Connessa al Database e Debounce) ---
@@ -818,7 +919,7 @@ fileInput.addEventListener('change', async (event) => {
         const file = files[i];
         
         // Aggiorniamo il testo del bottone per mostrare il progresso
-        uploadLabel.innerText = `${t('uploadingStatus')} ${i + 1}/${files.length}...`;
+        uploadLabel.innerHTML = `<span class="btn-icon">⏳</span><span class="btn-text">${t('uploadingStatus')} ${i + 1}/${files.length}...</span>`;
         console.log(`Caricamento ${i + 1} di ${files.length}: ${file.name}...`);
         
         const formData = new FormData();
@@ -855,7 +956,7 @@ fileInput.addEventListener('change', async (event) => {
 
     // Puliamo e ripristiniamo l'interfaccia
     fileInput.value = '';
-    uploadLabel.innerText = t('uploadBtn');
+    uploadLabel.innerHTML = '<span class="btn-icon">📤</span><span class="btn-text">' + t('uploadBtn') + '</span>';
     searchInput.disabled = false;
 
     // Ricarichiamo la pagina per posizionare i nuovi libri sullo scaffale 3D!
@@ -1455,6 +1556,7 @@ window.addEventListener('pointerdown', (event) => {
     if (document.getElementById('assign-category-overlay')) return;
     if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT' || event.target.tagName === 'LABEL') return;
     if (document.getElementById('help-modal-overlay')) return;
+    if (document.getElementById('metadata-manager-overlay')) return;
 
 
     pointerStartX = event.clientX;
@@ -1468,6 +1570,7 @@ window.addEventListener('pointerup', (event) => {
     if (document.getElementById('category-manager-overlay')) return;
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
+    if (document.getElementById('metadata-manager-overlay')) return;
     if (!isDragging) return;
     isDragging = false;
     pointerEndX = event.clientX;
@@ -1574,6 +1677,7 @@ window.addEventListener('wheel', (event) => {
     if (document.getElementById('category-manager-overlay')) return;
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
+    if (document.getElementById('metadata-manager-overlay')) return;
     if (scrollTimeout) return;
 
     if (Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 20) {
@@ -1597,7 +1701,7 @@ window.addEventListener('keydown', (event) => {
     if (document.getElementById('category-manager-overlay')) return;
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
-
+    if (document.getElementById('metadata-manager-overlay')) return;
     if (event.key === 'ArrowRight') {
         changeBook(1); 
     } else if (event.key === 'ArrowLeft') {
@@ -1688,7 +1792,7 @@ window.addEventListener('resize', () => {
 });
 
 // --- 7. CONTROLLO AGGIORNAMENTI GITHUB ---
-const CURRENT_VERSION = "v2.1.0"; 
+const CURRENT_VERSION = "v2.1.2"; 
 const GITHUB_API_URL = "https://api.github.com/repos/GabrieleTrovato01/LoreKeeper/releases/latest";
 
 async function checkForUpdates() {

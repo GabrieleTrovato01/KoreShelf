@@ -1,6 +1,6 @@
 export default {
         // Top Bar
-        manageShelf: "⚙️ Gestisci",
+        manageShelf: " Gestisci",
         manageShelfTooltip: "Rinomina o elimina questa categoria",
         searchPlaceholder: "Cerca per titolo o autore...",
         uploadBtn: "+ Carica Ebook",
@@ -11,16 +11,16 @@ export default {
         showSynopsis: "Mostra Trama",
         showCover: "Mostra Copertina",
 
-        exportAI: "🤖 Esporta per IA",
-        generatingMD: "⏳ Generazione MD ...",
+        exportAI: "Esporta per IA",
+        generatingMD: "Generazione MD ...",
         exportToastMessage: "Generazione Knowledge Base (.md) per Obsidian/ IA ...",
         
-        assignCategory: "🏷️ Assegna Categoria",
+        assignCategory: " Assegna Categoria",
         moveBookTitle: "Sposta",
         saveBtn: "Salva",
         categoryPrompt: "Scrivi il nome della categoria...",
         
-        deleteBook: "🗑️ Elimina",
+        deleteBook: " Elimina",
         deleteConfirm: "Sei sicuro di voler eliminare DEFINITIVAMENTE \"{title}\"?\nL'azione cancellerà il file dal tuo computer e non può essere annullata.",
         serverError: "Errore di connessione al server.",
         cancelBtn: "Annulla",
@@ -84,6 +84,18 @@ export default {
         emptyNameAlert: "Il nome della mensola non può essere vuoto!",
         sameNameAlert: "Inserisci un nome diverso da quello attuale.",
         saving: "Salvataggio...",
+
+        // Vista Modifica Metadati
+        editMetadata: " Modifica Metadati",
+        editMetadataTitle: "Modifica Metadati",
+        editTitle: "Titolo",
+        editAuthor: "Autore",
+        editCategory: "Categoria",
+        editDescription: "Descrizione",
+        editCover: "Nuova Copertina (Opzionale)",
+        clickToChooseFile: "📁 Clicca per scegliere un file...",
+        errorSaving: "Errore durante il salvataggio:",
+        errorGeneric: "Errore!",
         
         // Vista Crea e Sposta
         createMoveTitle: "📦 Crea e Sposta",
@@ -123,6 +135,7 @@ export default {
         horizontal: "Sfoglia Pagine (Orizzontale)",
         vertical: "Scorrimento (Verticale)",
         readerError: "ERRORE: Manca l'HTML del lettore in index.html!",
+        textAlignment: "Allineamento",
         // --- HELP MODAL ---
 
         helpTitle: "📖 Come funziona",
@@ -131,6 +144,7 @@ export default {
             <li><b>Cerca:</b> Usa la barra in alto per trovare rapidamente un libro scrivendo il titolo, l'autore o la categoria.</li>
             <li><b>Navigazione Mensola:</b> Scorri lateralmente (swipe o frecce ←/→) per le opere, e verticalmente (↑/↓) per cambiare categoria.</li>
             <li><b>Organizza e Gestisci:</b> Usa "🏷️ Assegna Categoria" per classificare i volumi, o "⚙️ Gestisci" per le operazioni avanzate sulla libreria.</li>
+            <li><b>✏️ Modifica Metadati:</b> Clicca il pulsante "Modifica" su qualsiasi libro per modificare manualmente il titolo, l'autore, la descrizione o la categoria. Puoi anche caricare una copertina personalizzata, e il modello 3D si aggiornerà istantaneamente.</li>
             <li><b>Lettura Avanzata:</b> Clicca sul libro per aprirlo. Il lettore supporta nativamente sia <b>EPUB</b> (formato fluido) che <b>PDF</b> (formato fisso).</li>
             <li><b>Personalizzazione Lettore (Menu Hamburger):</b> Apri il menu laterale (≡) per regolare:
                 <ul>
@@ -143,7 +157,7 @@ export default {
             <li><b>Esplora:</b> Usa "Mostra Trama" per ruotare il libro 3D e leggere la sinossi sul retro.</li>
             <li><b style="color: #ba55d3;">🤖 Knowledge Base (Markdown):</b> Esporta le tue annotazioni in formato <strong>Markdown (.md)</strong>, ottimizzate per Obsidian, Notion, ChatGPT o Claude.</li>
             <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto "Spegni" in alto a destra per terminare la sessione e chiudere il server locale in totale sicurezza.</li>` ,
-        donateBtn: "💙 Supporta",
+        donateBtn: " Supporta",
         // Aggiungi questo in fondo all'oggetto export default
         emptyLibraryMessage: "La tua libreria è vuota. Clicca su '+ Carica Ebook' per iniziare la tua collezione!",
         //recensione

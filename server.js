@@ -961,6 +961,84 @@ ${tLog('mdEndOfDoc')}
     }
 });
 
+// --- ROTTA PER MODIFICARE I METADATI DEL LIBRO ---
+app.post('/api/books/edit', upload.single('cover'), async (req, res) => {
+    try {
+        const { id, title, author, category, description } = req.body;
+        const file = req.file; // Può essere undefined se l'utente non ha caricato una nuova foto
+
+        if (!id) return res.status(400).json({ success: false, message: "ID mancante" });
+
+        // 1. Recupera il libro corrente dal database
+        const row = db.prepare('SELECT * FROM books WHERE id = ?').get(id);
+        if (!row) {
+            if (file) await fs.unlink(file.path).catch(()=>{});
+            return res.status(404).json({ success: false, message: tLog('errNotFound') });
+        }
+
+        // Prepariamo l'oggetto libro aggiornato
+        const currentBook = { ...row, tags: JSON.parse(row.tags || '[]') };
+
+        // 2. Aggiorna i campi di testo
+        currentBook.title = title || currentBook.title;
+        currentBook.author = author || currentBook.author;
+        currentBook.description = description || currentBook.description;
+
+        // In KoreShelf, il primo elemento dell'array 'tags' funge da Categoria principale
+        if (category) {
+            if (currentBook.tags.length > 0) {
+                currentBook.tags[0] = category;
+            } else {
+                currentBook.tags.push(category);
+            }
+        }
+
+        // 3. Gestione della nuova Copertina (se presente)
+        if (file) {
+            console.log(`Aggiornamento copertina per il libro: ${currentBook.title}`);
+            
+            // Usiamo un timestamp per il nome del file. Questo trucco ("Cache Busting") 
+            // costringe il browser e Three.js a caricare la nuova immagine invece di usare quella vecchia in cache
+            const timestamp = Date.now();
+            const newCoverName = `cover_${id}_${timestamp}.jpg`;
+            const fullCoverPath = path.join(coversDir, newCoverName);
+
+            // Magia di Sharp: ritaglia e ottimizza esattamente come nell'upload originale
+            await sharp(file.path)
+                .resize(512, 768, { 
+                    fit: 'cover', 
+                    position: 'center'
+                })
+                .jpeg({ quality: 80, progressive: true })
+                .toFile(fullCoverPath);
+
+            // Pulizia: eliminiamo il file temporaneo caricato da Multer
+            await fs.unlink(file.path).catch(()=>{});
+
+            // Pulizia del disco: eliminiamo la VECCHIA copertina per non occupare spazio inutile
+            if (currentBook.coverPath) {
+                const oldCoverPath = path.join(publicDir, currentBook.coverPath);
+                await fs.unlink(oldCoverPath).catch(()=>{});
+            }
+
+            // Aggiorniamo il percorso nel database
+            currentBook.coverPath = `covers/${newCoverName}`;
+        }
+
+        // 4. Salviamo tutto nel Database usando il tuo helper
+        upsertBook(currentBook);
+        console.log(`Metadati aggiornati con successo per: ${currentBook.title}`);
+
+        // Rimandiamo indietro il libro aggiornato al frontend
+        res.json({ success: true, updatedBook: currentBook });
+
+    } catch (error) {
+        console.error("Errore durante la modifica dei metadati:", error);
+        if (req.file) await fs.unlink(req.file.path).catch(()=>{});
+        res.status(500).json({ success: false, message: tLog('errInternal') });
+    }
+});
+
 // --- ROTTA PER SPEGNIMENTO SERVER ---
 app.post('/api/shutdown', (req, res) => {
     console.log(tLog('logShutdownRequest'));
