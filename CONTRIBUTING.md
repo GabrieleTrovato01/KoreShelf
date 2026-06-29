@@ -86,14 +86,12 @@ Basandoci sul feedback della community e sullo sviluppo interno, ecco su cosa la
 * [ ] Risolvere il problema dell'inversione dei colori in modalità scura.
 * [X] Correggere le discrepanze tra la copertina nella libreria e quella nel lettore.
 * [X] Aggiungere modalità di scorrimento a pagina singola e continua.
-* [ ] Aggiungere il pulsante "Apri nell'applicazione predefinita" per lettori esterni.
 * [ ] Modalità Lettura Veloce (RSVP): Implementare una funzione di speed-reading per aiutare gli utenti a leggere più velocemente.
 
 ---
 
 ### 📚 Gestione Metadati & Libreria
 
-* [ ] Integrare ulteriori fonti di metadati (Goodreads, Hardcover, ecc.).
 * [X] Implementare una modalità "Modifica Manuale" per i metadati personalizzati.
 
 ---
@@ -200,14 +198,12 @@ Based on community feedback and internal development, here is what we are workin
 * [ ] Fix dark mode image inversion issue.
 * [X] Fix cover page mismatches between library and reader mode.
 * [X] Add single-page and continuous scrolling modes.
-* [ ] Add "Open in default application" button for external readers.
 * [ ] Fast-Reading Mode (RSVP): Implement a speed-reading feature to help users digest text faster.
 
 ---
 
 ### 📚 Metadata & Library Management
 
-* [ ] Integrate additional metadata sources (Goodreads, Hardcover, etc.).
 * [X] Implement "Manual Edit" mode for custom metadata.
 
 ---
