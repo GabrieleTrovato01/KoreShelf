@@ -304,5 +304,9 @@ export default {
         monkeyPatchSuccess: "✅ Monkey-patch epub2 applicato con successo!",
         monkeyPatchError: "⚠️ Impossibile applicare il monkey-patch per epub2:",
         epubCorruptedFallback: "⚠️ EPUB corrotto o malformato. Uso il nome del file come fallback.",
+        noInternalCover: "🎨 PDF senza copertina interna. Il frontend genererà la copertina dalla prima pagina.",
         
+        monkeyPatchSuccess: "✅ Monkey-patch epub2 applicato con successo!",
+        monkeyPatchError: "⚠️ Impossibile applicare il monkey-patch per epub2:",
+        walkNavMapWarning: "⚠️ Errore walkNavMap catturato e ignorato:",
     };

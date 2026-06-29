@@ -298,13 +298,15 @@ export default {
         logFoundISBN: "🏷️ [Scanner] ISBN found: {isbn}",
         logNoISBNFound: "🏷️ [Scanner] No ISBN found in the file. Proceeding with text fallback.",
 
-            // --- NUOVE TRADUZIONI PER RESILIENZA SERVER ---
         shieldUnhandledRejection: "🛡️ SHIELD ACTIVATED: Unhandled Rejection caught!",
         shieldReason: "Reason:",
         shieldServerContinues: "The server continues to function normally.",
         monkeyPatchSuccess: "✅ epub2 monkey-patch applied successfully!",
         monkeyPatchError: "⚠️ Unable to apply epub2 monkey-patch:",
         epubCorruptedFallback: "⚠️ Corrupted or malformed EPUB. Using filename as fallback.",
+        noInternalCover: "🎨 PDF without internal cover. The frontend will generate the cover from the first page.",
         
-  
+        monkeyPatchSuccess: "✅ epub2 monkey-patch applied successfully!",
+        monkeyPatchError: "⚠️ Unable to apply epub2 monkey-patch:",
+        walkNavMapWarning: "⚠️ walkNavMap error caught and suppressed:",
     };

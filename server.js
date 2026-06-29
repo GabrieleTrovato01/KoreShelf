@@ -69,14 +69,14 @@ try {
             return originalWalkNavMap.call(this, branch, id, prefix);
         } catch (e) {
             // Se comunque crasha, ignoriamo l'errore e continuiamo
-            console.warn('⚠️ walkNavMap error caught and suppressed:', e.message);
+            console.warn(tLog('walkNavMapWarning'), e.message);
             return;
         }
     };
     
-    console.log('✅ Monkey-patch epub2 applicato con successo!');
+    console.log(tLog('monkeyPatchSuccess'));
 } catch (e) {
-    console.warn('⚠️ Impossibile applicare il monkey-patch per epub2:', e.message);
+    console.warn(tLog('monkeyPatchError'), e.message);
 }
 
 const app = express();
@@ -717,7 +717,7 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
                 console.log(tLog('logDownloadCoverMissing'));
                 finalCoverPath = await downloadCoverImage(googleData.coverUrl, baseName);
             } else if (!finalCoverPath && isPdf) {
-                console.log("🎨 PDF senza copertina interna. Il frontend genererà la copertina dalla prima pagina.");
+                console.log(tLog('noInternalCover'));
             }
 
         let finalDescription = tLog('noDescriptionAvailable');
