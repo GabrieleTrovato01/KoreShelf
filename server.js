@@ -121,15 +121,24 @@ db.exec(`
         progress REAL DEFAULT 0,
         rating INTEGER DEFAULT 0,
         review TEXT,
-        tags TEXT DEFAULT '[]'
+        tags TEXT DEFAULT '[]',
+        highlights TEXT DEFAULT '[]'
     )
 `);
+
+try {
+    db.exec("ALTER TABLE books ADD COLUMN highlights TEXT DEFAULT '[]'");
+    console.log("Colonna highlights aggiunta al DB con successo.");
+} catch(e) {
+    // Se la colonna esiste già, SQLite lancerà un errore che ignoriamo in silenzio
+}
 // Helper per leggere tutti i libri dal DB
 function getAllBooks() {
     const rows = db.prepare('SELECT * FROM books').all();
     return rows.map(row => ({
         ...row,
-        tags: JSON.parse(row.tags || '[]')
+        tags: JSON.parse(row.tags || '[]'),
+        highlights: JSON.parse(row.highlights || '[]')
     }));
 }
 // Helper per salvare un libro nel DB
@@ -147,11 +156,13 @@ function upsertBook(book) {
             progress = @progress,
             rating = @rating,
             review = @review,
-            tags = @tags
+            tags = @tags,
+            highlights = @highlights
     `);
     stmt.run({ 
         ...book, 
         tags: JSON.stringify(book.tags || []),
+        highlights: JSON.stringify(book.highlights || []),
         rating: book.rating || 0,
         review: book.review || null,
         progress: book.progress || 0,
@@ -929,6 +940,58 @@ app.put('/api/books/:id/review', (req, res) => {
     } catch (error) {
         console.error(tLog('errSaveReview'), error);
         res.status(500).json({ success: false, message: tLog('errInternal') });
+    }
+});
+
+// --- ROTTA PER SALVARE UNA SOTTOLINEATURA ---
+app.post('/api/books/:id/highlights', (req, res) => {
+    const bookId = req.params.id;
+    const { cfi, text } = req.body;
+
+    try {
+        const row = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
+        if (!row) return res.status(404).json({ success: false, message: tLog('errNotFound') });
+
+        const book = { 
+            ...row, 
+            tags: JSON.parse(row.tags || '[]'), 
+            highlights: JSON.parse(row.highlights || '[]') 
+        };
+        
+        // Aggiungiamo il nuovo highlight
+        book.highlights.push({ cfi, text, date: Date.now() });
+        
+        upsertBook(book);
+        res.json({ success: true, message: 'Evidenziazione salvata!' });
+    } catch (error) {
+        console.error("Errore salvataggio highlight:", error);
+        res.status(500).json({ success: false, message: tLog('errInternal') });
+    }
+});
+
+// --- ROTTA PER ELIMINARE UNA SOTTOLINEATURA ---
+app.delete('/api/books/:id/highlights', (req, res) => {
+    const bookId = req.params.id;
+    const { cfi } = req.body; // Riceviamo il CFI esatto da eliminare
+
+    try {
+        const row = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
+        if (!row) return res.status(404).json({ success: false, message: 'Libro non trovato.' });
+
+        const book = { 
+            ...row, 
+            tags: JSON.parse(row.tags || '[]'), 
+            highlights: JSON.parse(row.highlights || '[]') 
+        };
+        
+        // Filtriamo l'array mantenendo solo gli highlight DIVERSI da quello cliccato
+        book.highlights = book.highlights.filter(hl => hl.cfi !== cfi);
+        
+        upsertBook(book); // Aggiorniamo il DB
+        res.json({ success: true, message: 'Evidenziazione rimossa!' });
+    } catch (error) {
+        console.error("Errore rimozione highlight:", error);
+        res.status(500).json({ success: false, message: 'Errore interno.' });
     }
 });
 

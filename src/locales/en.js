@@ -213,6 +213,11 @@ export default {
         logCoverGenerationFailed: "⚠️ Unable to generate cover for {title}: {errorMessage}",
         logPdfCoversGenerated: "🎉 PDF covers generated!",
 
+        removeHighlightConfirm: "Do you want to delete this highlight?",
+        manageHighlightsTitle: "Manage Highlights",
+        moreHighlightsHint: "+{extraCount} more... (Click)",
+        manageHighlightHint: "Click to manage",
+
         //--------------------------------------------------server.js locales-------------------------------------------------------------
 
         logUploadDirCreated: "📁 Upload directory created automatically.",

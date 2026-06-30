@@ -134,6 +134,7 @@ let booksArray = [];
 let currentIndex = 0;
 let isShowingBack = false;
 let targetCameraY = 1.5; // Altezza bersaglio della telecamera
+let isViewingBoard= false; // Stato della bacheca dei post-it
 
 // --- 2. STILI CSS MODERNI E UI (Menu + Bottone Inferiore) ---
 const styleStyle = document.createElement('style');
@@ -799,6 +800,14 @@ document.body.appendChild(rightArrow);
 // Funzione unificata per scorrere i libri
 function changeBook(direction) {
     if (booksArray.length === 0) return;
+    if (isViewingBoard) {
+        if (direction === 1) { // Freccia destra
+            window.highlightsBoardModule?.nextHighlightsPage();
+        } else if (direction === -1) { // Freccia sinistra
+            window.highlightsBoardModule?.prevHighlightsPage();
+        }
+        return; // Interrompiamo la funzione per non far scorrere anche i libri di sotto
+    }
     const newIndex = currentIndex + direction;
 
     // Controlliamo di non andare oltre i limiti della libreria
@@ -816,15 +825,50 @@ function changeShelf(direction) {
     let targetIndex = -1;
 
     if (direction === 1) { 
-        // VAI ALLA MENSOLA SOPRA: Cerca in avanti il primo libro di una categoria diversa
+        if (isViewingBoard) return; // Siamo già in cima sulla bacheca
+
+        // VAI ALLA MENSOLA SOPRA
         for (let i = currentIndex; i < booksArray.length; i++) {
             if (booksArray[i].userData.category !== currentCategory) {
                 targetIndex = i;
                 break;
             }
         }
+
+        // Se non ci sono altre mensole sopra, andiamo alla bacheca!
+        if (targetIndex === -1) {
+            const hasHighlights = booksArray.some(b => b.userData.highlights && b.userData.highlights.length > 0);
+            if (hasHighlights) {
+                isViewingBoard = true;
+                targetCameraY = booksArray[booksArray.length - 1].userData.baseShelfY + 4.5;
+                
+                // Aggiorniamo l'interfaccia 2D
+                manageCatBtn.style.display = 'none'; 
+                uiContainer.style.opacity = '0'; 
+                
+                // LASCIAMO LE FRECCE VISIBILI PER GIRARE LE PAGINE!
+                leftArrow.style.opacity = '1';   
+                rightArrow.style.opacity = '1';
+
+                // Applica il titolo "(1/x)" iniziale
+                if (window.highlightsBoardModule) window.highlightsBoardModule.updateBoardTitle();
+                
+                return;
+            }
+        }
     } else { 
-        // VAI ALLA MENSOLA SOTTO: Trova l'inizio della mensola precedente
+        if (isViewingBoard) {
+            // SCENDIAMO DALLA BACHECA ALLA MENSOLA PIU' ALTA
+            isViewingBoard = false;
+            uiContainer.style.opacity = '1';
+            leftArrow.style.opacity = '1';
+            rightArrow.style.opacity = '1';
+            manageCatBtn.style.display = 'block';
+            updateCarousel(); // Ripristina i dati del libro
+            return;
+        }
+
+        // VAI ALLA MENSOLA SOTTO
         let firstOfCurrent = currentIndex;
         while (firstOfCurrent > 0 && booksArray[firstOfCurrent - 1].userData.category === currentCategory) {
             firstOfCurrent--;
@@ -890,6 +934,14 @@ searchInput.addEventListener('input', (e) => {
                 if (foundIndex !== -1 && foundIndex !== currentIndex) {
                     currentIndex = foundIndex;
                     isShowingBack = false;
+
+                    if (isViewingBoard) { 
+                        isViewingBoard = false;
+                        uiContainer.style.opacity = '1';
+                        leftArrow.style.opacity = '1';
+                        rightArrow.style.opacity = '1';
+                        manageCatBtn.style.display = 'block';
+                    }
                     
                     if (typeof infoBtn !== 'undefined') infoBtn.innerText = t('showSynopsis');
                     
@@ -1376,6 +1428,14 @@ async function loadBooks() {
             leftArrow.style.display = 'block';
             rightArrow.style.display = 'block';
         }
+
+        const highestShelfY = -1.6 + ((shelfIndex - 1) * 4.2);
+        
+        // Importiamo il nuovo file in modo asincrono per non appesantire l'avvio della pagina
+        import('./highlights-board.js').then(module => {
+            window.highlightsBoardModule = module;
+            module.initHighlightsBoard(scene, camera, booksData, highestShelfY);
+        }).catch(err => console.warn("Errore caricamento bacheca:", err));
 
         // Esecuzione invisibile in background
         (async () => {

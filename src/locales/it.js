@@ -197,6 +197,11 @@ export default {
         logCoverGenerationFailed: "⚠️ Impossibile generare copertina per {title}: {errorMessage}",
         logPdfCoversGenerated: "🎉 Generazione copertine PDF terminata!",
 
+        removeHighlightConfirm: "Vuoi eliminare questa sottolineatura?",
+        manageHighlightsTitle: "Gestione Sottolineature",
+        moreHighlightsHint: "+{extraCount} altre... (Clicca)",
+        manageHighlightHint: "Clicca per gestire",
+
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",
         errFormat: "Formato non supportato. Usa EPUB o PDF.",

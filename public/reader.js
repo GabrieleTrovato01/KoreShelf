@@ -131,6 +131,65 @@ window.openReader = function(epubUrl, bookId) {
         allowScriptedContent: true 
     });
 
+    // --- FUNZIONE PER GESTIRE IL CLICK SULLE SOTTOLINEATURE ---
+    const handleHighlightClick = function(e, cfi) {
+        // Chiediamo conferma all'utente prima di eliminare
+        const msg = window.t('removeHighlightConfirm') || 'Vuoi eliminare questa sottolineatura?';
+        
+        if (confirm(msg)) {
+            // 1. Rimuove visivamente l'highlight dalla pagina
+            rendition.annotations.remove(cfi, "highlight");
+            
+            // 2. Lo elimina dal database in background
+            fetch(`/api/books/${bookId}/highlights`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cfi: cfi })
+            }).then(res => res.json())
+              .then(data => console.log("Sottolineatura rimossa:", data))
+              .catch(err => console.error(err));
+        }
+    };
+
+    // 1. CARICA GLI HIGHLIGHT SALVATI DAL DB
+    fetch('/api/books').then(res => res.json()).then(books => {
+        const book = books.find(b => b.id === bookId);
+        if (book && book.highlights && book.highlights.length > 0) {
+            book.highlights.forEach(hl => {
+                rendition.annotations.highlight(hl.cfi, {}, (e) => {
+                    handleHighlightClick(e, hl.cfi); // Associa il click
+                });
+            });
+        }
+    });
+
+    // 2. ASCOLTA LA SELEZIONE DEL TESTO (Nuovi highlight)
+    rendition.on("selected", function(cfiRange, contents) {
+        
+        // Applica l'evidenziazione visiva nel frontend in tempo reale
+        rendition.annotations.highlight(cfiRange, {}, (e) => {
+            handleHighlightClick(e, cfiRange); // Associa il click anche a quelli nuovi!
+        });
+
+        // Estrae il testo reale e salva nel database
+        currentBook.getRange(cfiRange).then(function (range) {
+            const text = range.toString();
+
+            fetch(`/api/books/${bookId}/highlights`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cfi: cfiRange, text: text })
+            }).then(res => res.json()).then(data => {
+                if(data.success) {
+                    console.log("Testo salvato in memoria:", text);
+                }
+            });
+        });
+
+        // Deseleziona il testo nativo del browser
+        contents.window.getSelection().removeAllRanges();
+    });
+
     rendition.hooks.content.register((contents) => {
         const style = contents.document.createElement("style");
         style.innerHTML = `
@@ -845,6 +904,23 @@ window.applyCurrentTheme = function() {
                     p { text-align: ${savedAlign} !important; }
                     a, a * { color: #4da6ff !important; }
                     img, svg { filter: brightness(0.85); }
+
+                    ::selection {
+                        background: rgba(255, 235, 59, 0.3) !important;
+                        color: #fff !important;
+                    }
+                    
+                    .epubjs-hl, .epubjs-hl rect {
+                        fill: rgba(255, 235, 59, 0.25) !important;
+                        cursor: pointer !important;
+                        pointer-events: all !important; /* Forza l'interazione del mouse */
+                        transition: fill 0.2s ease, fill-opacity 0.2s ease !important;
+                    }
+                    
+                    .epubjs-hl:hover, .epubjs-hl:hover rect {
+                        fill: rgba(255, 80, 80, 0.5) !important;
+                        fill-opacity: 0.5 !important;
+                    }
                 `;
             } else {
                 styleTag.innerHTML = `
@@ -869,6 +945,24 @@ window.applyCurrentTheme = function() {
                     p { text-align: ${savedAlign} !important; }
                     a, a * { color: #0066cc !important; }
                     img, svg { filter: brightness(1); }
+
+                    ::selection {
+                        background: rgba(255, 235, 59, 0.4) !important;
+                    }
+                    
+                    .epubjs-hl, .epubjs-hl rect {
+                        fill: yellow !important; 
+                        fill-opacity: 0.4 !important;
+                        mix-blend-mode: multiply !important;
+                        cursor: pointer !important;
+                        pointer-events: all !important; /* Forza l'interazione del mouse */
+                        transition: fill 0.2s ease, fill-opacity 0.2s ease !important;
+                    }
+                    
+                    .epubjs-hl:hover, .epubjs-hl:hover rect {
+                        fill: #ff4d4d !important;
+                        fill-opacity: 0.5 !important;
+                    }
                 `;
             }
         });
