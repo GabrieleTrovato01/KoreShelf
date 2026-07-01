@@ -132,7 +132,6 @@ window.openReader = function(epubUrl, bookId) {
     });
 
     // --- FUNZIONE PER GESTIRE IL CLICK SULLE SOTTOLINEATURE ---
-    // --- FUNZIONE PER GESTIRE IL CLICK SULLE SOTTOLINEATURE ---
     const handleHighlightClick = function(e, cfi) {
         const msg = window.t('removeHighlightConfirm') || 'Vuoi eliminare questa sottolineatura?';
         
@@ -1179,14 +1178,28 @@ window.applyCurrentTheme = function() {
         if (hamburgerBtn) {
             hamburgerBtn.style.color = '#ffffff';
             hamburgerBtn.style.background = 'rgba(255, 255, 255, 0.08)';
-        }if (fontSelect) {
+        }
+        if (fontSelect) {
             fontSelect.style.color = '#ffffff';
-            fontSelect.style.backgroundColor = '#222222'; // Sfondo solido scuro
+            fontSelect.style.backgroundColor = '#222222';
         }
         if (flowSelect) {
             flowSelect.style.color = '#ffffff';
             flowSelect.style.backgroundColor = '#222222';
         }
+        const alignButtons = [
+            document.getElementById('align-left-btn'),
+            document.getElementById('align-center-btn'),
+            document.getElementById('align-right-btn'),
+            document.getElementById('align-justify-btn')
+        ];
+        alignButtons.forEach(btn => {
+            if (btn) {
+                btn.style.background = 'rgba(255, 255, 255, 0.1)';
+                btn.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                btn.style.color = '#ffffff';
+            }
+        });
     } else {
         if (pdfContainer) {
             pdfContainer.style.filter = 'none';
@@ -1226,13 +1239,27 @@ window.applyCurrentTheme = function() {
             hamburgerBtn.style.background = 'rgba(0, 0, 0, 0.1)';
         }
         if (fontSelect) {
-            fontSelect.style.color = '#000000'; // Testo nero leggibile
-            fontSelect.style.backgroundColor = '#f0f0f0'; // Sfondo solido chiaro
+            fontSelect.style.color = '#000000';
+            fontSelect.style.backgroundColor = '#f0f0f0';
         }
         if (flowSelect) {
             flowSelect.style.color = '#000000';
             flowSelect.style.backgroundColor = '#f0f0f0';
         }
+
+        const alignButtons = [
+            document.getElementById('align-left-btn'),
+            document.getElementById('align-center-btn'),
+            document.getElementById('align-right-btn'),
+            document.getElementById('align-justify-btn')
+        ];
+        alignButtons.forEach(btn => {
+            if (btn) {
+                btn.style.background = 'rgba(0, 0, 0, 0.08)';
+                btn.style.borderColor = 'rgba(0, 0, 0, 0.15)';
+                btn.style.color = '#000000';
+            }
+        });
     }
 
     if (rendition && typeof rendition.getContents === 'function') {
@@ -1254,8 +1281,8 @@ window.applyCurrentTheme = function() {
                         background-color: #121212 !important; 
                         line-height: ${savedLineHeight} !important; 
                         font-family: ${savedFont} !important;
-                        -ms-overflow-style: none !important;  /* Firefox / Edge vecchi */
-                        scrollbar-width: none !important;     /* Firefox moderno */
+                        -ms-overflow-style: none !important;
+                        scrollbar-width: none !important;
                     }
                     
                     ::-webkit-scrollbar { 
@@ -1280,7 +1307,7 @@ window.applyCurrentTheme = function() {
                     .epubjs-hl, .epubjs-hl rect {
                         fill: rgba(255, 235, 59, 0.25) !important;
                         cursor: pointer !important;
-                        pointer-events: all !important; /* Forza l'interazione del mouse */
+                        pointer-events: all !important;
                         transition: fill 0.2s ease, fill-opacity 0.2s ease !important;
                     }
                     
@@ -1295,7 +1322,7 @@ window.applyCurrentTheme = function() {
                         background-color: #faf9f6 !important; 
                         line-height: ${savedLineHeight} !important; 
                         font-family: ${savedFont} !important;
-                        -ms-overflow-style: none !important;  /* Firefox / Edge vecchi */
+                        -ms-overflow-style: none !important;
                         scrollbar-width: none !important; 
                     }
 
@@ -1322,7 +1349,7 @@ window.applyCurrentTheme = function() {
                         fill-opacity: 0.4 !important;
                         mix-blend-mode: multiply !important;
                         cursor: pointer !important;
-                        pointer-events: all !important; /* Forza l'interazione del mouse */
+                        pointer-events: all !important;
                         transition: fill 0.2s ease, fill-opacity 0.2s ease !important;
                     }
                     
