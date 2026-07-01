@@ -1586,6 +1586,7 @@ window.addEventListener('pointerdown', (event) => {
     if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT' || event.target.tagName === 'LABEL') return;
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
+    if (document.getElementById('highlights-manager-overlay')) return;
 
 
     pointerStartX = event.clientX;
@@ -1600,6 +1601,7 @@ window.addEventListener('pointerup', (event) => {
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
+    if (document.getElementById('highlights-manager-overlay')) return;
     if (!isDragging) return;
     isDragging = false;
     pointerEndX = event.clientX;
@@ -1707,6 +1709,7 @@ window.addEventListener('wheel', (event) => {
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
+    if (document.getElementById('highlights-manager-overlay')) return;
     if (scrollTimeout) return;
 
     if (Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 20) {
@@ -1731,6 +1734,7 @@ window.addEventListener('keydown', (event) => {
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
+    if (document.getElementById('highlights-manager-overlay')) return;
     if (event.key === 'ArrowRight') {
         changeBook(1); 
     } else if (event.key === 'ArrowLeft') {
@@ -2047,3 +2051,33 @@ async function startApp() {
 }
 
 startApp();
+
+// --- ASCOLTO EVENTI SOTTOLINEATURE IN TEMPO REALE ---
+window.addEventListener('onHighlightAdded', (e) => {
+    const { bookId, highlight } = e.detail;
+    // Aggiorniamo la memoria del libro nel mondo 3D
+    const bookMesh = booksArray.find(b => b.userData.id === bookId);
+    if (bookMesh) {
+        if (!bookMesh.userData.highlights) bookMesh.userData.highlights = [];
+        bookMesh.userData.highlights.push(highlight);
+        
+        // Se la bacheca esiste, le diciamo di aggiungere il post-it
+        if (window.highlightsBoardModule) {
+            window.highlightsBoardModule.addHighlightLocally(bookMesh.userData);
+        }
+    }
+});
+
+window.addEventListener('onHighlightRemoved', (e) => {
+    const { bookId, cfi } = e.detail;
+    // Aggiorniamo la memoria del libro nel mondo 3D
+    const bookMesh = booksArray.find(b => b.userData.id === bookId);
+    if (bookMesh && bookMesh.userData.highlights) {
+        bookMesh.userData.highlights = bookMesh.userData.highlights.filter(h => h.cfi !== cfi);
+        
+        // Se la bacheca esiste, le diciamo di rimuovere il post-it (o accorciarlo)
+        if (window.highlightsBoardModule) {
+            window.highlightsBoardModule.removeHighlightLocally(bookId, cfi);
+        }
+    }
+});

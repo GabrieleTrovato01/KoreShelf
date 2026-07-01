@@ -435,7 +435,7 @@ function parseEpubWithTimeout(filePath, coverFileName, originalFileName, baseTim
     // Timeout base + tempo aggiuntivo per MB (es. 2 secondi per MB)
     const dynamicTimeout = Math.min(baseTimeoutMs + (fileSizeMB * 2000), 120000); // Max 2 minuti
     
-    console.log(`📊 EPUB size: ${fileSizeMB.toFixed(2)} MB | Timeout: ${dynamicTimeout}ms`);
+    console.log(tLog( 'logEpubTimeoutCalc', { fileSizeMB: fileSizeMB.toFixed(2), dynamicTimeout: dynamicTimeout }));
     
     return Promise.race([
         parseEpub(filePath, coverFileName, originalFileName),
@@ -454,7 +454,7 @@ function parsePdfWithTimeout(filePath, coverFileName, originalFileName, baseTime
     // Ma con un MAX di 120 secondi (2 minuti) per non bloccare tutto
     const dynamicTimeout = Math.min(baseTimeoutMs + (fileSizeMB * 3000), 120000);
     
-    console.log(`📊 PDF size: ${fileSizeMB.toFixed(2)} MB | Timeout: ${dynamicTimeout}ms`);
+    console.log(tLog( 'logPdfTimeoutCalc', { fileSizeMB: fileSizeMB.toFixed(2), dynamicTimeout: dynamicTimeout }));
     
     return Promise.race([
         parsePdf(filePath, coverFileName, originalFileName),
@@ -1001,15 +1001,47 @@ app.put('/api/books/:id/review', (req, res) => {
 app.post('/api/books/:id/highlights', (req, res) => {
     const bookId = req.params.id;
     const { cfi, text } = req.body;
-
     try {
         const row = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
         if (!row) return res.status(404).json({ success: false, message: tLog('errNotFound') });
 
+        // 🔥 FIX ROBUSTO: Parsing sicuro con fallback garantito
+        let parsedHighlights = [];
+        try {
+            const raw = row.highlights;
+            // Se è già un array (better-sqlite3 a volte lo fa), usalo direttamente
+            if (Array.isArray(raw)) {
+                parsedHighlights = raw;
+            } 
+            // Se è una stringa JSON, parsala
+            else if (typeof raw === 'string' && raw.trim() !== '') {
+                const parsed = JSON.parse(raw);
+                parsedHighlights = Array.isArray(parsed) ? parsed : [];
+            }
+            // Se è null/undefined/stringa vuota, resta array vuoto
+        } catch (parseError) {
+            console.warn(`⚠️ Highlight corrotti per libro ${bookId}, resetto a []`);
+            parsedHighlights = [];
+        }
+
+        // Stessa cosa per i tags (per sicurezza)
+        let parsedTags = [];
+        try {
+            const rawTags = row.tags;
+            if (Array.isArray(rawTags)) {
+                parsedTags = rawTags;
+            } else if (typeof rawTags === 'string' && rawTags.trim() !== '') {
+                const parsed = JSON.parse(rawTags);
+                parsedTags = Array.isArray(parsed) ? parsed : [];
+            }
+        } catch (e) {
+            parsedTags = [];
+        }
+
         const book = { 
             ...row, 
-            tags: JSON.parse(row.tags || '[]'), 
-            highlights: JSON.parse(row.highlights || '[]') 
+            tags: parsedTags, 
+            highlights: parsedHighlights 
         };
         
         // Aggiungiamo il nuovo highlight

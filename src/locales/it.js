@@ -197,6 +197,8 @@ export default {
         moreHighlightsHint: "+{extraCount} altre... (Clicca)",
         manageHighlightHint: "Clicca per gestire",
 
+        confirmHighlight: "Vuoi sottolineare questo testo?",
+
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",
         errFormat: "Formato non supportato. Usa EPUB o PDF.",
@@ -230,7 +232,7 @@ export default {
         errPdfParse: "Errore di parsing PDF:",
 
         errEpubTimeout: "Timeout: L'EPUB è malformato o troppo complesso e ha bloccato la lettura.",
-        errPdfTimeout: "⚠️ Timeout di ${timeoutMs}ms superato per il PDF. Estrazione interrotta per salvare la RAM.",
+        errPdfTimeout: "⚠️ Timeout di {dynamicTimeout}ms superato per il PDF. Estrazione interrotta per salvare la RAM.",
 
         unknownTitle: "Titolo Sconosciuto",
         noPlotFound: "Trama non trovata.",
@@ -255,6 +257,8 @@ export default {
         logUpdatingLibrary: "📝 Aggiornamento della libreria...",
         logUploadSuccess: "✅ Successo! \"{title}\" aggiunto allo scaffale.\n",
         errCriticalUpload: "❌ Errore critico durante l'elaborazione del libro:",
+        logEpubTimeoutCalc: "📊 Dimensione EPUB: {fileSizeMB} MB | Timeout: {dynamicTimeout}ms",
+        logPdfTimeoutCalc: "📊 Dimensione PDF: {fileSizeMB} MB | Timeout: {dynamicTimeout}ms",
 
         logFilesAlreadyMissing: "⚠️ Libro rimosso dal database, ma i file fisici erano già assenti.",
         logDeleteSuccess: "🗑️ Eliminato con successo: \"{title}\"",

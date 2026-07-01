@@ -214,6 +214,9 @@ export default {
         moreHighlightsHint: "+{extraCount} more... (Click)",
         manageHighlightHint: "Click to manage",
 
+
+        confirmHighlight: "Do you want to highlight this text?",
+
         //--------------------------------------------------server.js locales-------------------------------------------------------------
 
         logUploadDirCreated: "📁 Upload directory created automatically.",
@@ -233,7 +236,7 @@ export default {
         errPdfParse: "PDF parsing error:",
 
         errEpubTimeout: "Timeout: The EPUB is malformed or too complex and blocked the reading process.",
-        errPdfTimeout: "⚠️ Timeout of ${timeoutMs}ms exceeded for the PDF. Extraction interrupted to save RAM.",
+        errPdfTimeout: "⚠️ Timeout of {dynamicTimeout}ms exceeded for the PDF. Extraction interrupted to save RAM.",
 
         unknownTitle: "Unknown Title",
         noPlotFound: "Plot not found.",
@@ -258,6 +261,8 @@ export default {
         logUpdatingLibrary: "📝 Updating library...",
         logUploadSuccess: "✅ Success! \"{title}\" added to the shelf.\n",
         errCriticalUpload: "❌ Critical error during book processing:",
+        logEpubTimeoutCalc: "📊 EPUB size: {fileSizeMB} MB | Timeout: {dynamicTimeout}ms",
+        logPdfTimeoutCalc: "📊 PDF size: {fileSizeMB} MB | Timeout: {dynamicTimeout}ms",
 
         logFilesAlreadyMissing: "⚠️ Book removed from database, but physical files were already missing.",
         logDeleteSuccess: "🗑️ Successfully deleted: \"{title}\"",

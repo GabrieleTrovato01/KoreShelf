@@ -9,11 +9,14 @@ let currentHighestShelfY = 0;
 // STATO DEL CAROSELLO
 let currentPage = 0;
 const POSTITS_PER_PAGE = 5; // Massimo 5 post-it visibili contemporaneamente
-
+let initParams = null ;
+let boardInitialized = false;
 /**
  * Inizializza la bacheca delle sottolineature
  */
 export function initHighlightsBoard(scene, camera, booksData, highestShelfY) {
+
+    initParams = { scene, camera, booksData, highestShelfY };
     localCamera = camera;
     localScene = scene;
     currentHighestShelfY = highestShelfY;
@@ -26,7 +29,12 @@ export function initHighlightsBoard(scene, camera, booksData, highestShelfY) {
     // Filtriamo i libri con sottolineature
     filteredBooks = booksData.filter(b => b.highlights && b.highlights.length > 0);
     
-    if (filteredBooks.length === 0) return;
+    if (filteredBooks.length === 0){
+        boardInitialized = false;
+        return; 
+    }
+
+    boardInitialized = true;
 
     // 1. COSTRUZIONE DELLA BACHECA (Fissa)
     const boardCenterY = highestShelfY + 6.5;
@@ -57,10 +65,23 @@ export function initHighlightsBoard(scene, camera, booksData, highestShelfY) {
     renderCurrentPage();
 }
 
+function ensureBoardExists() {
+    if (!boardInitialized && initParams) {
+        // Ricreiamo la bacheca con i parametri salvati
+        initHighlightsBoard(
+            initParams.scene, 
+            initParams.camera, 
+            initParams.booksData, 
+            initParams.highestShelfY
+        );
+    }
+}
+
 /**
  * Disegna solo i post-it appartenenti alla pagina corrente
  */
 function renderCurrentPage() {
+    ensureBoardExists();
     // 1. Rimuove solo i vecchi post-it lasciando intatta la bacheca in legno
     const toRemove = [];
     boardGroup.children.forEach(child => {
@@ -250,6 +271,34 @@ window.addEventListener('pointerup', (e) => {
     }
 });
 
+// --- AGGIORNAMENTO IN TEMPO REALE DELLA BACHECA ---
+export function addHighlightLocally(updatedBookData) {
+    const existingIndex = filteredBooks.findIndex(b => b.id === updatedBookData.id);
+    if (existingIndex !== -1) {
+        filteredBooks[existingIndex] = updatedBookData;
+    } else {
+        filteredBooks.push(updatedBookData);
+    }
+    renderCurrentPage(); // Ridisegna i post-it immediatamente
+}
+
+export function removeHighlightLocally(bookId, cfi) {
+    const existingIndex = filteredBooks.findIndex(b => b.id === bookId);
+    if (existingIndex !== -1) {
+        filteredBooks[existingIndex].highlights = filteredBooks[existingIndex].highlights.filter(h => h.cfi !== cfi);
+        
+        // Se non ci sono più sottolineature, rimuoviamo il post-it del libro
+        if (filteredBooks[existingIndex].highlights.length === 0) {
+            filteredBooks.splice(existingIndex, 1);
+            // Se la pagina è rimasta vuota, torniamo indietro di una
+            if (currentPage > 0 && (currentPage * 5) >= filteredBooks.length) {
+                currentPage--;
+            }
+        }
+        renderCurrentPage();
+    }
+}
+
 // Modale 2D Overlay di gestione
 function openHighlightsManagerModal(book) {
     const originalBodyOverflow = document.body.style.overflow;
@@ -301,6 +350,9 @@ function openHighlightsManagerModal(book) {
 
     overlay.appendChild(modalBox);
     document.body.appendChild(overlay);
+    modalBox.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+    });
     
     requestAnimationFrame(() => overlay.style.opacity = '1');
 
@@ -311,7 +363,12 @@ function openHighlightsManagerModal(book) {
     };
 
     document.getElementById('close-hl-modal').onclick = closeForm;
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeForm(); });
+    overlay.addEventListener('pointerdown', (e) => { 
+    if (e.target === overlay) {
+        e.stopPropagation();
+        closeForm();
+    }
+});
 
     modalBox.querySelectorAll('.delete-specific-hl-btn').forEach(button => {
         button.onclick = async (event) => {

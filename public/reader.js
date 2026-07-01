@@ -132,8 +132,8 @@ window.openReader = function(epubUrl, bookId) {
     });
 
     // --- FUNZIONE PER GESTIRE IL CLICK SULLE SOTTOLINEATURE ---
+    // --- FUNZIONE PER GESTIRE IL CLICK SULLE SOTTOLINEATURE ---
     const handleHighlightClick = function(e, cfi) {
-        // Chiediamo conferma all'utente prima di eliminare
         const msg = window.t('removeHighlightConfirm') || 'Vuoi eliminare questa sottolineatura?';
         
         if (confirm(msg)) {
@@ -146,7 +146,15 @@ window.openReader = function(epubUrl, bookId) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cfi: cfi })
             }).then(res => res.json())
-              .then(data => console.log("Sottolineatura rimossa:", data))
+              .then(data => {
+                  if(data.success) { 
+                      console.log("Sottolineatura rimossa:", data);
+                      
+                      window.dispatchEvent(new CustomEvent('onHighlightRemoved', { 
+                          detail: { bookId: bookId, cfi: cfi } 
+                      }));
+                  }
+              })
               .catch(err => console.error(err));
         }
     };
@@ -168,7 +176,7 @@ window.openReader = function(epubUrl, bookId) {
         
         // Applica l'evidenziazione visiva nel frontend in tempo reale
         rendition.annotations.highlight(cfiRange, {}, (e) => {
-            handleHighlightClick(e, cfiRange); // Associa il click anche a quelli nuovi!
+            handleHighlightClick(e, cfiRange); 
         });
 
         // Estrae il testo reale e salva nel database
@@ -182,6 +190,11 @@ window.openReader = function(epubUrl, bookId) {
             }).then(res => res.json()).then(data => {
                 if(data.success) {
                     console.log("Testo salvato in memoria:", text);
+                    
+                    // --- LANCIA IL SEGNALE ALLA BACHECA 3D ---
+                    window.dispatchEvent(new CustomEvent('onHighlightAdded', { 
+                        detail: { bookId: bookId, highlight: { cfi: cfiRange, text: text } } 
+                    }));
                 }
             });
         });
@@ -348,8 +361,9 @@ window.translateReaderUI = function() {
 function renderPage(num) {
     pageRendering = true;
     
-    pdfDoc.getPage(num).then(function(page) {
+    pdfDoc.getPage(num).then(async function(page) {
         const canvas = document.getElementById('pdf-canvas');
+        const wrapper = document.getElementById('pdf-page-wrapper-single');
         const ctx = canvas.getContext('2d');
         const container = document.getElementById('pdf-container');
         
@@ -371,6 +385,12 @@ function renderPage(num) {
         
         const viewport = page.getViewport({scale: finalScale});
         
+        if (wrapper) {
+            wrapper.style.width = `${viewport.width}px`;
+            wrapper.style.height = `${viewport.height}px`;
+        }
+
+        canvas.style.setProperty('--scale-factor', finalScale);
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
@@ -380,14 +400,19 @@ function renderPage(num) {
         };
         
         const renderTask = page.render(renderContext);
+
+        await renderTask.promise; // Aspetta che il rendering finisca prima di procedere
         
-        renderTask.promise.then(function() {
-            pageRendering = false;
-            if (pageNumPending !== null) {
-                renderPage(pageNumPending);
-                pageNumPending = null;
-            }
-        });
+        if (wrapper) {
+            await renderTextLayer(page, viewport, wrapper, num);
+        }
+
+        pageRendering = false;
+        if (pageNumPending !== null) {
+            renderPage(pageNumPending);
+            pageNumPending = null;
+        }
+        
         setTimeout(window.updateScrollIndicator, 100);
     });
     
@@ -511,13 +536,20 @@ window.openPdfReader = function(pdfUrl, bookId) {
         if (pBtn) pBtn.style.display = 'flex';
         if (nBtn) nBtn.style.display = 'flex';
         pdfContainer.style.overflowY = 'auto'; // Blocca rotellina
-        
-        // Ricrea il canvas singolo per la modalità paginata
+
+        const singleWrapper = document.createElement('div');
+        singleWrapper.id = 'pdf-page-wrapper-single';
+        singleWrapper.style.position = 'relative';
+        singleWrapper.style.margin = '0 auto';
+
         const singleCanvas = document.createElement('canvas');
         singleCanvas.id = 'pdf-canvas';
         singleCanvas.style.display = 'block';
-        singleCanvas.style.margin = '0 auto';
-        pdfContainer.appendChild(singleCanvas);
+        singleCanvas.style.width = '100%';
+        singleCanvas.style.height = '100%';
+
+        singleWrapper.appendChild(singleCanvas);
+        pdfContainer.appendChild(singleWrapper);
     }
     
     pdfPagesRendered = {}; 
@@ -577,6 +609,8 @@ window.openPdfReader = function(pdfUrl, bookId) {
             renderPage(pageNum);
             window.applyCurrentTheme();
         }
+
+        setupPdfTextSelection();
     }).catch(err => {
         alert("Errore caricamento PDF: " + err.message);
     });
@@ -657,10 +691,14 @@ function renderContinuousPdfPage(num, wrapper) {
     pdfPagesRendered[num] = true;
     wrapper.innerHTML = '';
 
+    wrapper.style.position = 'relative';
+
+
     pdfDoc.getPage(num).then(function(page) {
         const canvas = document.createElement('canvas');
         canvas.style.width = '100%';
         canvas.style.height = '100%';
+        canvas.style.display = 'block';
         wrapper.appendChild(canvas);
 
         const ctx = canvas.getContext('2d');
@@ -671,6 +709,7 @@ function renderContinuousPdfPage(num, wrapper) {
         const finalScale = bestFitScale * savedZoom;
         
         const viewport = page.getViewport({ scale: finalScale });
+        canvas.style.setProperty('--scale-factor', finalScale);
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
@@ -678,7 +717,335 @@ function renderContinuousPdfPage(num, wrapper) {
             canvasContext: ctx,
             viewport: viewport
         };
-        page.render(renderContext);
+        page.render(renderContext).promise.then(() => {
+            renderTextLayer(page, viewport, wrapper, num);
+        });
+    });
+}
+
+// --- TEXTLAYER: Rende il testo PDF selezionabile ---
+async function renderTextLayer(page, viewport, wrapper, pageNum) {
+    const existingTextLayer = wrapper.querySelector('.textLayer');
+    if (existingTextLayer) existingTextLayer.remove();
+
+    // Crea il contenitore per il testo
+    const textLayerDiv = document.createElement('div');
+    textLayerDiv.className = 'textLayer';
+    textLayerDiv.style.position = 'absolute';
+    textLayerDiv.style.top = '0';
+    textLayerDiv.style.left = '0';
+    textLayerDiv.style.right = '0';
+    textLayerDiv.style.bottom = '0';
+    textLayerDiv.style.overflow = 'hidden';
+    textLayerDiv.style.opacity = '1';
+    textLayerDiv.style.lineHeight = '1.0';
+    textLayerDiv.style.zIndex = '1'; // Sopra il canvas ma sotto gli highlight
+    textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
+    wrapper.appendChild(textLayerDiv);
+
+    // Estrai il contenuto testuale dalla pagina
+    const textContent = await page.getTextContent();
+
+    // Usa renderTextLayer di pdf.js
+    if (pdfjsLib.renderTextLayer) {
+        const renderTask = pdfjsLib.renderTextLayer({
+            textContentSource: textContent,
+            container: textLayerDiv,
+            viewport: viewport,
+            textDivs: []
+        });
+        
+        await renderTask.promise;
+        
+        loadPdfHighlights(pageNum, textLayerDiv);
+    }
+}
+
+// --- GESTIONE CLICK PER ELIMINARE HIGHLIGHT PDF ---
+window.handlePdfHighlightClick = function(cfi) {
+    const msg = window.t('removeHighlightConfirm') || 'Vuoi eliminare questa sottolineatura?';
+    if (confirm(msg)) {
+        fetch(`/api/books/${currentPdfId}/highlights`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cfi: cfi })
+        }).then(res => res.json())
+          .then(data => {
+              if(data.success) {
+                  // Rimuoviamo visivamente l'evidenziazione dalla pagina
+                  const highlights = document.querySelectorAll(`.pdf-highlight[data-cfi="${cfi}"]`);
+                  highlights.forEach(el => {
+                      el.classList.remove('pdf-highlight');
+                      el.style.backgroundColor = 'transparent';
+                      el.style.cursor = 'text';
+                      el.onclick = null;
+                  });
+                  window.dispatchEvent(new CustomEvent('onHighlightRemoved', { 
+                      detail: { bookId: currentPdfId, cfi: cfi } 
+                  }));
+              }
+          })
+          .catch(err => console.error(err));
+    }
+};
+
+// --- GESTIONE SELEZIONE TESTO PDF ---
+function setupPdfTextSelection() {
+    const pdfContainer = document.getElementById('pdf-container');
+    if (!pdfContainer) return;
+
+    // Ascolta la selezione del testo
+    pdfContainer.addEventListener('mouseup', async (e) => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) return;
+
+        const selectedText = selection.toString().trim();
+        if (!selectedText || selectedText.length < 3) return;
+
+        // Trova la pagina corrente
+        const pageNum = getCurrentPdfPage();
+        if (!pageNum) return;
+
+        // Chiedi conferma all'utente
+        const msg = window.t('confirmHighlight') || 'Vuoi sottolineare questo testo?';
+        if (!confirm(msg)) {
+            selection.removeAllRanges();
+            return;
+        }
+
+        const highlightCfi = `pdf_page_${pageNum}_${Date.now()}`;
+        // Salva nel database
+        try {
+            const response = await fetch(`/api/books/${currentPdfId}/highlights`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    cfi: `pdf_page_${pageNum}_${Date.now()}`, 
+                    text: selectedText 
+                })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+
+                
+                // Applica l'evidenziazione visiva
+                highlightSelectedText(selection, pageNum, highlightCfi);
+                
+                // Deseleziona il testo
+                selection.removeAllRanges();
+                window.dispatchEvent(new CustomEvent('onHighlightAdded', { 
+                    detail: { bookId: currentPdfId, highlight: { cfi: highlightCfi, text: selectedText } } 
+                }));
+            }
+        } catch (err) {
+            console.error('Errore salvataggio highlight PDF:', err);
+        }
+    });
+}
+
+// --- OTTIENE LA PAGINA CORRENTE DEL PDF ---
+function getCurrentPdfPage() {
+    const pdfContainer = document.getElementById('pdf-container');
+    if (!pdfContainer || !pdfDoc) return null;
+    
+    const savedFlow = localStorage.getItem('readerFlow') || 'paginated';
+    
+    if (savedFlow === 'scrolled-doc') {
+        // Modalità continua: trova la pagina centrale
+        const containerCenter = pdfContainer.scrollTop + (pdfContainer.clientHeight / 2);
+        const wrappers = document.querySelectorAll('.pdf-page-wrapper');
+        let currentPageNum = 1;
+        
+        wrappers.forEach(wrapper => {
+            const top = wrapper.offsetTop;
+            const bottom = top + wrapper.clientHeight;
+            if (containerCenter >= top && containerCenter <= bottom) {
+                currentPageNum = parseInt(wrapper.getAttribute('data-page-num'));
+            }
+        });
+        
+        return currentPageNum;
+    } else {
+        // Modalità paginata: usa la variabile globale
+        return pageNum;
+    }
+}
+
+// --- APPLICA EVIDENZIAZIONE VISIVA ---
+function highlightSelectedText(selection, pageNum, cfi) {
+    const range = selection.getRangeAt(0);
+
+    // 1. Troviamo tutti i nodi di testo che si incrociano con la selezione
+    const nodes = [];
+    const treeWalker = document.createTreeWalker(
+        range.commonAncestorContainer,
+        NodeFilter.SHOW_TEXT,
+        {
+            acceptNode: function(node) {
+                if (range.intersectsNode(node)) {
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+                return NodeFilter.FILTER_REJECT;
+            }
+        }
+    );
+
+    let currentNode;
+    while (currentNode = treeWalker.nextNode()) {
+        nodes.push(currentNode);
+    }
+
+    // 2. Suddividiamo e avvolgiamo ogni nodo di testo individualmente
+    nodes.forEach(textNode => {
+        const isStart = textNode === range.startContainer;
+        const isEnd = textNode === range.endContainer;
+
+        // Calcoliamo da dove a dove tagliare questo specifico nodo
+        let startOffset = isStart ? range.startOffset : 0;
+        let endOffset = isEnd ? range.endOffset : textNode.length;
+
+        if (startOffset === endOffset) return; // Niente da evidenziare
+
+        const highlightSpan = document.createElement('span');
+        highlightSpan.className = 'pdf-highlight';
+        highlightSpan.style.backgroundColor = 'rgba(255, 235, 59, 0.4)';
+        highlightSpan.style.borderRadius = '3px';
+        highlightSpan.dataset.cfi = cfi;
+        highlightSpan.onclick = (e) => {
+            e.stopPropagation(); // Evita selezioni di testo accidentali
+            window.handlePdfHighlightClick(cfi);
+        };
+        // Estraiamo il testo da avvolgere
+        const textToWrap = textNode.textContent.substring(startOffset, endOffset);
+        highlightSpan.textContent = textToWrap;
+
+        // Recuperiamo il testo prima e dopo la selezione
+        const beforeText = textNode.textContent.substring(0, startOffset);
+        const afterText = textNode.textContent.substring(endOffset);
+
+        const parent = textNode.parentNode;
+
+        // Sostituiamo il nodo originale con i frammenti separati
+        if (beforeText) parent.insertBefore(document.createTextNode(beforeText), textNode);
+        parent.insertBefore(highlightSpan, textNode);
+        if (afterText) parent.insertBefore(document.createTextNode(afterText), textNode);
+
+        // Rimuoviamo il nodo vecchio
+        parent.removeChild(textNode);
+    });
+}
+
+// --- CARICA GLI HIGHLIGHT SALVATI ---
+async function loadPdfHighlights(pageNum, textLayerDiv) {
+    if (!currentPdfId) return;
+    
+    try {
+        const response = await fetch('/api/books');
+        const books = await response.json();
+        const book = books.find(b => b.id === currentPdfId);
+        
+        if (!book || !book.highlights || book.highlights.length === 0) return;
+        
+        // Filtra gli highlight di questa pagina
+        const pageHighlights = book.highlights.filter(hl => 
+            hl.cfi && hl.cfi.startsWith(`pdf_page_${pageNum}_`)
+        );
+        
+        if (pageHighlights.length === 0) return;
+        
+        // Applica l'evidenziazione a ogni testo salvato
+        pageHighlights.forEach(hl => {
+            highlightTextInLayer(textLayerDiv, hl.text, hl.cfi);
+        });
+        
+    } catch (err) {
+        console.error('Errore caricamento highlight PDF:', err);
+    }
+}
+
+// --- EVIDENZIA UN TESTO SPECIFICO NEL TEXTLAYER ---
+function highlightTextInLayer(textLayerDiv, targetText, cfi) {
+    // 1. Raccogliamo TUTTI i nodi di puro testo (ignorando i div e gli span contenitori)
+    const treeWalker = document.createTreeWalker(textLayerDiv, NodeFilter.SHOW_TEXT, null, false);
+    const textNodes = [];
+    let currentNode;
+    while (currentNode = treeWalker.nextNode()) {
+        textNodes.push(currentNode);
+    }
+
+    // 2. Puliamo il bersaglio dagli spazi per una ricerca infallibile
+    const cleanTarget = targetText.replace(/\s+/g, '').toLowerCase();
+    if (!cleanTarget) return;
+
+    let currentString = '';
+    const charMap = [];
+
+    // 3. Mappiamo ogni singolo carattere al suo specifico "nodo di testo" e alla sua posizione esatta
+    textNodes.forEach(node => {
+        const text = node.textContent;
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            // Ignoriamo gli spazi vuoti generati da pdf.js per la mappatura
+            if (char.trim() !== '') {
+                charMap.push({ node: node, offset: i, char: char.toLowerCase() });
+                currentString += char.toLowerCase();
+            }
+        }
+    });
+
+    // 4. Troviamo dove inizia la frase
+    const matchIndex = currentString.indexOf(cleanTarget);
+    if (matchIndex === -1) return;
+
+    // 5. Raggruppiamo i caratteri trovati in base al Nodo di appartenenza
+    const matchedChars = charMap.slice(matchIndex, matchIndex + cleanTarget.length);
+    const nodeGroups = new Map();
+
+    matchedChars.forEach(match => {
+        if (!nodeGroups.has(match.node)) {
+            nodeGroups.set(match.node, { minOffset: match.offset, maxOffset: match.offset });
+        } else {
+            const group = nodeGroups.get(match.node);
+            if (match.offset < group.minOffset) group.minOffset = match.offset;
+            if (match.offset > group.maxOffset) group.maxOffset = match.offset;
+        }
+    });
+
+    // 6. Tagliamo e avvolgiamo il testo (Esattamente come fa il cursore del mouse!)
+    const groupsArray = Array.from(nodeGroups.entries());
+    
+    groupsArray.forEach(([textNode, offsets]) => {
+        const startOffset = offsets.minOffset;
+        const endOffset = offsets.maxOffset + 1; // +1 per includere l'ultima lettera nel taglio
+
+        const originalText = textNode.textContent;
+        const beforeText = originalText.substring(0, startOffset);
+        const wrapText = originalText.substring(startOffset, endOffset);
+        const afterText = originalText.substring(endOffset);
+
+        const parent = textNode.parentNode; // Questo è lo span di pdf.js con position: absolute
+
+        const highlightSpan = document.createElement('span');
+        highlightSpan.className = 'pdf-highlight';
+        highlightSpan.dataset.cfi = cfi;
+        highlightSpan.textContent = wrapText;
+        highlightSpan.style.backgroundColor = 'rgba(255, 235, 59, 0.4)';
+        highlightSpan.style.borderRadius = '3px';
+        
+        // Attacchiamo l'evento click per l'eliminazione
+        highlightSpan.onclick = (e) => {
+            e.stopPropagation();
+            window.handlePdfHighlightClick(cfi);
+        };
+
+        // Inseriamo i nuovi frammenti senza toccare lo stile del "parent"
+        if (beforeText) parent.insertBefore(document.createTextNode(beforeText), textNode);
+        parent.insertBefore(highlightSpan, textNode);
+        if (afterText) parent.insertBefore(document.createTextNode(afterText), textNode);
+
+        // Rimuoviamo il vecchio pezzo unico
+        parent.removeChild(textNode);
     });
 }
 
@@ -1122,7 +1489,51 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (rendition) rendition.next(); 
     };
     
-
+    // Stili per il TextLayer PDF
+    const pdfTextLayerStyle = document.createElement('style');
+    pdfTextLayerStyle.innerHTML = `
+        .textLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 1;
+            line-height: 1.0;
+            z-index: 1;
+        }
+        
+        /* MODIFICA: Usa '>' per colpire solo gli span nativi di pdf.js */
+        .textLayer > span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+        
+        .textLayer > span::selection {
+            background: rgba(0, 0, 255, 0.3);
+        }
+        
+        .pdf-highlight {
+            background-color: rgba(255, 235, 59, 0.4) !important;
+            border-radius: 3px;
+            cursor: pointer;
+            position: static !important; 
+            color: transparent !important;
+        }
+        
+        .pdf-highlight:hover {
+            background-color: rgba(255, 80, 80, 0.5) !important;
+        }
+        
+        .dark-mode .pdf-highlight {
+            background-color: rgba(255, 235, 59, 0.3) !important;
+        }
+    `;
+    document.head.appendChild(pdfTextLayerStyle);
     
     const readerOverlay = document.getElementById('reader-overlay');
     if (readerOverlay) {
