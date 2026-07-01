@@ -18,16 +18,19 @@ export function openHelpModal() {
     overlay.style.opacity = '0';
     overlay.style.transition = 'opacity 0.3s ease';
 
-    // 2. Setup Contenitore Interno
+    // 2. Setup Contenitore Interno (più largo e scrollabile)
     const modalBox = document.createElement('div');
-    modalBox.className = 'glass-effect';
+    modalBox.className = 'glass-effect help-modal-content';
     modalBox.style.background = 'rgba(30, 30, 30, 0.85)';
     modalBox.style.padding = '35px';
     modalBox.style.borderRadius = '20px';
-    modalBox.style.maxWidth = '450px';
+    modalBox.style.maxWidth = '700px';
     modalBox.style.width = '90%';
+    modalBox.style.maxHeight = '80vh';
+    modalBox.style.overflowY = 'auto';
     modalBox.style.color = 'white';
     modalBox.style.border = '1px solid rgba(255,255,255,0.2)';
+    modalBox.style.boxShadow = '0 20px 45px rgba(0,0,0,0.6)';
 
     // 3. Contenuto Tradotto Dinamicamente
     modalBox.innerHTML = `
@@ -42,16 +45,73 @@ export function openHelpModal() {
         </button>
     `;
 
+    // 4. Stile per la scrollbar glassmorphism
+    const scrollbarStyle = document.createElement('style');
+    scrollbarStyle.innerHTML = `
+        .help-modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .help-modal-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .help-modal-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .help-modal-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Firefox */
+        .help-modal-content {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+        }
+        
+        /* Migliora la leggibilità delle liste */
+        .help-modal-content ul {
+            margin: 0;
+        }
+        
+        .help-modal-content li {
+            margin-bottom: 12px;
+        }
+        
+        .help-modal-content li b {
+            color: #d4af37;
+        }
+        
+        .help-modal-content ul ul {
+            margin-top: 8px;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            opacity: 0.9;
+        }
+    `;
+    
+    document.head.appendChild(scrollbarStyle);
     overlay.appendChild(modalBox);
     document.body.appendChild(overlay);
 
     // Fade In
     setTimeout(() => overlay.style.opacity = '1', 10);
 
-    // 4. Logica di Chiusura
+    // 5. Logica di Chiusura
     const closeOverlay = () => {
         overlay.style.opacity = '0';
-        setTimeout(() => overlay.remove(), 300); // Rimuove dal DOM dopo l'animazione
+        setTimeout(() => {
+            overlay.remove();
+            scrollbarStyle.remove();
+        }, 300);
     };
 
     document.getElementById('close-help-btn').onclick = closeOverlay;
