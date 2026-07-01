@@ -146,12 +146,14 @@ export default {
                     <li><b>Zoom:</b> Magnify text or pages for optimal reading.</li>
                     <li><b>Font & Line Height:</b> Customize typographical style (EPUB only).</li>
                     <li><b>Flow Mode:</b> Choose between "Paginated" (horizontal) or "Continuous Scroll" (vertical) for a web-style experience.</li>
+                    <li><b>Text Alignment:</b> Align text to left, right, or center (EPUB only).</li>
                 </ul>
             </li>
+            <li><b style="color: #f1c40f;">✍️ Highlights & 3D Board:</b> Select any text while reading to underline your favorite phrases. Your highlights will automatically appear as <b>post-it notes on the 3D board</b> floating above your library! Use the side arrows to browse through your collection of notes.</li>
             <li><b>Dark/Light Mode:</b> Click the icon in the top right corner to toggle themes and reduce eye strain.</li>
             <li><b>Explore:</b> Use "Show Plot" to rotate the 3D book and read the synopsis on the back cover.</li>
-            <li><b style="color: #d9534f;">⏻ Shutdown:</b> Use the "Shutdown" button in the top right corner to end your session and safely close the local server.</li>
-            `,
+            <li><b style="color: #d9534f;"> Shutdown:</b> Use the "Shutdown" button in the top right corner to end your session and safely close the local server.</li>
+        `,
         donateBtn: "💙 Donate",
 
         // Aggiungi questo in fondo all'oggetto export default

@@ -136,7 +136,7 @@ export default {
 
         helpTitle: "📖 Come funziona",
         helpContent: `
-            <li><b>Carica un libro:</b> Clicca sul pulsante di caricamento (o trascina un file) per aggiungere i tuoi <b>.epub</b> o <b>.pdf</b> personali.</li>
+            <li><b>Carica un libro:</b> Clicca sul pulsante di caricamento (o trascina un file) per aggiungere i tuoi file <b>.epub</b> o <b>.pdf</b> personali.</li>
             <li><b>Cerca:</b> Usa la barra in alto per trovare rapidamente un libro scrivendo il titolo, l'autore o la categoria.</li>
             <li><b>Navigazione Mensola:</b> Scorri lateralmente (swipe o frecce ←/→) per le opere, e verticalmente (↑/↓) per cambiare categoria.</li>
             <li><b>Organizza e Gestisci:</b> Usa "🏷️ Assegna Categoria" per classificare i volumi, o "⚙️ Gestisci" per le operazioni avanzate sulla libreria.</li>
@@ -147,11 +147,14 @@ export default {
                     <li><b>Zoom:</b> Ingrandisci il testo o le pagine per una lettura ottimale.</li>
                     <li><b>Font & Interlinea:</b> Personalizza lo stile tipografico (solo per EPUB).</li>
                     <li><b>Modalità di Flusso:</b> Scegli tra "Sfoglia Pagine" (orizzontale) o "Scorrimento Continuo" (verticale) per un'esperienza stile web.</li>
+                    <li><b>Allineamento Testo:</b> Allinea il testo a sinistra, destra o al centro (solo EPUB).</li>
                 </ul>
             </li>
+            <li><b style="color: #f1c40f;">✍️ Sottolineature e Bacheca 3D:</b> Seleziona qualsiasi testo durante la lettura per sottolineare le tue frasi preferite. I tuoi highlight appariranno automaticamente come <b>post-it sulla bacheca 3D</b> che fluttua sopra la tua libreria! Usa le frecce laterali per sfogliare la tua collezione di note.</li>
             <li><b>Dark/Light Mode:</b> Clicca l'icona in alto a destra per alternare i temi ed evitare l'affaticamento visivo.</li>
             <li><b>Esplora:</b> Usa "Mostra Trama" per ruotare il libro 3D e leggere la sinossi sul retro.</li>
-            <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto "Spegni" in alto a destra per terminare la sessione e chiudere il server locale in totale sicurezza.</li>` ,
+            <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto "Spegni" in alto a destra per terminare la sessione e chiudere il server locale in totale sicurezza.</li>
+        `,
         donateBtn: " Supporta",
         // Aggiungi questo in fondo all'oggetto export default
         emptyLibraryMessage: "La tua libreria è vuota. Clicca su '+ Carica Ebook' per iniziare la tua collezione!",
