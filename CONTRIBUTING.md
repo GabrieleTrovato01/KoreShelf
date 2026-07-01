@@ -98,7 +98,7 @@ Basandoci sul feedback della community e sullo sviluppo interno, ecco su cosa la
 
 ### 🏠 Esperienza Libreria & UX
 
-* [ ] Bacheca delle Citazioni: Aggiungere una bacheca sopra lo scaffale più alto, dove gli utenti possono appuntare le loro citazioni preferite dai libri completati per tenerle sempre in vista.
+* [X] Bacheca delle Citazioni: Aggiungere una bacheca sopra lo scaffale più alto, dove gli utenti possono appuntare le loro citazioni preferite dai libri completati per tenerle sempre in vista.
 
 ---
 
@@ -209,7 +209,7 @@ Based on community feedback and internal development, here is what we are workin
 ---
 
 ### 🏠 Library Experience & UX
-* [ ] Quotes Board: Add a "Quotes Board" above the top shelf, where users can pin their favorite quotes from completed books to keep them always visible.
+* [X] Quotes Board: Add a "Quotes Board" above the top shelf, where users can pin their favorite quotes from completed books to keep them always visible.
 
 ---
 
