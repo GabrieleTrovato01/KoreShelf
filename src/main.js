@@ -48,7 +48,6 @@ function translateStaticHTML() {
             ? '<span class="btn-icon">📖</span><span class="btn-text">' + t('showCover') + '</span>' 
             : '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
     }
-    if (typeof exportAIBtn !== 'undefined') exportAIBtn.innerHTML = '<span class="btn-icon">🤖</span><span class="btn-text">' + t('exportAI') + '</span>';
     if (typeof assignCatBtn !== 'undefined') assignCatBtn.innerHTML = '<span class="btn-icon">🏷️</span><span class="btn-text">' + t('assignCategory') + '</span>';
     if (typeof deleteBookBtn !== 'undefined') deleteBookBtn.innerHTML = '<span class="btn-icon">🗑️</span><span class="btn-text">' + t('deleteBook') + '</span>';
     if (typeof editMetadataBtn !== 'undefined') editMetadataBtn.innerHTML = '<span class="btn-icon">✏️</span><span class="btn-text">' + (t('editMetadata') || 'Modifica') + '</span>';
@@ -441,12 +440,6 @@ infoBtn.innerText = t('showSynopsis');
 infoBtn.className = 'glass-effect modern-btn';
 uiContainer.appendChild(infoBtn);
 
-const exportAIBtn = document.createElement('button');
-exportAIBtn.innerHTML = t('exportAI');
-exportAIBtn.className = 'glass-effect modern-btn';
-// Diamo un tocco di colore distintivo per la feature IA (es. un viola/indaco)
-uiContainer.appendChild(exportAIBtn);
-
 // 3. Bottone per Assegnare la Categoria al Libro
 const assignCatBtn = document.createElement('button');
 assignCatBtn.innerHTML = t('assignCategory');
@@ -540,30 +533,6 @@ const creditsFooter = document.createElement('div');
 creditsFooter.id = 'credits-footer';
 creditsFooter.innerHTML = `${t('credits')} <a href="https://github.com/GabrieleTrovato01" target="_blank">GabrieleTrovato01</a>`;
 document.body.appendChild(creditsFooter);
-
-exportAIBtn.onclick = () => {
-    if (booksArray.length === 0) return;
-    const activeBook = booksArray[currentIndex];
-    
-    // Feedback visivo: usiamo lo spinner e specifichiamo il formato MD
-    const originalText = exportAIBtn.innerHTML;
-    exportAIBtn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">' + (t('generatingMD') || 'Generando...') + '</span>';
-    exportAIBtn.disabled = true;
-
-    
-    if (typeof showToast === "function") {
-        showToast(t('exportToastMessage'), 'info');
-    }
-
-    // Chiama la rotta di esportazione
-    window.location.href = `/api/books/${activeBook.userData.id}/export-ai`;
-
-    // Ripristiniamo il pulsante dopo 4 secondi
-    setTimeout(() => {
-        exportAIBtn.innerHTML = '<span class="btn-icon">🤖</span><span class="btn-text">' + t('exportAI') + '</span>';
-        exportAIBtn.disabled = false;
-    }, 4000);
-};
 
 // --- LOGICA DEL BOTTONE ASSEGNA CATEGORIA (Modale Custom con Chips) ---
 assignCatBtn.onclick = () => {

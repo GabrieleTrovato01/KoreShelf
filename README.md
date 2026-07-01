@@ -18,8 +18,6 @@
 
 An interactive 3D digital library that allows you to upload, browse, and organize your EPUB and PDF files in an immersive graphical environment.
 
-But that's not all: thanks to the **Export for AI** feature, you can extract the entire clean text of any book into a ready-to-use Knowledge Base (`.md` file). You can easily upload this file to ChatGPT, Claude, or Gemini to literally "talk" to your books: ask questions about the plot, search for specific concepts, or ask for summaries, leaving the heavy computational lifting to cloud AIs without overloading your PC!
-
 ---
 
 ### ⚙️ System Requirements
@@ -95,21 +93,7 @@ KoreShelf is not just an archive, it's a fully-featured immersive reading enviro
 
 * Interactive Reviews: When you finish a book (100%), a seamless modal will appear prompting you to rate it (1-5 stars) and write your hot-take review. Your rating will literally be stamped in gold on the back cover of the 3D book in your library!
 
----
 
-
-### 🧠 Export for AI (Obsidian & LLM Ready)
-
-KoreShelf acts as an "AI-Bridge", transforming your EPUBs and PDFs into clean, structured Knowledge Bases.
-
-If you want to analyze a book:
-1. Select the book in the 3D library.
-2. Click on **"🤖 Esporta per IA"**.
-3. The app will instantly download a `KoreShelf_title.md` file.
-
-**Why Markdown?**
-* **Clean Text:** The exported file is stripped of all complex HTML, providing only the raw content, which drastically reduces AI hallucinations.
-* **Obsidian/Notion Support:** The file includes YAML Frontmatter (metadata) and hierarchical headers. It is a "Smart Document" ready to be imported and indexed in your Personal Knowledge Management systems.
 
 ---
 
@@ -160,8 +144,6 @@ Adding a new translation is incredibly easy:
 ## 🇮🇹 Italiano
 
 Una libreria digitale interattiva in 3D che ti permette di caricare, sfogliare e organizzare i tuoi file EPUB e PDF in un ambiente grafico immersivo.
-
-Ma non è finita qui: grazie alla funzione **Esporta per IA**, puoi estrarre l'intero testo pulito di qualsiasi libro in un file Knowledge Base (`.md`) pronto all'uso. Ti basterà caricare questo file su ChatGPT, Claude o Gemini per letteralmente "parlare" con i tuoi libri: fai domande sulla trama, cerca concetti specifici o chiedi riassunti, lasciando il lavoro pesante ai server cloud senza fondere il tuo PC!
 
 ---
 
@@ -238,21 +220,6 @@ KoreShelf non è solo un archivio, ma un ambiente di lettura immersivo pensato p
 * Segnalibri Dinamici in 3D: Mentre progredisci nella lettura, una fettuccia rossa (segnalibro) si sposterà fisicamente sul tuo libro 3D nella mensola, mostrandoti la percentuale completata a colpo d'occhio.
 
 * Recensioni Interattive: Quando finisci un libro (100%), apparirà un elegante pop-up per valutare l'opera (1-5 stelle) e scrivere le tue riflessioni a caldo. La tua valutazione a stelle verrà letteralmente stampata in oro sul retro della copertina 3D del libro!
-
----
-
-### 🧠 Funzione "Esporta per IA" (Pronto per Obsidian e LLM)
-
-KoreShelf funge da "AI-Bridge", trasformando i tuoi EPUB e PDF in Knowledge Base strutturate e pulite.
-
-Se vuoi analizzare un libro con l'Intelligenza Artificiale:
-1. Seleziona il libro nella libreria 3D.
-2. Clicca sul tasto **"🤖 Esporta per IA / Esporta in Markdown"**.
-3. L'app scaricherà istantaneamente un file `KoreShelf_titolo.md`.
-
-**Perché in Markdown?**
-* **Testo Pulito:** Il file esportato viene ripulito da tutto l'HTML complesso, offrendo solo il contenuto grezzo, riducendo drasticamente le allucinazioni dell'IA.
-* **Supporto Obsidian/Notion:** Il file include YAML Frontmatter (metadati) e titoli gerarchici. È un "Documento Smart" pronto per essere archiviato e indicizzato nei tuoi sistemi di Personal Knowledge Management.
 
 ---
 

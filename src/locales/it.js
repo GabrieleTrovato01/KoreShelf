@@ -10,11 +10,7 @@ export default {
         // Pannello Info (In basso)
         showSynopsis: "Mostra Trama",
         showCover: "Mostra Copertina",
-
-        exportAI: "Esporta per IA",
-        generatingMD: "Generazione MD ...",
-        exportToastMessage: "Generazione Knowledge Base (.md) per Obsidian/ IA ...",
-        
+       
         assignCategory: " Assegna Categoria",
         moveBookTitle: "Sposta",
         saveBtn: "Salva",
@@ -155,7 +151,6 @@ export default {
             </li>
             <li><b>Dark/Light Mode:</b> Clicca l'icona in alto a destra per alternare i temi ed evitare l'affaticamento visivo.</li>
             <li><b>Esplora:</b> Usa "Mostra Trama" per ruotare il libro 3D e leggere la sinossi sul retro.</li>
-            <li><b style="color: #ba55d3;">🤖 Knowledge Base (Markdown):</b> Esporta le tue annotazioni in formato <strong>Markdown (.md)</strong>, ottimizzate per Obsidian, Notion, ChatGPT o Claude.</li>
             <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto "Spegni" in alto a destra per terminare la sessione e chiudere il server locale in totale sicurezza.</li>` ,
         donateBtn: " Supporta",
         // Aggiungi questo in fondo all'oggetto export default
@@ -280,18 +275,8 @@ export default {
         errUnexpected: "❌ Errore imprevisto:",
 
         uncategorized: "Senza Categoria",
-        logExportStart: "📦 Generazione Knowledge Base Markdown per: {title}...",
         logPdfExtract: "📄 Lettura PDF rilevata. Estrazione testo grezzo in corso...",
         logEpubExtract: "📚 Lettura EPUB rilevata. Estrazione in corso...",
-        mdSmartDoc: "> **KoreShelf Smart Document:** Questo file è stato generato automaticamente da KoreShelf come una Knowledge Base in formato Markdown,\n> pronta per essere importata in qualsiasi sistema di gestione della conoscenza o IA esterna.\n> Contiene i metadati essenziali del libro, la trama (se disponibile) e il testo completo estratto dall'EPUB, pulito da qualsiasi formattazione HTML.",
-        mdDetailsPlot: "## 📖 Dettagli e Trama",
-        mdAuthor: "- **Autore:** {author}",
-        mdPages: "- **Pagine stimate:** {count}",
-        mdOriginalPlot: "### Trama originale",
-        mdBookContent: "## 📂 Contenuto del Libro",
-        mdEndOfDoc: "*Fine del documento - Generato da KoreShelf*",
-        errExportMD: "Errore durante l'esportazione Markdown:",
-        errGenerateMD: "Errore interno del server durante la generazione del Markdown.",
 
         logShutdownRequest: "🛑 Richiesta di spegnimento ricevuta dal client. Chiusura del server in corso...",
 

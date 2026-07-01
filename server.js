@@ -255,10 +255,6 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
             // Rimuoviamo l'estensione .epub
             let cleanName = originalFileName.replace(/\.epub$/i, '');
             
-            // -----------------------------------------------------
-            // SEPARAZIONE INTELLIGENTE TITOLO E AUTORE
-            // Se nel nome del file c'est un trattino "-", lo usiamo per separare!
-            // -----------------------------------------------------
             if (cleanName.includes('-')) {
                 const parts = cleanName.split('-');
                 
@@ -283,6 +279,8 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
 
         //--- calcolo della lunghezza del testo.
         let rawTextLength = 0;
+        const maxChaptersToRead = 50;
+        let chaptersRead = 0;
         // Creiamo un mini-estrattore per leggere i capitoli rapidamente
         const getChapterAsync = (id) => new Promise(resolve => {
             epub.getChapter(id, (err, text) => {
@@ -293,12 +291,21 @@ async function parseEpub(filePath, coverFileName, originalFileName) {
 
         if (epub.flow) {
             for (const chapter of epub.flow) {
+                if (chaptersRead >= maxChaptersToRead) break;
+
                 if (chapter.id) {
                     const htmlText = await getChapterAsync(chapter.id);
                     // Rimuoviamo i tag HTML per pesare solo le parole reali
                     const cleanText = htmlText.replace(/<[^>]*>?/gm, '').trim();
                     rawTextLength += cleanText.length;
+                    chaptersRead++;
                 }
+            }
+            if (epub.flow.length > maxChaptersToRead) {
+                console.log(`⚠️ Large EPUB detected: ${epub.flow.length} chapters. Only analyzed first ${maxChaptersToRead} for performance.`);
+                // Stimiamo il totale basandoci sulla media dei capitoli letti
+                const avgLength = rawTextLength / chaptersRead;
+                rawTextLength = Math.floor(avgLength * epub.flow.length);
             }
         }
 
@@ -357,7 +364,10 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
     try {
         // 1. Estrazione Testo per calcolo pagine e IA
         const dataBuffer = await fsSync.promises.readFile(filePath);
-        const pdfData = await pdfParse(dataBuffer);
+
+        const options = {max:50};
+        const pdfData = await pdfParse(dataBuffer, options);
+
         let extractedTitle = pdfData.info?.Title;
         let extractedAuthor = pdfData.info?.Author;
 
@@ -393,13 +403,22 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
             }
         }
         const rawTextLength = pdfData.text ? pdfData.text.length : 0;
+        let estimatedPages = 350;
+
+        if (pdfData.numpages && pdfData.numpages > 0) {
+            estimatedPages = pdfData.numpages;
+        } else if (rawTextLength > 0) {
+            const calculatedPages = Math.ceil(rawTextLength / 1500);
+            estimatedPages = Math.floor(calculatedPages * 1.05); // Aggiungiamo un 5% forfettario
+        }
 
         const metadata = {
             title: extractedTitle,
             author: extractedAuthor || tLog('unknownAuthor'),
             description: null, // I PDF raramente includono la trama nei metadati
             coverPath: null,
-            textLength: rawTextLength
+            textLength: rawTextLength,
+            pageCount: Math.min(estimatedPages, 1000) // Limite massimo di sicurezza per il carosello 3D
         };
         return metadata;
     } catch (error) {
@@ -408,22 +427,40 @@ async function parsePdf(filePath, coverFileName, originalFileName) {
 }
 
 // --- TIMER DI SICUREZZA PER GLI EPUB CORROTTI ---
-function parseEpubWithTimeout(filePath, coverFileName, originalFileName, timeoutMs = 8000) {
+function parseEpubWithTimeout(filePath, coverFileName, originalFileName, baseTimeoutMs = 15000) {
+    // Calcoliamo la dimensione del file per adattare il timeout
+    const stats = fsSync.statSync(filePath);
+    const fileSizeMB = stats.size / (1024 * 1024);
+    
+    // Timeout base + tempo aggiuntivo per MB (es. 2 secondi per MB)
+    const dynamicTimeout = Math.min(baseTimeoutMs + (fileSizeMB * 2000), 120000); // Max 2 minuti
+    
+    console.log(`📊 EPUB size: ${fileSizeMB.toFixed(2)} MB | Timeout: ${dynamicTimeout}ms`);
+    
     return Promise.race([
         parseEpub(filePath, coverFileName, originalFileName),
-        new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(tLog('errEpubTimeout'))), timeoutMs)
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(tLog('errEpubTimeout'))), dynamicTimeout)
         )
     ]);
 }
 
 // --- TIMER DI SICUREZZA PER I PDF GIGANTI ---
-function parsePdfWithTimeout(filePath, coverFileName, originalFileName, timeoutMs = 10000) {
+function parsePdfWithTimeout(filePath, coverFileName, originalFileName, baseTimeoutMs = 15000) {
+    const stats = fsSync.statSync(filePath);
+    const fileSizeMB = stats.size / (1024 * 1024);
+    
+    // Timeout base + tempo aggiuntivo per MB (es. 3 secondi per MB)
+    // Ma con un MAX di 120 secondi (2 minuti) per non bloccare tutto
+    const dynamicTimeout = Math.min(baseTimeoutMs + (fileSizeMB * 3000), 120000);
+    
+    console.log(`📊 PDF size: ${fileSizeMB.toFixed(2)} MB | Timeout: ${dynamicTimeout}ms`);
+    
     return Promise.race([
         parsePdf(filePath, coverFileName, originalFileName),
         new Promise((resolve) => 
             setTimeout(() => {
-                console.log(tLog('errPdfTimeout', { timeoutMs }));
+                console.log(tLog('errPdfTimeout', { dynamicTimeout: dynamicTimeout }));
                 
                 // Puliamo il nome del file da usare come titolo di emergenza
                 let cleanName = originalFileName.replace(/\.pdf$/i, '').replace(/[_-]/g, ' ');
@@ -433,15 +470,16 @@ function parsePdfWithTimeout(filePath, coverFileName, originalFileName, timeoutM
                     author: tLog('unknownAuthor'),
                     description: null,
                     coverPath: null, // Il frontend genererà la copertina 3D di fallback
-                    textLength: 0
+                    textLength: 0,
+                    pageCount: 1000
                 });
-            }, timeoutMs)
+            }, dynamicTimeout)
         )
     ]);
 }
 
 // Apple Books + calcolo pagine stimato
-async function fetchBestBookData(isbn,title, author, rawTextLength) {
+async function fetchBestBookData(isbn,title, author, rawTextLength, pdfPageCount = null) {
     let result = {
         description: tLog('noPlotFound'),
         coverUrl: null,
@@ -523,8 +561,9 @@ async function fetchBestBookData(isbn,title, author, rawTextLength) {
     } catch (error) {
         console.error(tLog('errAppleTimeout'));
     }
-
-    if (rawTextLength && rawTextLength > 0) {
+    if (pdfPageCount && pdfPageCount > 0) {
+        result.pageCount = Math.min(pdfPageCount, 1000);
+    } else if (rawTextLength && rawTextLength > 0) {
         // Una cartella editoriale (pagina) è in media 1500 battute
         const calculatedPages = Math.ceil(rawTextLength / 1500);
         
@@ -681,10 +720,25 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
             console.log(tLog('logNoISBNFound'));
         }
 
+        
+        
+
         if (fileExt === '.epub') {
-            bookData = await parseEpubWithTimeout(file.path, baseName, file.originalname, 8000);
+            const stats = fsSync.statSync(file.path);
+            const fileSizeMB = stats.size / (1024 * 1024);
+            if (fileSizeMB > 100) {
+            console.warn(`⚠️ WARNING: Very large EPUB detected (${fileSizeMB.toFixed(2)} MB). Processing may take a while...`);
+            }
+            bookData = await parseEpubWithTimeout(file.path, baseName, file.originalname, 15000);
         } else if (fileExt === '.pdf') {
-            bookData = await parsePdfWithTimeout(file.path, baseName, file.originalname, 10000);
+            const stats = fsSync.statSync(file.path);
+            const fileSizeMB = stats.size / (1024 * 1024);
+
+            if (fileSizeMB > 100) {
+                console.warn(`⚠️ WARNING: Very large PDF detected (${fileSizeMB.toFixed(2)} MB). Processing may take a while...`);
+                console.log(`📊 Extracting metadata from first 50 pages only to save RAM...`);
+            }
+            bookData = await parsePdfWithTimeout(file.path, baseName, file.originalname, 15000);
         } else {
             try { await fs.unlink(file.path); } catch(e){}
             return res.status(400).json({ success: false, message: tLog('errFormat') });
@@ -694,7 +748,7 @@ app.post('/api/upload', upload.single('ebook'), async (req, res) => {
         console.log(tLog('logWaitAppleAPI'));
         console.log(tLog('logSearchAppleBooks'));
         
-        const googleData = await fetchBestBookData(isbn, bookData.title, bookData.author, bookData.textLength);
+        const googleData = await fetchBestBookData(isbn, bookData.title, bookData.author, bookData.textLength, bookData.pageCount);
 
         let finalTitle = bookData.title;
         let finalAuthor = bookData.author;
@@ -1013,112 +1067,6 @@ process.on('unhandledRejection', (reason, promise) => {
     console.warn(`\n${tLog('shieldUnhandledRejection')}`);
     console.warn(`${tLog('shieldReason')}`, reason?.message || reason);
     console.warn(`${tLog('shieldServerContinues')}\n`);
-});
-
-// --- ROTTA PER ESPORTARE IL LIBRO COME KNOWLEDGE BASE IN FORMATO MARKDOWN (.md) ---
-app.get('/api/books/:id/export-ai', async (req, res) => {
-    const bookId = req.params.id;
-
-    try {
-        const row = db.prepare('SELECT * FROM books WHERE id = ?').get(bookId);
-        
-        if (!row || !row.epubPath) {
-            return res.status(404).json({ success: false, message: tLog('errNotFound') });
-        }
-        
-        const book = { ...row, tags: JSON.parse(row.tags || '[]') };
-        const physicalEpubPath = path.join(publicDir, book.epubPath);
-        
-        console.log(tLog('logExportStart', { title: book.title }));
-
-        let fullText = "";
-
-        // Bivio: Estrazione testo in base al formato
-        if (book.epubPath.toLowerCase().endsWith('.pdf')) {
-            console.log(tLog('logPdfExtract'));
-            const dataBuffer = await fs.readFile(physicalEpubPath);
-            const pdfData = await pdfParse(dataBuffer);
-            fullText = pdfData.text;
-        } else {
-            console.log(tLog('logEpubExtract'));
-            const epub = await EPub.createAsync(physicalEpubPath);
-            const getChapterAsync = (id) => new Promise(resolve => {
-                epub.getChapter(id, (err, text) => {
-                    if (err || !text) resolve('');
-                    else resolve(text);
-                });
-            });
-            let chaptersText = [];
-            if (epub.flow) {
-                for (const chapter of epub.flow) {
-                    if (chapter.id) {
-                        const htmlText = await getChapterAsync(chapter.id);
-                        if (htmlText && htmlText.trim() !== '') {
-                            const cleanText = htmlToText.convert(htmlText, {
-                                wordwrap: false,
-                                selectors: [ 
-                                    { selector: 'img', format: 'skip' }, 
-                                    { selector: 'a', options: { ignoreHref: true } } 
-                                ]
-                            });
-                            chaptersText.push(cleanText);
-                        }
-                    }
-                }
-            }
-            
-            fullText = chaptersText.join("\n\n---\n\n");
-        }
-
-        const safeTitle = book.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const fileName = `KoreShelf_${safeTitle}.md`;
-
-        res.setHeader('Content-disposition', `attachment; filename=${fileName}`);
-        res.setHeader('Content-type', 'text/markdown');
-        res.charset = 'UTF-8';
-        
-        const now = new Date().toISOString().split('T')[0];
-        const mainCategory = (book.tags && book.tags.length > 0) ? book.tags[0] : tLog('uncategorized');
-
-        const markdownHeader = `---
-title: "${book.title.replace(/"/g, '\\"')}"
-author: "${book.author.replace(/"/g, '\\"')}"
-category: "${mainCategory}"
-exported_from: "KoreShelf"
-export_date: ${now}
-tags: [KoreShelf, KnowledgeBase, ${mainCategory.replace(/\s+/g, '')}]
----
-
-# ${book.title}
-
-${tLog('mdSmartDoc')}
-
----
-
-${tLog('mdDetailsPlot')}
-${tLog('mdAuthor', { author: book.author })}
-${tLog('mdPages', { count: book.pageCount })}
-
-${tLog('mdOriginalPlot')}
-${book.description}
-
----
-
-${tLog('mdBookContent')}
-
-${fullText}
-
----
-${tLog('mdEndOfDoc')}
-`;
-
-        res.write(markdownHeader);
-        res.end();
-
-    } catch (error) {
-        console.error(tLog('errExportMD'), error);
-        res.status(500).json({ success: false, message: tLog('errGenerateMD') });
-    }
 });
 
 // --- ROTTA PER MODIFICARE I METADATI DEL LIBRO ---
