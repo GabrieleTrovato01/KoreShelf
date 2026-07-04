@@ -1,6 +1,6 @@
 {
   "name": "KoreShelf",
-  "version": "2.1.0",
+  "version": "2.2.1",
   "private": true,
   "type": "module",
   "bin": "build-output/server.bundle.js",
