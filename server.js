@@ -214,8 +214,10 @@ app.use(express.static(publicDir));
 // --- ROTTA DI SINCRONIZZAZIONE LINGUA ---
 app.post('/api/sync-language', (req, res) => {
     const { lang } = req.body;
-    if (lang === 'it' || lang === 'en') {
-        globalServerLang = lang; // Aggiorna la lingua di tutto il terminale!
+    const supportedLangs = ['it', 'en', 'es']; // Aggiunto 'es'
+    
+    if (supportedLangs.includes(lang)) {
+        globalServerLang = lang; 
         console.log(`🌐 ${tLog('terminal_sync', { lang: lang.toUpperCase() }, lang)}`);
     }
     res.json({ success: true });

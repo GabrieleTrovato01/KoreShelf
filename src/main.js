@@ -332,32 +332,107 @@ shutdownBtn.onclick = async () => {
 topBar.appendChild(shutdownBtn);
 
 // --- PULSANTE CAMBIO LINGUA ---
-const langBtn = document.createElement('button');
-// Leggiamo la lingua salvata (o 'it' di default) per impostare il testo del bottone
+// --- PULSANTE CAMBIO LINGUA CON MENU A TENDINA ---
 const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
-langBtn.innerHTML = savedLang === 'it' 
-    ? '<span class="btn-icon">🇬🇧</span><span class="btn-text">EN</span>' 
-    : '<span class="btn-icon">🇮🇹</span><span class="btn-text">IT</span>';
+
+// Dizionario delle lingue disponibili
+const availableLangs = {
+    it: { icon: '🇮🇹', text: 'IT' },
+    en: { icon: '🇬🇧', text: 'EN' },
+    es: { icon: '🇪🇸', text: 'ES' } 
+};
+
+// 1. Contenitore relativo per posizionare il menu a tendina
+const langContainer = document.createElement('div');
+langContainer.style.position = 'relative';
+langContainer.style.display = 'inline-block';
+
+// 2. Bottone Principale
+const langBtn = document.createElement('button');
+const currentLangData = availableLangs[savedLang] || availableLangs['it'];
+langBtn.innerHTML = `<span class="btn-icon">${currentLangData.icon}</span><span class="btn-text">${currentLangData.text}</span>`;
 langBtn.className = 'glass-effect modern-btn';
 langBtn.style.padding = '12px 15px';
 langBtn.style.fontWeight = 'bold';
-langBtn.title = savedLang === 'it' ? 'Switch to English' : 'Passa all\'Italiano';
+langBtn.title = 'Cambia lingua / Change language';
 
-langBtn.onclick = async () => {
-    const newLang = savedLang === 'it' ? 'en' : 'it';
-    localStorage.setItem('KoreShelf_lang', newLang);
+// 3. Il menu a tendina (nascosto di default)
+const langMenu = document.createElement('div');
+langMenu.className = 'glass-effect';
+langMenu.style.position = 'absolute';
+langMenu.style.top = 'calc(100% + 10px)'; // Spostato leggermente sotto il bottone
+langMenu.style.right = '0'; // Allineato a destra per non uscire dallo schermo
+langMenu.style.display = 'none';
+langMenu.style.flexDirection = 'column';
+langMenu.style.borderRadius = '12px';
+langMenu.style.overflow = 'hidden';
+langMenu.style.zIndex = '2000';
+langMenu.style.minWidth = '120px';
+langMenu.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.3)';
+
+// 4. Creiamo un'opzione per ogni lingua nel dizionario
+Object.entries(availableLangs).forEach(([code, data]) => {
+    const optionBtn = document.createElement('button');
+    optionBtn.innerHTML = `<span style="margin-right: 8px;">${data.icon}</span>${data.text}`;
+    optionBtn.style.padding = '12px 20px';
+    optionBtn.style.background = 'transparent';
+    optionBtn.style.border = 'none';
+    optionBtn.style.color = 'white';
+    optionBtn.style.textAlign = 'left';
+    optionBtn.style.cursor = 'pointer';
+    optionBtn.style.transition = 'background 0.2s';
+    optionBtn.style.fontSize = '14px';
+    optionBtn.style.width = '100%';
+    optionBtn.style.display = 'flex';
+    optionBtn.style.alignItems = 'center';
     
-    try {
-        await fetch('/api/sync-language', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lang: newLang })
-        });
-    } catch(e) {}
+    // Evidenzia la lingua attualmente selezionata
+    if (code === savedLang) {
+        optionBtn.style.background = 'rgba(255, 255, 255, 0.15)';
+        optionBtn.style.fontWeight = 'bold';
+    }
 
-    window.location.reload();
+    // Effetti hover glassmorphism
+    optionBtn.onmouseover = () => {
+        if (code !== savedLang) optionBtn.style.background = 'rgba(255, 255, 255, 0.1)';
+    };
+    optionBtn.onmouseout = () => {
+        if (code !== savedLang) optionBtn.style.background = 'transparent';
+    };
+
+    // Logica di cambio lingua
+    optionBtn.onclick = async () => {
+        localStorage.setItem('KoreShelf_lang', code);
+        try {
+            await fetch('/api/sync-language', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lang: code })
+            });
+        } catch(e) {}
+        window.location.reload();
+    };
+
+    langMenu.appendChild(optionBtn);
+});
+
+// Assembliamo il tutto
+langContainer.appendChild(langBtn);
+langContainer.appendChild(langMenu);
+topBar.appendChild(langContainer);
+
+// 5. Logica di apertura/chiusura
+langBtn.onclick = (e) => {
+    e.stopPropagation(); // Evita che il click venga intercettato subito da "window"
+    langMenu.style.display = langMenu.style.display === 'none' ? 'flex' : 'none';
 };
-topBar.appendChild(langBtn);
+
+// Chiudi il menu se l'utente clicca in qualsiasi altro punto della pagina
+window.addEventListener('click', () => {
+    if (langMenu.style.display === 'flex') {
+        langMenu.style.display = 'none';
+    }
+});
 
 // --- MESSAGGIO LIBRERIA VUOTA ---
 const emptyLibraryHint = document.createElement('div');

@@ -63,7 +63,7 @@ window.openReader = function(epubUrl, bookId) {
             return Promise.resolve(); 
         } else {
             console.log("⏳ Generazione mappa delle posizioni in corso...");
-            return currentBook.locations.generate(1000).then(() => {
+            return currentBook.locations.generate(250).then(() => {
                 try {
                     localStorage.setItem(`locations_${bookId}`, currentBook.locations.save());
                     console.log("✅ Mappa generata e salvata in cache");
@@ -73,14 +73,23 @@ window.openReader = function(epubUrl, bookId) {
             });
         }
     }).then(() => {
-        const currentLocation = rendition.currentLocation();
+       const progressEl = document.getElementById('reading-progress');
         
-        if (currentLocation && currentLocation.start && currentLocation.start.cfi) {
-            const percentage = currentBook.locations.percentageFromCfi(currentLocation.start.cfi);
-            const progressEl = document.getElementById('reading-progress');
-            
-            if (progressEl && percentage > 0) {
-                progressEl.innerText = Math.round(percentage * 100) + "%";
+        // 1. Prima proviamo a leggere la percentuale "congelata" dal localStorage
+        const savedPercentage = localStorage.getItem(`percentage_${bookId}`);
+        
+        if (savedPercentage && progressEl) {
+            // Se c'è, usiamo quella esatta senza farla ricalcolare al motore!
+            const displayPercent = (parseFloat(savedPercentage) * 100).toFixed(1);
+            progressEl.innerText = displayPercent + "%";
+        } else {
+            // 2. Fallback: se non c'è (es. prima lettura), la calcoliamo dal CFI
+            const currentLocation = rendition.currentLocation();
+            if (currentLocation && currentLocation.start && currentLocation.start.cfi) {
+                const percentage = currentBook.locations.percentageFromCfi(currentLocation.start.cfi);
+                if (progressEl && percentage > 0) {
+                    progressEl.innerText = (percentage * 100).toFixed(1) + "%";
+                }
             }
         }
     }).catch(err => console.warn("Avviso mappa posizioni:", err));
@@ -271,34 +280,68 @@ window.openReader = function(epubUrl, bookId) {
         document.removeEventListener("keydown", keyListener);
     }, { once: true });
 
+    let isLayoutSettling = true; 
 
     const rawLocation = localStorage.getItem(`bookmark_${bookId}`);
     const isValidLocation = rawLocation && rawLocation !== "undefined" && rawLocation !== "null";
+
+    const savedZoom = localStorage.getItem('readerZoom') || '100';
+    rendition.themes.fontSize(`${savedZoom}%`);
     
+    // (Nota: abbiamo rimosso applyCurrentTheme() da qui perché l'iframe del libro non esiste ancora)
+
     const displayPromise = isValidLocation ? rendition.display(rawLocation) : rendition.display();
 
     displayPromise.then(() => {
-        window.applyCurrentTheme();
+        // A questo punto il libro è a schermo e l'evento "rendered" (sotto) ha appena
+        // iniettato il CSS personalizzato, causando lo slittamento delle colonne.
+        
+        setTimeout(() => { 
+            // 🚨 IL FIX: Forziamo epub.js a ricalcolare il layout partendo dal segnalibro 
+            // ORIGINALE, ora che i font hanno raggiunto la loro dimensione definitiva!
+            const cfiCorretto = isValidLocation ? rawLocation : (rendition.location ? rendition.location.start.cfi : null);
+            
+            if (cfiCorretto) {
+                rendition.display(cfiCorretto).then(() => {
+                    // Ora la pagina è perfetta e allineata. Sblocchiamo i salvataggi.
+                    isLayoutSettling = false; 
+                });
+            } else {
+                isLayoutSettling = false;
+            }
+        }, 800); // Abbassato a 800ms per rendere l'apertura del libro più scattante
+
     }).catch(err => {
-        console.error("Errore nel caricamento della pagina salvata, forzo la copertina:", err);
+        console.error("Errore nel caricamento della pagina salvata:", err);
         rendition.display(); 
+        isLayoutSettling = false;
     });
 
     rendition.on("rendered", () => {
-        window.applyCurrentTheme();
-        
-        const savedZoom = localStorage.getItem('readerZoom') || '100';
-        rendition.themes.fontSize(`${savedZoom}%`);
+        // È qui che il font personalizzato, l'interlinea e i colori vengono applicati
+        window.applyCurrentTheme(); 
     });
 
+    // --- AGGIORNAMENTO POSIZIONE E PERCENTUALE ---
     rendition.on('relocated', function(location) {
         if (location && location.start && location.start.cfi) {
-            localStorage.setItem(`bookmark_${bookId}`, location.start.cfi);
+            
+            let percentage = location.start.percentage;
+            const savedPercentage = parseFloat(localStorage.getItem(`percentage_${bookId}`));
+
+            // 🛡️ SE IL LAYOUT SI STA ANCORA ASSESTANDO, FORZIAMO LA PERCENTUALE SALVATA
+            if (isLayoutSettling && !isNaN(savedPercentage)) {
+                percentage = savedPercentage;
+            } else {
+                // Altrimenti, se stiamo navigando normalmente, aggiorniamo il salvataggio
+                localStorage.setItem(`bookmark_${bookId}`, location.start.cfi);
+                if (percentage !== undefined) {
+                    localStorage.setItem(`percentage_${bookId}`, percentage);
+                }
+            }
             
             const progressEl = document.getElementById('reading-progress');
             if (progressEl) {
-                const percentage = location.start.percentage;
-                
                 if (percentage !== undefined && percentage > 0) {
                     const displayPercent = (percentage * 100).toFixed(1);
                     progressEl.innerText = displayPercent + "%";
@@ -308,14 +351,12 @@ window.openReader = function(epubUrl, bookId) {
                     if (reviewBtn) {
                         if (percentage >= 0.995) {
                             if (reviewBtn.style.display === 'none') {
-                                // Tema Dinamico usando la tua variabile globale isDarkMode
                                 reviewBtn.style.background = isDarkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.9)';
                                 reviewBtn.style.color = isDarkMode ? '#d4af37' : '#b89222'; 
                                 reviewBtn.style.border = `1px solid ${isDarkMode ? 'rgba(212,175,55,0.4)' : 'rgba(184,146,34,0.4)'}`;
                                 reviewBtn.style.boxShadow = isDarkMode ? '0 4px 15px rgba(0,0,0,0.5)' : '0 4px 15px rgba(0,0,0,0.1)';
 
                                 reviewBtn.style.display = 'block';
-                                // Nuova animazione morbida adatta alla barra inferiore
                                 reviewBtn.animate([
                                     { opacity: 0, transform: 'translateY(10px)' },
                                     { opacity: 1, transform: 'translateY(0)' }
@@ -326,10 +367,11 @@ window.openReader = function(epubUrl, bookId) {
                         }
                     }
                 } else {
-                    progressEl.innerText = "0%";
+                    progressEl.innerText = "0.0%";
                 }
 
-                if (percentage !== undefined) {
+                // Sincronizzazione col database (solo quando il layout è stabile)
+                if (percentage !== undefined && !isLayoutSettling) {
                     fetch(`/api/books/${bookId}/progress`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },

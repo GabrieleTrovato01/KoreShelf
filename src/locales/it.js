@@ -290,7 +290,7 @@ export default {
         logServerListening: "🚀 Backend in ascolto su http://localhost:{port}",
         errOpenBrowser: "Impossibile aprire il browser automaticamente (aprilo manualmente):",
 
-        terminal_sync: "Terminale sincronizzato in:",
+        terminal_sync: "Terminale sincronizzato in: {lang}",
 
         logFoundISBN: "🏷️ [Scanner] ISBN identificato: {isbn}",
         logNoISBNFound: "🏷️ [Scanner] Nessun ISBN trovato nel file. Procedo con fallback testuale.",
@@ -303,7 +303,5 @@ export default {
         epubCorruptedFallback: "⚠️ EPUB corrotto o malformato. Uso il nome del file come fallback.",
         noInternalCover: "🎨 PDF senza copertina interna. Il frontend genererà la copertina dalla prima pagina.",
         
-        monkeyPatchSuccess: "✅ Monkey-patch epub2 applicato con successo!",
-        monkeyPatchError: "⚠️ Impossibile applicare il monkey-patch per epub2:",
         walkNavMapWarning: "⚠️ Errore walkNavMap catturato e ignorato:",
     };
