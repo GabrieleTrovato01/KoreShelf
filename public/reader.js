@@ -287,29 +287,21 @@ window.openReader = function(epubUrl, bookId) {
 
     const savedZoom = localStorage.getItem('readerZoom') || '100';
     rendition.themes.fontSize(`${savedZoom}%`);
-    
-    // (Nota: abbiamo rimosso applyCurrentTheme() da qui perché l'iframe del libro non esiste ancora)
 
     const displayPromise = isValidLocation ? rendition.display(rawLocation) : rendition.display();
 
     displayPromise.then(() => {
-        // A questo punto il libro è a schermo e l'evento "rendered" (sotto) ha appena
-        // iniettato il CSS personalizzato, causando lo slittamento delle colonne.
-        
         setTimeout(() => { 
-            // 🚨 IL FIX: Forziamo epub.js a ricalcolare il layout partendo dal segnalibro 
-            // ORIGINALE, ora che i font hanno raggiunto la loro dimensione definitiva!
             const cfiCorretto = isValidLocation ? rawLocation : (rendition.location ? rendition.location.start.cfi : null);
             
             if (cfiCorretto) {
                 rendition.display(cfiCorretto).then(() => {
-                    // Ora la pagina è perfetta e allineata. Sblocchiamo i salvataggi.
                     isLayoutSettling = false; 
                 });
             } else {
                 isLayoutSettling = false;
             }
-        }, 800); // Abbassato a 800ms per rendere l'apertura del libro più scattante
+        }, 800);
 
     }).catch(err => {
         console.error("Errore nel caricamento della pagina salvata:", err);
@@ -318,7 +310,6 @@ window.openReader = function(epubUrl, bookId) {
     });
 
     rendition.on("rendered", () => {
-        // È qui che il font personalizzato, l'interlinea e i colori vengono applicati
         window.applyCurrentTheme(); 
     });
 
@@ -329,11 +320,9 @@ window.openReader = function(epubUrl, bookId) {
             let percentage = location.start.percentage;
             const savedPercentage = parseFloat(localStorage.getItem(`percentage_${bookId}`));
 
-            // 🛡️ SE IL LAYOUT SI STA ANCORA ASSESTANDO, FORZIAMO LA PERCENTUALE SALVATA
             if (isLayoutSettling && !isNaN(savedPercentage)) {
                 percentage = savedPercentage;
             } else {
-                // Altrimenti, se stiamo navigando normalmente, aggiorniamo il salvataggio
                 localStorage.setItem(`bookmark_${bookId}`, location.start.cfi);
                 if (percentage !== undefined) {
                     localStorage.setItem(`percentage_${bookId}`, percentage);
@@ -370,7 +359,6 @@ window.openReader = function(epubUrl, bookId) {
                     progressEl.innerText = "0.0%";
                 }
 
-                // Sincronizzazione col database (solo quando il layout è stabile)
                 if (percentage !== undefined && !isLayoutSettling) {
                     fetch(`/api/books/${bookId}/progress`, {
                         method: 'PUT',
