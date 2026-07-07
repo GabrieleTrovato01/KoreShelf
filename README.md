@@ -9,6 +9,8 @@ Read this in: [English](#english) | [Italiano](#italiano) | [Espanol](#spanish)
 <img width="800" height="500" alt="demo-reader" src="https://github.com/user-attachments/assets/8fca0fcd-2a92-40d9-a1cc-f8a2d552e57a" />
 
 [![DevGlobe](https://devglobe.app/badges/launched-on-devglobe-dark.svg)](https://devglobe.app)
+[![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/QZPggpPRd)
+[![Reddit](https://img.shields.io/badge/r%2FKoreShelf-FF4500?style=flat&logo=reddit&logoColor=white)](https://www.reddit.com/r/KoreShelf/)
 
 <a name="english"></a>
 ## 🇬🇧 English
