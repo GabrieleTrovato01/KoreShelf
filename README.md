@@ -1,16 +1,24 @@
-# 📚 KoreShelf
+<div align="center">
+   
+   # 📚 KoreShelf
+   
+   [![DevGlobe](https://img.shields.io/badge/Launched%20on-DevGlobe-1e1e24?style=for-the-badge&logo=target&logoColor=4a90e2)](https://devglobe.app)
+   [![Discord](https://img.shields.io/badge/Community-Discord-1e1e24?style=for-the-badge&logo=discord&logoColor=5865F2)](https://discord.gg/QZPggpPRd)
+   [![Reddit](https://img.shields.io/badge/Subreddit-r%2FKoreShelf-1e1e24?style=for-the-badge&logo=reddit&logoColor=FF4500)](https://www.reddit.com/r/KoreShelf/)
+   
+   Read this in: [English](#english) | [Italiano](#italiano) | [Espanol](#spanish)
 
-Read this in: [English](#english) | [Italiano](#italiano) | [Espanol](#spanish)
-## Home
-<img align="center" width="800" height="500" alt="demo" src="https://github.com/user-attachments/assets/499a1809-144c-4bc4-b870-f23b3e076ab2" />
+   ## Home
+   <img align="center" width="800" height="500" alt="demo" src="https://github.com/user-attachments/assets/499a1809-144c-4bc4-b870-f23b3e076ab2" />
+   
+   
+   ## Reader
+   <img width="800" height="500" alt="demo-reader" src="https://github.com/user-attachments/assets/8fca0fcd-2a92-40d9-a1cc-f8a2d552e57a" />
+
+</div>
 
 
-## Reader
-<img width="800" height="500" alt="demo-reader" src="https://github.com/user-attachments/assets/8fca0fcd-2a92-40d9-a1cc-f8a2d552e57a" />
 
-[![DevGlobe](https://devglobe.app/badges/launched-on-devglobe-dark.svg)](https://devglobe.app)
-[![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat&logo=discord&logoColor=white)](https://discord.gg/QZPggpPRd)
-[![Reddit](https://img.shields.io/badge/r%2FKoreShelf-FF4500?style=flat&logo=reddit&logoColor=white)](https://www.reddit.com/r/KoreShelf/)
 
 <a name="english"></a>
 ## 🇬🇧 English
