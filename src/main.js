@@ -1663,6 +1663,8 @@ window.addEventListener('pointerdown', (event) => {
     if (document.getElementById('metadata-manager-overlay')) return;
     if (document.getElementById('highlights-manager-overlay')) return;
 
+    if (event.target.closest('button, input, label, a')) return;
+
 
     pointerStartX = event.clientX;
     pointerStartY = event.clientY;
@@ -1677,6 +1679,10 @@ window.addEventListener('pointerup', (event) => {
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
     if (document.getElementById('highlights-manager-overlay')) return;
+    if (event.target.closest('button, input, label, a')) {
+        isDragging = false; 
+        return;
+    }
     if (!isDragging) return;
     isDragging = false;
     pointerEndX = event.clientX;
@@ -1704,75 +1710,73 @@ window.addEventListener('pointerup', (event) => {
         const intersects = raycaster.intersectObjects(libraryGroup.children, true);
 
         if (intersects.length > 0) {
-            let obj = intersects[0].object;
-            //trama
-            if (obj.name === "backCover_mesh") {
-                // Mostriamo il modale passandogli i dati salvati
-                window.showFullPlotModal(obj.userData);
-                return; // Fermiamo qui: il libro non deve aprirsi o girarsi
-            }
+            const originalMesh = intersects[0].object;
+            let bookObj = originalMesh;
 
-            while (obj.parent !== libraryGroup) obj = obj.parent;
+            while (bookObj.parent !== libraryGroup && bookObj.parent !== null) {
+                bookObj = bookObj.parent;
+            }
             
-            const clickedIndex = obj.userData.index;
+            const clickedIndex = bookObj.userData.index;
 
             if (clickedIndex !== currentIndex) {
                 currentIndex = clickedIndex;
                 isShowingBack = false;
-                infoBtn.innerText = t('showSynopsis');
-                updateCarousel();
-            } else {
-                // APERTURA DEL LIBRO
-                const activeBook = booksArray[currentIndex];
-                activeBook.userData.targetZ = 2.8; 
-                activeBook.userData.targetRotY = 0; 
-                
-                if (!activeBook.userData.hasHinge) {
-                    const coverGeo = new THREE.PlaneGeometry(2.0, 3.0);
-                    const coverMat = activeBook.material[4]; 
-                    const hinge = new THREE.Group();
-                    hinge.position.set(-1.0, 0, activeBook.userData.thickness / 2 + 0.002);
-                    const movingCover = new THREE.Mesh(coverGeo, coverMat);
-                    movingCover.position.set(1.0, 0, 0);
-                    hinge.add(movingCover);
-                    activeBook.add(hinge);
-                    activeBook.userData.hinge = hinge;
-                    activeBook.userData.hasHinge = true;
-                    activeBook.material[4] = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 0.9 });
+                if (typeof infoBtn !== 'undefined' && infoBtn) {
+                    infoBtn.innerText = t('showSynopsis');
                 }
-
-                document.querySelector('.top-bar').style.opacity = '0';
-                uiContainer.style.opacity = '0';
-                leftArrow.style.opacity = '0';
-                rightArrow.style.opacity = '0';
-                creditsFooter.style.opacity = '0';
-
-                donateBtn.style.opacity = '0';
-                donateBtn.style.pointerEvents = 'none';
-                
-                activeBook.userData.hinge.userData = { targetRotY: -Math.PI * 0.85 };
-
-                setTimeout(() => {
-                    const bookPath = activeBook.userData.epubPath;
-                    const isPdf = bookPath.toLowerCase().endsWith('.pdf');
-
-                    if (isPdf) {
-                        console.log("📄 Apertura PDF rilevata...");
-                        // Puliamo il viewer EPUB per sicurezza
-                        document.getElementById('viewer').style.display = 'none';
-                        document.getElementById('pdf-container').style.display = 'flex'; 
-                        
-                        
-                        window.openPdfReader(bookPath, activeBook.userData.id);
-                    } else {
-                        console.log("📚 Apertura EPUB rilevata...");
-                        document.getElementById('pdf-container').style.display = 'none'; 
-                        document.getElementById('viewer').style.display = 'block';
-                        
-                        window.openReader(bookPath, activeBook.userData.id);
-                    }
-                }, 400);
+                updateCarousel();
+                return; 
             }
+            if (originalMesh.name === "backCover_mesh") {
+                window.showFullPlotModal(bookObj.userData);
+                return; 
+            }
+            const activeBook = booksArray[currentIndex];
+            activeBook.userData.targetZ = 2.8; 
+            activeBook.userData.targetRotY = 0; 
+            
+            if (!activeBook.userData.hasHinge) {
+                const coverGeo = new THREE.PlaneGeometry(2.0, 3.0);
+                const coverMat = activeBook.material[4]; 
+                const hinge = new THREE.Group();
+                hinge.position.set(-1.0, 0, activeBook.userData.thickness / 2 + 0.002);
+                const movingCover = new THREE.Mesh(coverGeo, coverMat);
+                movingCover.position.set(1.0, 0, 0);
+                hinge.add(movingCover);
+                activeBook.add(hinge);
+                activeBook.userData.hinge = hinge;
+                activeBook.userData.hasHinge = true;
+                activeBook.material[4] = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 0.9 });
+            }
+
+            document.querySelector('.top-bar').style.opacity = '0';
+            uiContainer.style.opacity = '0';
+            leftArrow.style.opacity = '0';
+            rightArrow.style.opacity = '0';
+            creditsFooter.style.opacity = '0';
+
+            donateBtn.style.opacity = '0';
+            donateBtn.style.pointerEvents = 'none';
+            
+            activeBook.userData.hinge.userData = { targetRotY: -Math.PI * 0.85 };
+
+            setTimeout(() => {
+                const bookPath = activeBook.userData.epubPath;
+                const isPdf = bookPath.toLowerCase().endsWith('.pdf');
+
+                if (isPdf) {
+                    console.log("📄 Apertura PDF rilevata...");
+                    document.getElementById('viewer').style.display = 'none';
+                    document.getElementById('pdf-container').style.display = 'flex'; 
+                    window.openPdfReader(bookPath, activeBook.userData.id);
+                } else {
+                    console.log("📚 Apertura EPUB rilevata...");
+                    document.getElementById('pdf-container').style.display = 'none'; 
+                    document.getElementById('viewer').style.display = 'block';
+                    window.openReader(bookPath, activeBook.userData.id);
+                }
+            }, 400);
         }
     }
 });

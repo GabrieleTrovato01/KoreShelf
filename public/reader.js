@@ -16,6 +16,8 @@ let isDarkMode = localStorage.getItem('readerDarkMode') === 'true';
 
 window.openReader = function(epubUrl, bookId) {
 
+    let activeHighlights = [];
+
     const readerReviewBtn = document.getElementById('reader-review-btn');
     if (readerReviewBtn) {
         readerReviewBtn.style.display = 'none'; // Nascondilo all'apertura del libro
@@ -157,6 +159,8 @@ window.openReader = function(epubUrl, bookId) {
               .then(data => {
                   if(data.success) { 
                       console.log("Sottolineatura rimossa:", data);
+
+                      activeHighlights = activeHighlights.filter(h => h.cfi !== cfi);
                       
                       window.dispatchEvent(new CustomEvent('onHighlightRemoved', { 
                           detail: { bookId: bookId, cfi: cfi } 
@@ -167,15 +171,56 @@ window.openReader = function(epubUrl, bookId) {
         }
     };
 
+    // Variabile per gestire i click veloci
+    let redrawTimeout = null;
+
+    // Funzione bulletproof per il ridisegno
+    window.redrawEpubHighlights = function() {
+        if (!rendition) return;
+
+        // Se l'utente clicca velocemente "+", annulla il ridisegno precedente
+        if (redrawTimeout) clearTimeout(redrawTimeout);
+
+        // Aspettiamo 600ms: diamo a epub.js il tempo di finire lo spostamento del testo
+        redrawTimeout = setTimeout(() => {
+            
+            // Chiediamo al database le sottolineature esatte e aggiornate
+            fetch('/api/books')
+                .then(res => res.json())
+                .then(books => {
+                    const book = books.find(b => b.id === bookId);
+                    
+                    if (book && book.highlights && book.highlights.length > 0) {
+                        book.highlights.forEach(hl => {
+                            // 1. Rimuoviamo forzatamente le vecchie "tracce" fantasma
+                            try { 
+                                rendition.annotations.remove(hl.cfi, "highlight"); 
+                            } catch(e) {}
+                            
+                            // 2. Le ridisegniamo perfettamente allineate al nuovo testo
+                            rendition.annotations.highlight(hl.cfi, {}, (e) => {
+                                handleHighlightClick(e, hl.cfi);
+                            });
+                        });
+                    }
+                })
+                .catch(err => console.error("Errore nel recupero highlight:", err));
+                
+        }, 150); // 300 millisecondi di sicurezza
+    };
+
     // 1. CARICA GLI HIGHLIGHT SALVATI DAL DB
     fetch('/api/books').then(res => res.json()).then(books => {
         const book = books.find(b => b.id === bookId);
         if (book && book.highlights && book.highlights.length > 0) {
+            activeHighlights = book.highlights;
             book.highlights.forEach(hl => {
                 rendition.annotations.highlight(hl.cfi, {}, (e) => {
                     handleHighlightClick(e, hl.cfi); // Associa il click
                 });
             });
+        } else {
+            activeHighlights = [];
         }
     });
 
@@ -198,6 +243,8 @@ window.openReader = function(epubUrl, bookId) {
             }).then(res => res.json()).then(data => {
                 if(data.success) {
                     console.log("Testo salvato in memoria:", text);
+
+                    activeHighlights.push({ cfi: cfiRange, text: text });
                     
                     // --- LANCIA IL SEGNALE ALLA BACHECA 3D ---
                     window.dispatchEvent(new CustomEvent('onHighlightAdded', { 
@@ -1309,7 +1356,6 @@ window.applyCurrentTheme = function() {
                 styleTag.innerHTML = `
                     html, body { 
                         background-color: #121212 !important; 
-                        line-height: ${savedLineHeight} !important; 
                         font-family: ${savedFont} !important;
                         -ms-overflow-style: none !important;
                         scrollbar-width: none !important;
@@ -1324,6 +1370,7 @@ window.applyCurrentTheme = function() {
                         color: #e0e0e0 !important; 
                         background-color: transparent; 
                         font-family: ${savedFont} !important;
+                        line-height: ${savedLineHeight} !important;
                     }
                     p { text-align: ${savedAlign} !important; }
                     a, a * { color: #4da6ff !important; }
@@ -1350,7 +1397,6 @@ window.applyCurrentTheme = function() {
                 styleTag.innerHTML = `
                     html, body { 
                         background-color: #faf9f6 !important; 
-                        line-height: ${savedLineHeight} !important; 
                         font-family: ${savedFont} !important;
                         -ms-overflow-style: none !important;
                         scrollbar-width: none !important; 
@@ -1365,6 +1411,7 @@ window.applyCurrentTheme = function() {
                         color: #2b2b2b !important; 
                         background-color: transparent; 
                         font-family: ${savedFont} !important;
+                        line-height: ${savedLineHeight} !important;
                     }
                     p { text-align: ${savedAlign} !important; }
                     a, a * { color: #0066cc !important; }
@@ -1729,12 +1776,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <div style="margin-bottom: 25px;">
                 <label id="sidebar-zoom-label" style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;"></label>
-                <input type="range" id="sidebar-zoom-slider" class="glass-slider" min="80" max="250" value="${localStorage.getItem('readerZoom') || '100'}" style="width: 100%;">
+                <div style="display: flex; gap: 10px; width: 100%; box-sizing: border-box;">
+                    <button id="zoom-decrease-btn" class="glass-effect modern-btn" style="flex: 0 0 45px; padding: 0; height: 45px; font-size: 24px; display: flex; align-items: center; justify-content: center; min-width: 0; border-radius: 12px;">-</button>
+                    <input type="text" id="sidebar-zoom-input" class="modern-input glass-effect" value="${localStorage.getItem('readerZoom') || '100'}%" readonly style="flex: 1; min-width: 0; text-align: center; cursor: default; padding: 0; height: 45px; margin: 0; box-sizing: border-box; border-radius: 12px;">
+                    <button id="zoom-increase-btn" class="glass-effect modern-btn" style="flex: 0 0 45px; padding: 0; height: 45px; font-size: 22px; display: flex; align-items: center; justify-content: center; min-width: 0; border-radius: 12px;">+</button>
+                </div>
             </div>
 
             <div style="margin-bottom: 25px;">
                 <label id="sidebar-line-label" style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;"></label>
-                <input type="range" id="sidebar-line-height-slider" class="glass-slider" min="1.0" max="3.0" step="0.1" value="${localStorage.getItem('readerLineHeight') || '1.65'}" style="width: 100%;">
+                <div style="display: flex; gap: 10px; width: 100%; box-sizing: border-box;">
+                    <button id="line-decrease-btn" class="glass-effect modern-btn" style="flex: 0 0 45px; padding: 0; height: 45px; font-size: 24px; display: flex; align-items: center; justify-content: center; min-width: 0; border-radius: 12px;">-</button>
+                    <input type="text" id="sidebar-line-input" class="modern-input glass-effect" value="${localStorage.getItem('readerLineHeight') || '1.65'}" readonly style="flex: 1; min-width: 0; text-align: center; cursor: default; padding: 0; height: 45px; margin: 0; box-sizing: border-box; border-radius: 12px;">
+                    <button id="line-increase-btn" class="glass-effect modern-btn" style="flex: 0 0 45px; padding: 0; height: 45px; font-size: 22px; display: flex; align-items: center; justify-content: center; min-width: 0; border-radius: 12px;">+</button>
+                </div>
             </div>
 
             <div style="margin-bottom: 25px;">
@@ -1745,7 +1800,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 </select>
             </div>
 
-            <!-- NUOVA SEZIONE ALLINEAMENTO TESTO -->
             <div id="alignment-section" style="margin-bottom: 25px;">
                 <label id="sidebar-align-label" style="display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; opacity: 0.8;"></label>
                 <div style="display: flex; gap: 8px; justify-content: space-between; width: 100%;">
@@ -1817,10 +1871,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('close-sidebar-btn').onclick = chiudiSidebar;
         sidebarBackdrop.onclick = chiudiSidebar;
 
-        // --- 4. COLLEGAMENTO EVENTI SIDEBAR (Font, Zoom, Interlinea) ---
+        // --- 4. COLLEGAMENTO EVENTI SIDEBAR ---
+        
         const fontSelect = document.getElementById('sidebar-font-select');
-        const zoomSideSlider = document.getElementById('sidebar-zoom-slider');
-        const lineSlider = document.getElementById('sidebar-line-height-slider');
         const flowSelect = document.getElementById('sidebar-flow-select');
 
         // Impostazioni Font
@@ -1829,30 +1882,67 @@ document.addEventListener('DOMContentLoaded', () => {
             fontSelect.addEventListener('change', (e) => {
                 localStorage.setItem('readerFont', e.target.value);
                 window.applyCurrentTheme(); 
+                if (window.redrawEpubHighlights) window.redrawEpubHighlights();
             });
         }
 
-        // Impostazioni Zoom
-        if (zoomSideSlider) {
-            zoomSideSlider.value = localStorage.getItem('readerZoom') || '100';
-            zoomSideSlider.addEventListener('input', (e) => {
-                const val = e.target.value;
-                localStorage.setItem('readerZoom', val);
+        // --- IMPOSTAZIONI ZOOM (Nuova UI a bottoni) ---
+        const btnZoomDec = document.getElementById('zoom-decrease-btn');
+        const btnZoomInc = document.getElementById('zoom-increase-btn');
+        const zoomInput = document.getElementById('sidebar-zoom-input');
+
+        const updateZoom = (change) => {
+            let currentZoom = parseInt(localStorage.getItem('readerZoom') || '100');
+            let newZoom = currentZoom + change;
+            
+            if (newZoom < 80) newZoom = 80;
+            if (newZoom > 250) newZoom = 250;
+
+            if (newZoom !== currentZoom) {
+                localStorage.setItem('readerZoom', newZoom);
+                if (zoomInput) zoomInput.value = `${newZoom}%`;
+                
                 if (typeof rendition !== 'undefined' && rendition) {
-                    rendition.themes.fontSize(`${val}%`);
+                    rendition.themes.fontSize(`${newZoom}%`);
+                    if (window.redrawEpubHighlights) window.redrawEpubHighlights();
                 } else if (typeof pdfDoc !== 'undefined' && pdfDoc) {
                     window.updatePdfZoom();
                 }
-            });
+            }
+        };
+
+        if (btnZoomDec && btnZoomInc) {
+            btnZoomDec.onclick = () => updateZoom(-10);
+            btnZoomInc.onclick = () => updateZoom(10);
         }
 
-        // Impostazioni Interlinea
-        if (lineSlider) {
-            lineSlider.value = localStorage.getItem('readerLineHeight') || '1.65';
-            lineSlider.addEventListener('input', (e) => {
-                localStorage.setItem('readerLineHeight', e.target.value);
+        // --- IMPOSTAZIONI INTERLINEA (Nuova UI a bottoni) ---
+        const btnLineDec = document.getElementById('line-decrease-btn');
+        const btnLineInc = document.getElementById('line-increase-btn');
+        const lineInput = document.getElementById('sidebar-line-input');
+
+        const updateLineHeight = (change) => {
+            let currentLine = parseFloat(localStorage.getItem('readerLineHeight') || '1.65');
+            let newLine = currentLine + change;
+            
+            // Fix per evitare problemi di precisione con i float in JS
+            newLine = Math.round(newLine * 10) / 10;
+            
+            if (newLine < 1.0) newLine = 1.0;
+            if (newLine > 3.0) newLine = 3.0;
+
+            if (newLine !== currentLine) {
+                localStorage.setItem('readerLineHeight', newLine.toString());
+                if (lineInput) lineInput.value = newLine.toFixed(1);
+                
                 window.applyCurrentTheme();
-            });
+                if (window.redrawEpubHighlights) window.redrawEpubHighlights();
+            }
+        };
+
+        if (btnLineDec && btnLineInc) {
+            btnLineDec.onclick = () => updateLineHeight(-0.1);
+            btnLineInc.onclick = () => updateLineHeight(0.1);
         }
 
         // Impostazioni Modalità Scorrimento (IBRIDO EPUB E PDF)
@@ -1897,6 +1987,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const updateAlignment = (alignment) => {
             localStorage.setItem('readerTextAlign', alignment);
             window.applyCurrentTheme(); // Riapplica il tema CSS istantaneamente
+            if (window.redrawEpubHighlights) window.redrawEpubHighlights();
         };
 
         if (btnAlignLeft) btnAlignLeft.onclick = () => updateAlignment('left');
