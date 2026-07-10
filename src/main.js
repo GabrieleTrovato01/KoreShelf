@@ -207,7 +207,7 @@ styleStyle.innerHTML = `
     .btn-text { display: inline-block; }
 
     /* Quando lo schermo scende sotto gli 850px di larghezza... */
-    @media (max-width: 850px) {
+    @media (max-width: 950px) {
         .btn-text { display: none !important; } /* Nascondi il testo */
         .btn-icon { margin-right: 0 !important; font-size: 18px; } /* Ingrandisci leggermente l'icona e centrala */
         
@@ -462,21 +462,14 @@ donateBtn.className = 'glass-effect modern-btn';
 donateBtn.style.textDecoration = 'none';
 
 
-// --- NUOVO POSIZIONAMENTO ---
-donateBtn.style.position = 'fixed';
-donateBtn.style.bottom = '50px';
-donateBtn.style.left = '20px';
-donateBtn.style.zIndex = '1000';// Assicura che sia cliccabile e stia sopra il canvas 3D
-
-// Allineiamo struttura e spaziature
+donateBtn.style.position = 'relative'; 
+donateBtn.style.zIndex = '1000';
 donateBtn.style.padding = '12px 15px';
 donateBtn.style.fontWeight = 'bold';
 donateBtn.style.whiteSpace = 'nowrap'; 
-
-// Manteniamo la variazione di colore azzurro/blu
 donateBtn.style.background = 'rgba(0, 112, 186, 0.15)'; 
 donateBtn.style.borderColor = 'rgba(0, 112, 186, 0.4)';
-donateBtn.style.color = '#66b3ff'; 
+donateBtn.style.color = '#66b3ff';
 
 // Gestiamo solo il cambio di colore su hover
 donateBtn.onmouseover = () => {
@@ -494,33 +487,67 @@ document.body.appendChild(donateBtn);
 // --- GESTIONE BOTTONE HELP ---
 const helpBtn = document.getElementById('help-btn');
 if (helpBtn) {
+    // Reset totale (Uccidiamo qualsiasi vecchia regola ereditata dal CSS)
+    helpBtn.style.position = 'static'; 
+    helpBtn.style.margin = '0';
+    helpBtn.style.transform = 'none'; // <-- È questo che lo spostava in alto!
+    helpBtn.style.top = 'auto';
+    helpBtn.style.bottom = 'auto';
+    helpBtn.style.left = 'auto';
+    helpBtn.style.right = 'auto';
+    
     helpBtn.onclick = () => {
         openHelpModal(); // Richiama la funzione dal file help-modal.js
     };
 }
 
 
-// --- COSTRUZIONE MENU INFERIORE ---
+// --- COSTRUZIONE MENU INFERIORE (FLEXBOX MACRO-CONTENITORE) ---
 const uiContainer = document.createElement('div');
 uiContainer.style.position = 'absolute';
 uiContainer.style.bottom = '40px';
-uiContainer.style.left = '50%';
-uiContainer.style.transform = 'translateX(-50%)';
+uiContainer.style.left = '0';
+uiContainer.style.width = '100%'; // Occupa tutta la larghezza dello schermo
 uiContainer.style.display = 'flex'; 
-uiContainer.style.gap = '15px';     
+uiContainer.style.justifyContent = 'space-between'; // Spinge i gruppi a Sinistra, Centro e Destra
 uiContainer.style.alignItems = 'center';
+uiContainer.style.padding = '0 30px'; // Distanza dai bordi dello schermo
+uiContainer.style.boxSizing = 'border-box';
+uiContainer.style.pointerEvents = 'none'; // Importante: non blocca i click sul 3D negli spazi vuoti!
 document.body.appendChild(uiContainer);
+
+// 1. Gruppo Sinistro (Donazione)
+const leftUiGroup = document.createElement('div');
+leftUiGroup.style.display = 'flex';
+leftUiGroup.style.pointerEvents = 'auto'; // Riabilita i click per questo blocco
+uiContainer.appendChild(leftUiGroup);
+leftUiGroup.appendChild(donateBtn);
+
+// 2. Gruppo Centrale (Azioni Libro)
+const centerUiGroup = document.createElement('div');
+centerUiGroup.style.display = 'flex';
+centerUiGroup.style.gap = '15px';
+centerUiGroup.style.alignItems = 'center';
+centerUiGroup.style.pointerEvents = 'auto'; // Riabilita i click per questo blocco
+uiContainer.appendChild(centerUiGroup);
+
+// 3. Gruppo Destro (Help)
+const rightUiGroup = document.createElement('div');
+rightUiGroup.style.display = 'flex';
+rightUiGroup.style.pointerEvents = 'auto'; // Riabilita i click per questo blocco
+uiContainer.appendChild(rightUiGroup);
+if (helpBtn) rightUiGroup.appendChild(helpBtn);
 
 const infoBtn = document.createElement('button');
 infoBtn.innerText = t('showSynopsis');
 infoBtn.className = 'glass-effect modern-btn';
-uiContainer.appendChild(infoBtn);
+centerUiGroup.appendChild(infoBtn);
 
 // 3. Bottone per Assegnare la Categoria al Libro
 const assignCatBtn = document.createElement('button');
 assignCatBtn.innerHTML = t('assignCategory');
 assignCatBtn.className = 'glass-effect modern-btn';
-uiContainer.appendChild(assignCatBtn);
+centerUiGroup.appendChild(assignCatBtn);
 
 const deleteBookBtn = document.createElement('button');
 deleteBookBtn.innerHTML = t('deleteBook');
@@ -541,13 +568,13 @@ deleteBookBtn.onmouseout = () => {
     deleteBookBtn.style.transform = 'translateY(0px)';
     deleteBookBtn.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
 };
-uiContainer.appendChild(deleteBookBtn);
+centerUiGroup.appendChild(deleteBookBtn);
 
 const editMetadataBtn = document.createElement('button');
 // Puoi aggiungere la traduzione in i18n, per ora usiamo un testo fisso con fallback
 editMetadataBtn.innerHTML = t('editMetadata') || '✏️ Modifica'; 
 editMetadataBtn.className = 'glass-effect modern-btn';
-uiContainer.appendChild(editMetadataBtn);
+centerUiGroup.appendChild(editMetadataBtn);
 
 
 editMetadataBtn.onclick = () => {
