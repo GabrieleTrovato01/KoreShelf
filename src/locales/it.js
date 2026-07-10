@@ -202,6 +202,10 @@ export default {
 
         confirmHighlight: "Vuoi sottolineare questo testo?",
 
+        shareQuoteBtn: "🔗 Condividi",
+        shareQuoteFallback: "Immagine scaricata! Condividila dove vuoi.",
+        shareQuoteBrand: "Generato con KoreShelf",
+
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",
         errFormat: "Formato non supportato. Usa EPUB o PDF.",

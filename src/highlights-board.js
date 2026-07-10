@@ -300,6 +300,7 @@ export function removeHighlightLocally(bookId, cfi) {
 }
 
 // Modale 2D Overlay di gestione
+// Modale 2D Overlay di gestione
 function openHighlightsManagerModal(book) {
     const originalBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -327,6 +328,7 @@ function openHighlightsManagerModal(book) {
         boxShadow: '0 20px 45px rgba(0,0,0,0.6)'
     });
 
+    // Aggiunto il pulsante CONDIVIDI accanto a quello Elimina
     modalBox.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
             <h3 style="margin: 0; font-family: sans-serif; color: #d4af37; font-size: 19px;">📝 ${t('manageHighlightsTitle') || 'Gestione Sottolineature'}</h3>
@@ -338,7 +340,10 @@ function openHighlightsManagerModal(book) {
             ${book.highlights.map((hl, index) => `
                 <div id="hl-card-${index}" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px;">
                     <p style="margin: 0; font-family: Georgia, serif; font-style: italic; line-height: 1.6; color: #e5e5e5; font-size: 14.5px;">"${hl.text}"</p>
-                    <div style="display: flex; justify-content: flex-end;">
+                    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                        <button class="share-specific-hl-btn modern-btn glass-effect" data-cfi="${hl.cfi}" style="padding: 6px 14px; font-size: 11px; background: rgba(77, 166, 255, 0.15); border-color: rgba(77, 166, 255, 0.3); color: #4da6ff;">
+                            ${t('shareQuoteBtn') || '🔗 Condividi'}
+                        </button>
                         <button class="delete-specific-hl-btn modern-btn glass-effect" data-cfi="${hl.cfi}" data-card-id="hl-card-${index}" style="padding: 6px 14px; font-size: 11px; background: rgba(217, 83, 79, 0.15); border-color: rgba(217, 83, 79, 0.3); color: #ff9999;">
                             🗑️ ${t('deleteBook') || 'Elimina'}
                         </button>
@@ -364,12 +369,33 @@ function openHighlightsManagerModal(book) {
 
     document.getElementById('close-hl-modal').onclick = closeForm;
     overlay.addEventListener('pointerdown', (e) => { 
-    if (e.target === overlay) {
-        e.stopPropagation();
-        closeForm();
-    }
-});
+        if (e.target === overlay) {
+            e.stopPropagation();
+            closeForm();
+        }
+    });
 
+    // Logica Tasto CONDIVIDI
+    modalBox.querySelectorAll('.share-specific-hl-btn').forEach(button => {
+        button.onclick = async (event) => {
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳...';
+            btn.disabled = true;
+
+            const cfiCode = btn.getAttribute('data-cfi');
+            const hl = book.highlights.find(h => h.cfi === cfiCode);
+            
+            if (hl) {
+                await shareHighlightImage(book, hl.text);
+            }
+            
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        };
+    });
+
+    // Logica Tasto ELIMINA
     modalBox.querySelectorAll('.delete-specific-hl-btn').forEach(button => {
         button.onclick = async (event) => {
             const confirmMsg = t('removeHighlightConfirm') || 'Vuoi eliminare questa sottolineatura?';
@@ -400,4 +426,149 @@ function openHighlightsManagerModal(book) {
             }
         };
     });
+}
+
+/**
+ * Genera un'immagine quadrata per i social (Instagram/Facebook style)
+ * unendo testo, copertina e titolo, e avvia la condivisione.
+ */
+async function shareHighlightImage(book, highlightText) {
+    const canvas = document.createElement('canvas');
+    // Formato quadrato ottimizzato per i social (1080x1080)
+    canvas.width = 1080;
+    canvas.height = 1080;
+    const ctx = canvas.getContext('2d');
+
+    // Sfondo Gradiente elegante
+    const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
+    grad.addColorStop(0, '#1c2833'); // Blu notte scuro
+    grad.addColorStop(1, '#000000'); // Nero
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Virgolette decorative
+    ctx.fillStyle = 'rgba(212, 175, 55, 0.4)'; // Oro semitrasparente
+    ctx.font = 'bold 180px Georgia, serif';
+    ctx.fillText('“', 60, 160);
+
+    // Scrittura del testo (con a capo automatico)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'italic 45px Georgia, serif';
+    ctx.textAlign = 'left';
+    
+    // Pulizia del testo da eccessi
+    let cleanText = highlightText.trim();
+    if (cleanText.length > 300) {
+        cleanText = cleanText.substring(0, 297) + "..."; // Tronca se è una citazione gigantesca
+    }
+
+    const maxWidth = 920;
+    const words = cleanText.split(' ');
+    let line = '';
+    let textY = 220;
+    const lineHeight = 65;
+
+    for (let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + ' ';
+        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+            ctx.fillText(line, 80, textY);
+            line = words[n] + ' ';
+            textY += lineHeight;
+        } else {
+            line = testLine;
+        }
+    }
+    ctx.fillText(line, 80, textY);
+
+    // Blocco Inferiore (Copertina e Info Libro)
+    const bottomY = 1080 - 60; // 60px dal fondo
+    const coverWidth = 180;
+    const coverHeight = 270;
+    const coverX = 80;
+    const coverY = bottomY - coverHeight;
+
+    // Disegno Copertina (Se presente)
+    if (book.coverPath) {
+        try {
+            const img = new Image();
+            img.crossOrigin = "Anonymous"; // Evita problemi di CORS
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = '/' + book.coverPath;
+            });
+            
+            // Effetto Ombra sotto la copertina
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 10;
+            ctx.shadowOffsetY = 10;
+            
+            ctx.drawImage(img, coverX, coverY, coverWidth, coverHeight);
+            
+            // Reset ombra per i testi
+            ctx.shadowColor = 'transparent';
+        } catch (e) {
+            console.warn("Impossibile caricare l'immagine per la condivisione.", e);
+            // Rettangolo fallback
+            ctx.fillStyle = '#222';
+            ctx.fillRect(coverX, coverY, coverWidth, coverHeight);
+        }
+    }
+
+    // Info Titolo e Autore
+    const textStartX = coverX + coverWidth + 40;
+    let infoY = coverY + (coverHeight / 2) - 20;
+
+    // Titolo
+    ctx.fillStyle = '#d4af37'; // Oro
+    ctx.font = 'bold 40px sans-serif';
+    
+    // Taglia il titolo se troppo lungo
+    let displayTitle = book.title.toUpperCase();
+    if (ctx.measureText(displayTitle).width > (1080 - textStartX - 40)) {
+        displayTitle = displayTitle.substring(0, 30) + "...";
+    }
+    ctx.fillText(displayTitle, textStartX, infoY);
+
+    // Autore
+    ctx.fillStyle = '#bbbbbb';
+    ctx.font = '32px sans-serif';
+    ctx.fillText(book.author, textStartX, infoY + 50);
+
+    // Branding KoreShelf
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    ctx.font = '22px sans-serif';
+    ctx.fillText(t('shareQuoteBrand') || "Generato con KoreShelf", textStartX, coverY + coverHeight);
+
+    // Conversione e Condivisione
+    canvas.toBlob(async (blob) => {
+        const file = new File([blob], `KoreShelf_Quote_${Date.now()}.jpg`, { type: 'image/jpeg' });
+        
+        // Verifica se il browser/dispositivo supporta la condivisione file nativa (Smartphone / Mac OS / Windows moderni)
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: book.title,
+                    text: `"${cleanText}"\n— ${book.author}`
+                });
+                console.log("Condivisione completata!");
+            } catch (err) {
+                console.warn("Condivisione annullata o fallita", err);
+            }
+        } else {
+            // Fallback per vecchi browser o desktop che non supportano la condivisione
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `KoreShelf_Quote_${Date.now()}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(t('shareQuoteFallback') || "Immagine scaricata! Condividila dove vuoi.");
+        }
+    }, 'image/jpeg', 0.95);
 }

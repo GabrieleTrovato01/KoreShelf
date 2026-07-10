@@ -216,6 +216,10 @@ export default {
 
     confirmHighlight: "Voulez-vous surligner ce texte ?",
 
+    shareQuoteBtn: "🔗 Partager",
+    shareQuoteFallback: "Image téléchargée ! Partagez-la où vous voulez.",
+    shareQuoteBrand: "Généré par KoreShelf",
+
     //--------------------------------------------------server.js locales-------------------------------------------------------------
 
     logUploadDirCreated: "📁 Répertoire d'upload créé automatiquement.",
