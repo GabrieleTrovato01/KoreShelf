@@ -6,7 +6,7 @@
    [![Discord](https://img.shields.io/badge/Community-Discord-1e1e24?style=for-the-badge&logo=discord&logoColor=5865F2)](https://discord.gg/S2jqFGK7wJ)
    [![Reddit](https://img.shields.io/badge/Subreddit-r%2FKoreShelf-1e1e24?style=for-the-badge&logo=reddit&logoColor=FF4500)](https://www.reddit.com/r/KoreShelf/)
    
-   🌍 **Read this in:** [🇬🇧 English](README.md) | [🇮🇹 Italiano](README.it.md) | [🇪🇸 Español](README.es.md) | [🇫🇷 Français](README.fr.md) | [🇩🇪 Deutsch](README.de.md)
+   🌍 **Read this in:** [🇬🇧 English](README.md) | [🇮🇹 Italiano](docs/README.it.md) | [🇪🇸 Español](docs/README.es.md) | [🇫🇷 Français](docs/README.fr.md) | [🇩🇪 Deutsch](docs/README.de.md)
 
    ## Home
    <img align="center" width="800" height="500" alt="demo" src="https://github.com/user-attachments/assets/499a1809-144c-4bc4-b870-f23b3e076ab2" />
@@ -127,7 +127,11 @@ To best manage your workspace, the interface automatically adapts to smaller scr
 
 ### 🌍 Multilingual Support (i18n)
 
-KoreShelf supports internationalization (i18n) using an asynchronous loading system to ensure optimal performance without startup lag. Currently, the application is available in English, Italian, Spanish, French, and German.
+KoreShelf supports internationalization (i18n) using an asynchronous loading system to ensure optimal performance without startup lag. Currently, the application is available in other languages:
+- [Italiano](docs/README.it.md)
+- [Español](docs/README.es.md)
+- [Français](docs/README.fr.md)
+- [Deutsch](docs/README.de.md)
 
 You can switch languages on the fly using the dedicated button in the top navigation bar. Your language preference is automatically saved in your browser via `localStorage`.
 
