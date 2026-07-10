@@ -219,9 +219,12 @@ export default {
 
         confirmHighlight: "¿Quieres resaltar este texto?",
 
-        shareQuoteBtn: "🔗 Compartir",
+        shareQuoteBtn: "Compartir",
         shareQuoteFallback: "¡Imagen descargada! Compártela donde quieras.",
         shareQuoteBrand: "Generado con KoreShelf",
+        previewTitle: "Vista previa de la imagen",
+        downloadBtn: "Descargar",
+        shareNotSupported: "Tu dispositivo/navegador no soporta compartir nativamente. ¡Usa el botón Descargar!",
 
         tableOfContents: "Tabla de Contenidos",
         noTocFound: "No se encontró índice. Usa el salto rápido:",

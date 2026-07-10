@@ -300,7 +300,6 @@ export function removeHighlightLocally(bookId, cfi) {
 }
 
 // Modale 2D Overlay di gestione
-// Modale 2D Overlay di gestione
 function openHighlightsManagerModal(book) {
     const originalBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -328,7 +327,17 @@ function openHighlightsManagerModal(book) {
         boxShadow: '0 20px 45px rgba(0,0,0,0.6)'
     });
 
-    // Aggiunto il pulsante CONDIVIDI accanto a quello Elimina
+    let safeHighlights = [];
+    try {
+        if (Array.isArray(book.highlights)) {
+            safeHighlights = book.highlights;
+        } else if (typeof book.highlights === 'string') {
+            safeHighlights = JSON.parse(book.highlights);
+        }
+    } catch (e) {
+        console.warn("Impossibile leggere le sottolineature", e);
+    }
+
     modalBox.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
             <h3 style="margin: 0; font-family: sans-serif; color: #d4af37; font-size: 19px;">📝 ${t('manageHighlightsTitle') || 'Gestione Sottolineature'}</h3>
@@ -337,12 +346,12 @@ function openHighlightsManagerModal(book) {
         <h4 style="margin-top: -5px; margin-bottom: 25px; color: #4da6ff; font-family: sans-serif; font-size: 16px;">${book.title}</h4>
         
         <div id="hl-items-wrapper" style="display: flex; flex-direction: column; gap: 14px;">
-            ${book.highlights.map((hl, index) => `
+            ${safeHighlights.map((hl, index) => `
                 <div id="hl-card-${index}" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px;">
                     <p style="margin: 0; font-family: Georgia, serif; font-style: italic; line-height: 1.6; color: #e5e5e5; font-size: 14.5px;">"${hl.text}"</p>
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
                         <button class="share-specific-hl-btn modern-btn glass-effect" data-cfi="${hl.cfi}" style="padding: 6px 14px; font-size: 11px; background: rgba(77, 166, 255, 0.15); border-color: rgba(77, 166, 255, 0.3); color: #4da6ff;">
-                            ${t('shareQuoteBtn') || '🔗 Condividi'}
+                            🔗 ${t('shareQuoteBtn') || 'Condividi'}
                         </button>
                         <button class="delete-specific-hl-btn modern-btn glass-effect" data-cfi="${hl.cfi}" data-card-id="hl-card-${index}" style="padding: 6px 14px; font-size: 11px; background: rgba(217, 83, 79, 0.15); border-color: rgba(217, 83, 79, 0.3); color: #ff9999;">
                             🗑️ ${t('deleteBook') || 'Elimina'}
@@ -375,7 +384,7 @@ function openHighlightsManagerModal(book) {
         }
     });
 
-    // Logica Tasto CONDIVIDI
+    // --- LOGICA TASTO CONDIVIDI (Apre l'anteprima) ---
     modalBox.querySelectorAll('.share-specific-hl-btn').forEach(button => {
         button.onclick = async (event) => {
             const btn = event.currentTarget;
@@ -384,10 +393,10 @@ function openHighlightsManagerModal(book) {
             btn.disabled = true;
 
             const cfiCode = btn.getAttribute('data-cfi');
-            const hl = book.highlights.find(h => h.cfi === cfiCode);
+            const hl = safeHighlights.find(h => h.cfi === cfiCode);
             
             if (hl) {
-                await shareHighlightImage(book, hl.text);
+                await showSharePreview(book, hl.text);
             }
             
             btn.innerHTML = originalText;
@@ -395,7 +404,7 @@ function openHighlightsManagerModal(book) {
         };
     });
 
-    // Logica Tasto ELIMINA
+    // --- LOGICA TASTO ELIMINA ---
     modalBox.querySelectorAll('.delete-specific-hl-btn').forEach(button => {
         button.onclick = async (event) => {
             const confirmMsg = t('removeHighlightConfirm') || 'Vuoi eliminare questa sottolineatura?';
@@ -414,7 +423,7 @@ function openHighlightsManagerModal(book) {
 
                 if (result.success) {
                     document.getElementById(cardElementId).remove();
-                    book.highlights = book.highlights.filter(h => h.cfi !== cfiCode);
+                    book.highlights = safeHighlights.filter(h => h.cfi !== cfiCode);
 
                     if (book.highlights.length === 0) {
                         closeForm();
@@ -429,146 +438,207 @@ function openHighlightsManagerModal(book) {
 }
 
 /**
- * Genera un'immagine quadrata per i social (Instagram/Facebook style)
- * unendo testo, copertina e titolo, e avvia la condivisione.
+ * Crea il Canvas, genera l'immagine e apre un Modale di Anteprima
+ * con le opzioni esplicite per il Download o la Condivisione.
  */
-async function shareHighlightImage(book, highlightText) {
+async function showSharePreview(book, highlightText) {
+    // 1. Creazione Overlay Anteprima
+    const previewOverlay = document.createElement('div');
+    Object.assign(previewOverlay.style, {
+        position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+        backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '4000',
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        backdropFilter: 'blur(10px)', opacity: '0', transition: 'opacity 0.3s ease'
+    });
+
+    // 2. Generazione Immagine Quadrata (1080x1080)
     const canvas = document.createElement('canvas');
-    // Formato quadrato ottimizzato per i social (1080x1080)
     canvas.width = 1080;
     canvas.height = 1080;
     const ctx = canvas.getContext('2d');
 
-    // Sfondo Gradiente elegante
     const grad = ctx.createLinearGradient(0, 0, 1080, 1080);
-    grad.addColorStop(0, '#1c2833'); // Blu notte scuro
-    grad.addColorStop(1, '#000000'); // Nero
+    grad.addColorStop(0, '#1c2833'); 
+    grad.addColorStop(1, '#000000'); 
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Virgolette decorative
-    ctx.fillStyle = 'rgba(212, 175, 55, 0.4)'; // Oro semitrasparente
+    ctx.fillStyle = 'rgba(212, 175, 55, 0.4)'; 
     ctx.font = 'bold 180px Georgia, serif';
     ctx.fillText('“', 60, 160);
 
-    // Scrittura del testo (con a capo automatico)
+   // Virgolette decorative
+    ctx.fillStyle = 'rgba(212, 175, 55, 0.4)'; 
+    ctx.font = 'bold 180px Georgia, serif';
+    ctx.fillText('“', 60, 160);
+
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'italic 45px Georgia, serif';
     ctx.textAlign = 'left';
     
-    // Pulizia del testo da eccessi
     let cleanText = highlightText.trim();
-    if (cleanText.length > 300) {
-        cleanText = cleanText.substring(0, 297) + "..."; // Tronca se è una citazione gigantesca
-    }
-
     const maxWidth = 920;
+    const maxTextHeight = 500; // Spazio verticale massimo consentito prima della copertina
     const words = cleanText.split(' ');
-    let line = '';
-    let textY = 220;
-    const lineHeight = 65;
+    
+    let fontSize = 55; 
+    let lineHeight = fontSize * 1.4;
+    let lines = [];
 
-    for (let n = 0; n < words.length; n++) {
-        let testLine = line + words[n] + ' ';
-        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
-            ctx.fillText(line, 80, textY);
-            line = words[n] + ' ';
-            textY += lineHeight;
-        } else {
-            line = testLine;
+    while (fontSize > 18) {
+        ctx.font = `italic ${fontSize}px Georgia, serif`;
+        lineHeight = fontSize * 1.4;
+        lines = [];
+        let currentLine = '';
+
+        for (let n = 0; n < words.length; n++) {
+            let testLine = currentLine + words[n] + ' ';
+            if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                lines.push(currentLine);
+                currentLine = words[n] + ' ';
+            } else {
+                currentLine = testLine;
+            }
         }
-    }
-    ctx.fillText(line, 80, textY);
+        lines.push(currentLine);
 
-    // Blocco Inferiore (Copertina e Info Libro)
-    const bottomY = 1080 - 60; // 60px dal fondo
+        if (lines.length * lineHeight <= maxTextHeight) {
+            break; 
+        }
+
+        fontSize -= 2; 
+    }
+
+    // Centratura verticale opzionale se la frase è molto corta
+    let totalBlockHeight = lines.length * lineHeight;
+    let textY = 220 + Math.max(0, (maxTextHeight - totalBlockHeight) / 3); 
+
+    // Disegno effettivo delle righe calcolate
+    lines.forEach(line => {
+        ctx.fillText(line, 80, textY);
+        textY += lineHeight;
+    });
+
+    const bottomY = 1080 - 60; 
     const coverWidth = 180;
     const coverHeight = 270;
     const coverX = 80;
     const coverY = bottomY - coverHeight;
 
-    // Disegno Copertina (Se presente)
     if (book.coverPath) {
         try {
             const img = new Image();
-            img.crossOrigin = "Anonymous"; // Evita problemi di CORS
+            img.crossOrigin = "Anonymous";
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
                 img.onerror = reject;
                 img.src = '/' + book.coverPath;
             });
             
-            // Effetto Ombra sotto la copertina
             ctx.shadowColor = 'rgba(0,0,0,0.8)';
             ctx.shadowBlur = 20;
             ctx.shadowOffsetX = 10;
             ctx.shadowOffsetY = 10;
-            
             ctx.drawImage(img, coverX, coverY, coverWidth, coverHeight);
-            
-            // Reset ombra per i testi
             ctx.shadowColor = 'transparent';
         } catch (e) {
-            console.warn("Impossibile caricare l'immagine per la condivisione.", e);
-            // Rettangolo fallback
             ctx.fillStyle = '#222';
             ctx.fillRect(coverX, coverY, coverWidth, coverHeight);
         }
     }
 
-    // Info Titolo e Autore
     const textStartX = coverX + coverWidth + 40;
     let infoY = coverY + (coverHeight / 2) - 20;
 
-    // Titolo
-    ctx.fillStyle = '#d4af37'; // Oro
+    ctx.fillStyle = '#d4af37'; 
     ctx.font = 'bold 40px sans-serif';
     
-    // Taglia il titolo se troppo lungo
     let displayTitle = book.title.toUpperCase();
     if (ctx.measureText(displayTitle).width > (1080 - textStartX - 40)) {
         displayTitle = displayTitle.substring(0, 30) + "...";
     }
     ctx.fillText(displayTitle, textStartX, infoY);
 
-    // Autore
     ctx.fillStyle = '#bbbbbb';
     ctx.font = '32px sans-serif';
     ctx.fillText(book.author, textStartX, infoY + 50);
 
-    // Branding KoreShelf
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.font = '22px sans-serif';
-    ctx.fillText(t('shareQuoteBrand') || "Generato con KoreShelf", textStartX, coverY + coverHeight);
+    ctx.fillText(window.t ? window.t('shareQuoteBrand') : "Generato con KoreShelf", textStartX, coverY + coverHeight);
 
-    // Conversione e Condivisione
-    canvas.toBlob(async (blob) => {
-        const file = new File([blob], `KoreShelf_Quote_${Date.now()}.jpg`, { type: 'image/jpeg' });
+    // 3. Estrazione dell'immagine per la preview
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+    // 4. Costruzione del Box di Anteprima UI
+    const previewBox = document.createElement('div');
+    previewBox.className = 'glass-effect';
+    Object.assign(previewBox.style, {
+        background: 'rgba(25, 25, 25, 0.95)',
+        padding: '25px', borderRadius: '20px',
+        width: '450px', maxWidth: '90%', textAlign: 'center',
+        border: '1px solid rgba(255,255,255,0.15)',
+        boxShadow: '0 20px 45px rgba(0,0,0,0.6)',
+        position: 'relative'
+    });
+
+    previewBox.innerHTML = `
+        <h3 style="margin-top: 0; margin-bottom: 20px; color: #fff; font-family: sans-serif;">🖼️ ${t('previewTitle') || 'Anteprima'}</h3>
+        <img src="${dataUrl}" style="width: 100%; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.5); margin-bottom: 25px;">
         
-        // Verifica se il browser/dispositivo supporta la condivisione file nativa (Smartphone / Mac OS / Windows moderni)
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({
-                    files: [file],
-                    title: book.title,
-                    text: `"${cleanText}"\n— ${book.author}`
-                });
-                console.log("Condivisione completata!");
-            } catch (err) {
-                console.warn("Condivisione annullata o fallita", err);
-            }
-        } else {
-            // Fallback per vecchi browser o desktop che non supportano la condivisione
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `KoreShelf_Quote_${Date.now()}.jpg`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+        <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
+            <button id="dl-img-btn" class="modern-btn glass-effect" style="flex: 1; padding: 12px; background: rgba(77, 166, 255, 0.15); border: 1px solid rgba(77, 166, 255, 0.4); color: #4da6ff; font-weight: bold; cursor: pointer;">
+                ⬇️ ${t('downloadBtn') || 'Scarica'}
+            </button>
+            <button id="sh-img-btn" class="modern-btn glass-effect" style="flex: 1; padding: 12px; background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.4); color: #2ecc71; font-weight: bold; cursor: pointer;">
+                ${t('shareQuoteBtn') || '🔗 Condividi'}
+            </button>
+        </div>
+        
+        <button id="close-preview-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 14px;">
+            ${t('cancelBtn') || 'Annulla'}
+        </button>
+    `;
+
+    previewOverlay.appendChild(previewBox);
+    document.body.appendChild(previewOverlay);
+    
+    requestAnimationFrame(() => previewOverlay.style.opacity = '1');
+
+    // Chiusura Anteprima
+    const closePreview = () => {
+        previewOverlay.style.opacity = '0';
+        setTimeout(() => previewOverlay.remove(), 300);
+    };
+    document.getElementById('close-preview-btn').onclick = closePreview;
+
+    // --- AZIONE: SCARICA ---
+    document.getElementById('dl-img-btn').onclick = () => {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = `KoreShelf_Quote_${Date.now()}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
+    // --- AZIONE: CONDIVIDI (Nativo OS) ---
+    document.getElementById('sh-img-btn').onclick = async () => {
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], `KoreShelf_Quote_${Date.now()}.jpg`, { type: 'image/jpeg' });
             
-            alert(t('shareQuoteFallback') || "Immagine scaricata! Condividila dove vuoi.");
-        }
-    }, 'image/jpeg', 0.95);
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: book.title,
+                        text: `"${cleanText}"\n— ${book.author}`
+                    });
+                } catch (err) {
+                    console.warn("Condivisione annullata dall'utente", err);
+                }
+            } else {
+                alert(t('shareNotSupported') || "Il tuo dispositivo/browser non supporta la condivisione nativa. Usa il tasto Scarica!");
+            }
+        }, 'image/jpeg', 0.95);
+    };
 }

@@ -216,9 +216,12 @@ export default {
 
     confirmHighlight: "Voulez-vous surligner ce texte ?",
 
-    shareQuoteBtn: "🔗 Partager",
+    shareQuoteBtn: "Partager",
     shareQuoteFallback: "Image téléchargée ! Partagez-la où vous voulez.",
     shareQuoteBrand: "Généré par KoreShelf",
+    previewTitle: "Aperçu de l'image",
+    downloadBtn: "Télécharger", 
+    shareNotSupported: "Votre appareil/navigateur ne prend pas en charge le partage natif. Utilisez le bouton Télécharger !",
 
     tableOfContents: "Table des matières",
     noTocFound: "Aucune table des matières trouvée. Utilisez le saut rapide :",
