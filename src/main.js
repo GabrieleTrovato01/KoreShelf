@@ -340,7 +340,8 @@ const availableLangs = {
     it: { icon: '🇮🇹', text: 'IT' },
     en: { icon: '🇬🇧', text: 'EN' },
     es: { icon: '🇪🇸', text: 'ES' },
-    fr: { icon: '🇫🇷', text: 'FR' }
+    fr: { icon: '🇫🇷', text: 'FR' },
+    de: { icon: '🇩🇪', text: 'DE' }
 };
 
 // 1. Contenitore relativo per posizionare il menu a tendina

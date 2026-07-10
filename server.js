@@ -13,13 +13,15 @@ import localeIt from './src/locales/it.js';
 import localeEn from './src/locales/en.js';
 import localeEs from './src/locales/es.js';
 import localeFr from './src/locales/fr.js';
+import localeDe from './src/locales/de.js';
 import Database from 'better-sqlite3';
 import { extractISBN } from './src/metadata-extractor.js';
 
 const locales = { it: localeIt.default || localeIt, 
     en: localeEn.default || localeEn, 
     es: localeEs.default || localeEs, 
-    fr: localeFr.default || localeFr };
+    fr: localeFr.default || localeFr,
+    de: localeDe.default || localeDe };
 
 // 1. VARIABILE GLOBALE DEL SERVER
 // Parte con la lingua del sistema operativo, ma verrà sovrascritta dal browser
@@ -219,7 +221,7 @@ app.use(express.static(publicDir));
 // --- ROTTA DI SINCRONIZZAZIONE LINGUA ---
 app.post('/api/sync-language', (req, res) => {
     const { lang } = req.body;
-    const supportedLangs = ['it', 'en', 'es', 'fr']; // Aggiunto 'es' e 'fr'
+    const supportedLangs = ['it', 'en', 'es', 'fr', 'de']; // Aggiunto 'es', 'fr' e 'de'
     
     if (supportedLangs.includes(lang)) {
         globalServerLang = lang; 
