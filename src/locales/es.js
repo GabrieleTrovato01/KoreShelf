@@ -223,6 +223,9 @@ export default {
         shareQuoteFallback: "¡Imagen descargada! Compártela donde quieras.",
         shareQuoteBrand: "Generado con KoreShelf",
 
+        tableOfContents: "Tabla de Contenidos",
+        noTocFound: "No se encontró índice. Usa el salto rápido:",
+
         //--------------------------------------------------server.js locales-------------------------------------------------------------
 
         logUploadDirCreated: "📁 Directorio de carga creado automáticamente.",

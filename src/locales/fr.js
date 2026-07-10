@@ -220,6 +220,9 @@ export default {
     shareQuoteFallback: "Image téléchargée ! Partagez-la où vous voulez.",
     shareQuoteBrand: "Généré par KoreShelf",
 
+    tableOfContents: "Table des matières",
+    noTocFound: "Aucune table des matières trouvée. Utilisez le saut rapide :",
+
     //--------------------------------------------------server.js locales-------------------------------------------------------------
 
     logUploadDirCreated: "📁 Répertoire d'upload créé automatiquement.",

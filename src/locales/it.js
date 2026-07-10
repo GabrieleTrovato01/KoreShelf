@@ -206,6 +206,9 @@ export default {
         shareQuoteFallback: "Immagine scaricata! Condividila dove vuoi.",
         shareQuoteBrand: "Generato con KoreShelf",
 
+        tableOfContents: "Indice",
+        noTocFound: "Nessun indice trovato. Usa il salto rapina:",
+
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",
         errFormat: "Formato non supportato. Usa EPUB o PDF.",

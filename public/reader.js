@@ -1264,11 +1264,20 @@ window.applyCurrentTheme = function() {
             flowSelect.style.color = '#ffffff';
             flowSelect.style.backgroundColor = '#222222';
         }
+        const zoomInput = document.getElementById('sidebar-zoom-input');
+        const lineInput = document.getElementById('sidebar-line-input');
+        if (zoomInput) zoomInput.style.color = '#ffffff';
+        if (lineInput) lineInput.style.color = '#ffffff';
+
         const alignButtons = [
             document.getElementById('align-left-btn'),
             document.getElementById('align-center-btn'),
             document.getElementById('align-right-btn'),
-            document.getElementById('align-justify-btn')
+            document.getElementById('align-justify-btn'),
+            document.getElementById('zoom-decrease-btn'),
+            document.getElementById('zoom-increase-btn'),
+            document.getElementById('line-decrease-btn'),
+            document.getElementById('line-increase-btn')
         ];
         alignButtons.forEach(btn => {
             if (btn) {
@@ -1323,12 +1332,20 @@ window.applyCurrentTheme = function() {
             flowSelect.style.color = '#000000';
             flowSelect.style.backgroundColor = '#f0f0f0';
         }
+        const zoomInput = document.getElementById('sidebar-zoom-input');
+        const lineInput = document.getElementById('sidebar-line-input');
+        if (zoomInput) zoomInput.style.color = '#000000';
+        if (lineInput) lineInput.style.color = '#000000';
 
         const alignButtons = [
             document.getElementById('align-left-btn'),
             document.getElementById('align-center-btn'),
             document.getElementById('align-right-btn'),
-            document.getElementById('align-justify-btn')
+            document.getElementById('align-justify-btn'),
+            document.getElementById('zoom-decrease-btn'),
+            document.getElementById('zoom-increase-btn'),
+            document.getElementById('line-decrease-btn'),
+            document.getElementById('line-increase-btn')
         ];
         alignButtons.forEach(btn => {
             if (btn) {
@@ -1720,6 +1737,189 @@ document.addEventListener('DOMContentLoaded', () => {
         bottomBar.appendChild(readerReviewBtn);
         bottomBar.appendChild(progressText);
         readerOverlay.appendChild(bottomBar);
+
+        // --- 2.5 BARRA INFERIORE SINISTRA (Indice) ---
+        const leftBottomBar = document.createElement('div');
+        leftBottomBar.style.position = 'fixed';
+        leftBottomBar.style.bottom = '20px';
+        leftBottomBar.style.left = '20px';
+        leftBottomBar.style.zIndex = '1000';
+
+        const tocBtn = document.createElement('button');
+        tocBtn.id = 'reader-toc-btn';
+        tocBtn.className = 'glass-effect modern-btn';
+        tocBtn.innerHTML = '📑 ' + (window.t('tableOfContents') || 'Indice');
+        tocBtn.style.padding = '8px 20px';
+        tocBtn.style.fontWeight = 'bold';
+        tocBtn.style.color = isDarkMode ? 'white' : 'black';
+
+        leftBottomBar.appendChild(tocBtn);
+        readerOverlay.appendChild(leftBottomBar);
+
+        // --- LOGICA MODALE INDICE (IBRIDA EPUB/PDF) ---
+        tocBtn.onclick = async () => {
+            // 1. Creazione Overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'toc-overlay';
+            Object.assign(overlay.style, {
+                position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+                backgroundColor: 'rgba(0,0,0,0.7)', zIndex: '3000',
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                backdropFilter: 'blur(6px)', opacity: '0', transition: 'opacity 0.3s ease'
+            });
+
+            // 2. Creazione Box Modale
+            const modalBox = document.createElement('div');
+            modalBox.className = 'glass-effect custom-scrollbar';
+            Object.assign(modalBox.style, {
+                background: isDarkMode ? 'rgba(25, 25, 25, 0.95)' : 'rgba(240, 240, 240, 0.95)',
+                padding: '30px', borderRadius: '20px', width: '550px', maxWidth: '90%', maxHeight: '80vh',
+                overflowY: 'auto', color: isDarkMode ? 'white' : 'black', position: 'relative',
+                border: '1px solid rgba(150,150,150,0.2)'
+            });
+
+            modalBox.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(150,150,150,0.2); padding-bottom: 10px;">
+                    <h3 style="margin: 0; font-family: sans-serif;">📑 ${window.t('tableOfContents') || 'Indice'}</h3>
+                    <button id="close-toc-modal" style="background: none; border: none; color: inherit; font-size: 28px; cursor: pointer; opacity: 0.6;">&times;</button>
+                </div>
+                <div id="toc-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    ⏳...
+                </div>
+            `;
+
+            overlay.appendChild(modalBox);
+            document.body.appendChild(overlay);
+            requestAnimationFrame(() => overlay.style.opacity = '1');
+
+            const closeToc = () => {
+                overlay.style.opacity = '0';
+                setTimeout(() => overlay.remove(), 300);
+            };
+            document.getElementById('close-toc-modal').onclick = closeToc;
+            overlay.onclick = (e) => { if (e.target === overlay) closeToc(); };
+
+            const tocList = document.getElementById('toc-list');
+            
+            // Helper per creare i bottoni dei capitoli
+            const renderTocItem = (label, actionFunc) => {
+                const btn = document.createElement('button');
+                btn.className = 'glass-effect';
+                btn.innerText = label;
+                Object.assign(btn.style, {
+                    textAlign: 'left', padding: '12px 15px', borderRadius: '10px',
+                    border: '1px solid rgba(150,150,150,0.2)', background: 'transparent',
+                    color: 'inherit', cursor: 'pointer', fontFamily: 'inherit',
+                    fontSize: '14px', lineHeight: '1.4'
+                });
+                btn.onmouseover = () => btn.style.background = 'rgba(150,150,150,0.2)';
+                btn.onmouseout = () => btn.style.background = 'transparent';
+                btn.onclick = () => { actionFunc(); closeToc(); };
+                return btn;
+            };
+
+            // --- CASO 1: LIBRO EPUB ---
+            if (typeof currentBook !== 'undefined' && currentBook && rendition) {
+                try {
+                    const toc = await currentBook.loaded.navigation;
+                    tocList.innerHTML = '';
+                    
+                    if (!toc || toc.length === 0) {
+                        tocList.innerHTML = `<p style="opacity: 0.7;">${window.t('noTocFound')}</p>`;
+                        return;
+                    }
+                    
+                    // Funzione ricorsiva per supportare i sotto-capitoli indentati
+                    const buildEpubToc = (items, level = 0) => {
+                        items.forEach(chapter => {
+                            const btn = renderTocItem(chapter.label.trim(), () => rendition.display(chapter.href));
+                            btn.style.marginLeft = `${level * 20}px`;
+                            tocList.appendChild(btn);
+                            
+                            if (chapter.subitems && chapter.subitems.length > 0) {
+                                buildEpubToc(chapter.subitems, level + 1);
+                            }
+                        });
+                    };
+                    buildEpubToc(toc);
+                    
+                } catch (err) {
+                    tocList.innerHTML = `<p>Errore nel caricamento dell'indice.</p>`;
+                }
+            } 
+            // --- CASO 2: LIBRO PDF ---
+            else if (typeof pdfDoc !== 'undefined' && pdfDoc) {
+                try {
+                    const outline = await pdfDoc.getOutline();
+                    tocList.innerHTML = '';
+                    
+                    // Se il PDF possiede un indice strutturato...
+                    if (outline && outline.length > 0) {
+                        const buildPdfToc = (items, level = 0) => {
+                            items.forEach(item => {
+                                const btn = renderTocItem(item.title, async () => {
+                                    let dest = item.dest;
+                                    // Risolve la destinazione se è una stringa nominativa
+                                    if (typeof dest === 'string') dest = await pdfDoc.getDestination(dest);
+                                    
+                                    if (dest && dest.length > 0) {
+                                        const pageIndex = await pdfDoc.getPageIndex(dest[0]);
+                                        const targetPage = pageIndex + 1;
+                                        
+                                        // Spostamento vista (Modalità Scorrimento o Paginata)
+                                        if (localStorage.getItem('readerFlow') === 'scrolled-doc') {
+                                            const target = document.getElementById(`pdf-page-wrapper-${targetPage}`);
+                                            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        } else {
+                                            pageNum = targetPage;
+                                            if (typeof queueRenderPage === 'function') queueRenderPage(pageNum);
+                                            else renderPage(pageNum);
+                                        }
+                                    }
+                                });
+                                btn.style.marginLeft = `${level * 20}px`;
+                                tocList.appendChild(btn);
+                                
+                                if (item.items && item.items.length > 0) {
+                                    buildPdfToc(item.items, level + 1);
+                                }
+                            });
+                        };
+                        buildPdfToc(outline);
+                    } 
+                    // Se il PDF è una scansione piatta, attiviamo il "Piano B"
+                    else {
+                        tocList.innerHTML = `
+                            <div style="text-align: center; margin-top: 15px; padding: 20px; background: rgba(150,150,150,0.1); border-radius: 12px;">
+                                <p style="margin-bottom: 20px; opacity: 0.8;">${window.t('noTocFound')}</p>
+                                <div style="display: flex; gap: 10px; justify-content: center;">
+                                    <input type="number" id="pdf-jump-input" min="1" max="${pdfDoc.numPages}" placeholder="Pag. 1 - ${pdfDoc.numPages}" class="modern-input glass-effect" style="width: 140px; text-align: center; padding: 12px; border-radius: 8px; color: inherit; border: 1px solid rgba(150,150,150,0.3);">
+                                    <button id="pdf-jump-btn" class="modern-btn glass-effect" style="padding: 12px 25px; background: rgba(77,166,255,0.2); border: 1px solid rgba(77,166,255,0.4); font-weight: bold; cursor: pointer;">VAI</button>
+                                </div>
+                            </div>
+                        `;
+                        
+                        document.getElementById('pdf-jump-btn').onclick = () => {
+                            const targetPage = parseInt(document.getElementById('pdf-jump-input').value);
+                            if (targetPage >= 1 && targetPage <= pdfDoc.numPages) {
+                                if (localStorage.getItem('readerFlow') === 'scrolled-doc') {
+                                    const target = document.getElementById(`pdf-page-wrapper-${targetPage}`);
+                                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                } else {
+                                    pageNum = targetPage;
+                                    if (typeof queueRenderPage === 'function') queueRenderPage(pageNum);
+                                    else renderPage(pageNum);
+                                }
+                                closeToc();
+                            }
+                        };
+                    }
+                } catch(e) {
+                    console.error(e);
+                    tocList.innerHTML = `<p>Errore nel caricamento dell'indice.</p>`;
+                }
+            }
+        };
 
         // --- 3. MENU HAMBURGER E SIDEBAR (In alto a sinistra) ---
         const hamburgerBtn = document.createElement('button');
