@@ -11,10 +11,15 @@ import pdfParse from 'pdf-parse';
 import * as htmlToText from 'html-to-text';
 import localeIt from './src/locales/it.js';
 import localeEn from './src/locales/en.js';
+import localeEs from './src/locales/es.js';
+import localeFr from './src/locales/fr.js';
 import Database from 'better-sqlite3';
 import { extractISBN } from './src/metadata-extractor.js';
 
-const locales = { it: localeIt.default || localeIt, en: localeEn.default || localeEn };
+const locales = { it: localeIt.default || localeIt, 
+    en: localeEn.default || localeEn, 
+    es: localeEs.default || localeEs, 
+    fr: localeFr.default || localeFr };
 
 // 1. VARIABILE GLOBALE DEL SERVER
 // Parte con la lingua del sistema operativo, ma verrà sovrascritta dal browser
@@ -214,7 +219,7 @@ app.use(express.static(publicDir));
 // --- ROTTA DI SINCRONIZZAZIONE LINGUA ---
 app.post('/api/sync-language', (req, res) => {
     const { lang } = req.body;
-    const supportedLangs = ['it', 'en', 'es']; // Aggiunto 'es'
+    const supportedLangs = ['it', 'en', 'es', 'fr']; // Aggiunto 'es' e 'fr'
     
     if (supportedLangs.includes(lang)) {
         globalServerLang = lang; 

@@ -156,8 +156,8 @@ export default {
         `,
         donateBtn: "💙 Donate",
 
-        // Aggiungi questo in fondo all'oggetto export default
         emptyLibraryMessage: "Your library is empty. Click '+ Upload Ebook' to start your collection!",
+        
         //review
         readerReviewBtnText: "⭐ You finished! Write a Review",
         reviewModalTitleLong: "What do you think of this book?",
@@ -202,7 +202,6 @@ export default {
         successShutdown: "Server shutting down",
 
          // cover image generator
-         
         logpdfjs: "⚠️ pdf.js not available, unable to generate PDF covers.",
         logGeneratePdfCovers: "🎨 Found {count} PDFs without covers. Generation in progress...",
         logGeneratePdfCover: "📖 Generating cover for: {title}",

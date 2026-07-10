@@ -339,7 +339,8 @@ const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
 const availableLangs = {
     it: { icon: '🇮🇹', text: 'IT' },
     en: { icon: '🇬🇧', text: 'EN' },
-    es: { icon: '🇪🇸', text: 'ES' } 
+    es: { icon: '🇪🇸', text: 'ES' },
+    fr: { icon: '🇫🇷', text: 'FR' }
 };
 
 // 1. Contenitore relativo per posizionare il menu a tendina
