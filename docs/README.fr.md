@@ -45,16 +45,21 @@ Si vous souhaitez éviter d'installer Docker ou Node.js, vous pouvez utiliser no
 
 - **Linux :** Ouvrez le terminal dans le dossier et exécutez `./koreshelf-linux`. (Remarque : vous devrez peut-être le rendre exécutable au préalable avec la commande `chmod +x koreshelf-linux`).
 
-- **macOS (Apple Silicon / M1, M2, M3...) :** En raison de la mise en quarantaine stricte des applications non signées par Apple, ouvrez votre terminal dans le dossier extrait et exécutez les deux commandes suivantes pour accorder les autorisations :
-
+- **macOS (Apple Silicon / M1, M2, M3...) :** En raison des restrictions de sécurité de macOS (Gatekeeper) concernant les logiciels téléchargés via un navigateur, il est recommandé d'installer KoreShelf directement depuis le terminal. Cette procédure empêche l'application automatique des blocages du système et garantit un démarrage propre.
+    Ouvrez le Terminal et exécutez les commandes suivantes :
     ```bash
+    # 1. Créer un dossier dédié et y accéder
+    mkdir KoreShelf
+    cd KoreShelf
 
-    chmod +x koreshelf-macos-arm
+    # 2. Télécharger et extraire la dernière version
+    curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v2.2.2/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
 
-    xattr -cr koreshelf-macos-arm
+    # 3. Supprimer l'archive compressée (facultatif, pour faire le ménage)
+    rm KoreShelf-macOS.zip
+
     ```
-
-    Double-cliquez ensuite sur le fichier ou exécutez `./koreshelf-macos-arm`.
+Une fois terminé, il vous suffit de double-cliquer sur le fichier ou d'exécuter `./koreshelf-macos-arm`.
 
 *(Remarque pour les utilisateurs de Mac Intel : les binaires précompilés ne sont pas disponibles pour les anciens Mac Intel. Veuillez utiliser l’option 2 : Docker, ou exécuter l’application à partir du code source.)*
 
