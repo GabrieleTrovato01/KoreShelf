@@ -38,7 +38,9 @@ If you want to avoid installing Docker or Node.js, you can use our standalone ex
 1. Go to the [Releases section](https://github.com/GabrieleTrovato01/KoreShelf/releases) of this repository.
 2. Download the `.zip` file for your Operating System.
 3. Extract the contents to any folder on your PC.
-   - **Windows:** Double-click `koreshelf-win.exe`.
+   - **Windows:** Double-click `koreshelf-win.exe`. [Tutorial]( https://github.com/user-attachments/assets/59e2e58f-88b6-419f-b4af-7fb12be551fa)
+     
+
    - **Linux:** Open the terminal in the folder and run `./koreshelf-linux`. (Note: you might need to make it executable first by running `chmod +x koreshelf-linux`).
    - **macOS (Apple Silicon / M1, M2, M3...):** Due to macOS security restrictions (Gatekeeper) on software downloaded via a browser, it is recommended to install KoreShelf directly from the terminal. This procedure prevents automatic system blocks from being applied and ensures a clean startup.
    Open the Terminal and run the following commands:
