@@ -41,7 +41,7 @@ Si vous souhaitez éviter d'installer Docker ou Node.js, vous pouvez utiliser no
 
 3. Extrayez le contenu dans un dossier de votre choix sur votre ordinateur.
 
-- **Windows :** Double-cliquez sur `koreshelf-win.exe`.
+- **Windows :** Double-cliquez sur `koreshelf-win.exe`. [Tutorial]( https://github.com/user-attachments/assets/59e2e58f-88b6-419f-b4af-7fb12be551fa)
 
 - **Linux :** Ouvrez le terminal dans le dossier et exécutez `./koreshelf-linux`. (Remarque : vous devrez peut-être le rendre exécutable au préalable avec la commande `chmod +x koreshelf-linux`).
 
