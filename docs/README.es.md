@@ -39,7 +39,7 @@ Si quieres evitar instalar Docker o Node.js, puedes usar nuestro ejecutable inde
 1. Ve a la sección [Releases](https://github.com/GabrieleTrovato01/KoreShelf/releases) de este repositorio.
 2. Descarga el archivo `.zip` correspondiente a tu Sistema Operativo.
 3. Extrae el contenido en cualquier carpeta de tu PC.
-* **Windows:** Haz doble clic en `koreshelf-win.exe`.
+* **Windows:** Haz doble clic en `koreshelf-win.exe`. [Tutorial]( https://github.com/user-attachments/assets/59e2e58f-88b6-419f-b4af-7fb12be551fa)
 * **Linux:** Abre la terminal en la carpeta y ejecuta `./koreshelf-linux`. (Nota: es posible que debas otorgar permisos de ejecución primero con `chmod +x koreshelf-linux`).
 * **macOS (Apple Silicon / M1, M2, M3...):** Debido a las restricciones de seguridad de macOS (Gatekeeper) en el software descargado a través de un navegador, se recomienda instalar KoreShelf directamente desde la terminal. Este procedimiento evita que se apliquen bloqueos automáticos del sistema y garantiza un inicio limpio.
 Abre la Terminal y ejecuta los siguientes comandos:
