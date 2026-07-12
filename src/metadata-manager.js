@@ -178,7 +178,15 @@ export async function openMetadataManager(selectedBookUserData, onSaveSuccess) {
             
             if (result.success) {
                 closeForm();
+                
+                // Mantiene il comportamento originale se hai passato una callback
                 if (onSaveSuccess) onSaveSuccess(result.updatedBook);
+                
+                // --- NUOVO: Lancia un evento globale per far aggiornare il 3D ---
+                window.dispatchEvent(new CustomEvent('bookMetadataUpdated', {
+                    detail: result.updatedBook
+                }));
+
             } else {
                 alert(`${t('errorSaving') || 'Errore durante il salvataggio:'} ${result.message}`);
                 saveBtn.innerText = t('saveBtn') || 'Salva';

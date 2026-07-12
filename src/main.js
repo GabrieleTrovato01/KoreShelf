@@ -591,7 +591,7 @@ editMetadataBtn.onclick = () => {
         const newCategory = (updatedData.tags && updatedData.tags.length > 0) ? updatedData.tags[0] : t('uncategorized');
         
         if (oldCategory !== newCategory) {
-            location.reload();
+            reloadLibrary();
             return;
         }
 
@@ -2099,6 +2099,28 @@ function showUpdateNotification(newVersion, downloadUrl) {
         banner.style.transition = 'all 0.4s ease';
         setTimeout(() => banner.remove(), 400);
     });
+}
+async function reloadLibrary() {
+    // 1. Svuota il gruppo dei libri
+    libraryGroup.clear();
+    booksArray = [];
+    
+    // 2. Trova e rimuovi tutte le mensole dalla scena
+    const shelvesToRemove = [];
+    scene.children.forEach(child => {
+        // Identifichiamo le mensole grazie al materiale specifico
+        if (child.material === shelfMaterial) {
+            shelvesToRemove.push(child);
+        }
+    });
+    
+    shelvesToRemove.forEach(shelf => {
+        scene.remove(shelf);
+        if (shelf.geometry) shelf.geometry.dispose();
+    });
+
+    // 3. Ricostruisci la libreria aggiornata
+    await loadBooks();
 }
 
 // --- AVVIO DELL'APPLICAZIONE ---

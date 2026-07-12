@@ -216,10 +216,18 @@ export default {
 
     confirmHighlight: "Möchten Sie diesen Text markieren?",
 
-    shareQuoteBtn: "🔗 Teilen",
+    shareQuoteBtn: "Teilen",
     shareQuoteFallback: "Bild heruntergeladen! Teilen Sie es, wo immer Sie wollen.",
     shareQuoteBrand: "Generiert von KoreShelf",
-    previewTitle: "Bildvorschau",
+    previewTitle: "Anpassen & Teilen",
+    previewFormat: "Format",
+    previewBgStyle: "Hintergrundstil",
+    previewBgColor: "Hintergrund",
+    previewTextColor: "Text",
+    formatPost: "Quadratischer Post",
+    formatStory: "Story (9:16)",
+    bgStyleBlur: "Weichgezeichnetes Cover",
+    bgStyleSolid: "Einfarbig",
     downloadBtn: "Herunterladen",
     shareNotSupported: "Ihr Gerät/Browser unterstützt kein natives Teilen. Nutzen Sie den Download-Button!",
 
