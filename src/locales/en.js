@@ -235,6 +235,9 @@ export default {
 
         tableOfContents: "Table of Contents",
         noTocFound: "No index found. Use quick jump:",
+        searchPlaceholder: "Search in the book...",
+        noResultsFound: "No results found.",
+        noMoreResults: "No more results found.",
 
         //--------------------------------------------------server.js locales-------------------------------------------------------------
 

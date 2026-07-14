@@ -233,6 +233,9 @@ export default {
 
     tableOfContents: "Table des matières",
     noTocFound: "Aucune table des matières trouvée. Utilisez le saut rapide :",
+    searchPlaceholder: "Rechercher dans le livre...",
+    noResultsFound: "Aucun résultat trouvé.",
+    noMoreResults: "Aucun autre résultat trouvé.",
 
     //--------------------------------------------------server.js locales-------------------------------------------------------------
 

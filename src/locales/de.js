@@ -233,6 +233,9 @@ export default {
 
     tableOfContents: "Inhaltsverzeichnis",
     noTocFound: "Kein Inhaltsverzeichnis gefunden. Schnellsprung nutzen:",
+    searchPlaceholder: "Suche in dem Buch...",
+    noResultsFound: "Keine Ergebnisse gefunden.",
+    noMoreResults: "Keine weiteren Ergebnisse gefunden.",
 
     //--------------------------------------------------server.js locales-------------------------------------------------------------
 

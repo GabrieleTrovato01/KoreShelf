@@ -219,6 +219,9 @@ export default {
 
         tableOfContents: "Indice",
         noTocFound: "Nessun indice trovato. Usa il salto rapina:",
+        searchPlaceholder: "Cerca nel libro...",
+        noResultsFound: "Nessun risultato trovato.",
+        noMoreResults: "Nessun altro risultato trovato.",
 
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",

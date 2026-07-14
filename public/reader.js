@@ -1,6 +1,10 @@
 let currentBook = null;
 let rendition = null;
 
+// --- VARIABILI GLOBALI RICERCA ---
+let searchResults = [];
+let currentSearchIndex = -1;
+
 // --- VARIABILI GLOBALI PDF.JS ---
 let pdfDoc = null;
 let pageNum = 1;
@@ -418,7 +422,7 @@ window.openReader = function(epubUrl, bookId) {
     });
 };
 
-// -- FUNZINI DI TRADUZIONE
+// -- FUNZIONI DI TRADUZIONE
 window.translateReaderUI = function() {
     const el = (id) => document.getElementById(id);
     
@@ -431,6 +435,7 @@ window.translateReaderUI = function() {
     if(el('sidebar-flow-horiz')) el('sidebar-flow-horiz').innerText = window.t('horizontal');
     if(el('sidebar-flow-vert')) el('sidebar-flow-vert').innerText = window.t('vertical');
     if(el('sidebar-align-label')) el('sidebar-align-label').innerText = window.t('textAlignment') || 'Allineamento';
+    if(el('reader-search-input')) el('reader-search-input').placeholder = window.t('searchPlaceholder') || 'Cerca...';
 };
 
 // --- FUNZIONI DI RENDERING PDF ---
@@ -1170,6 +1175,14 @@ window.closeReader = function() {
     const readerOverlay = document.getElementById('reader-overlay');
     const viewer = document.getElementById('viewer');
     
+    // --- RESET RICERCA ---
+    searchResults = [];
+    currentSearchIndex = -1;
+    const searchInput = document.getElementById('reader-search-input');
+    const searchBtn = document.getElementById('reader-search-btn');
+    if (searchInput) searchInput.value = '';
+    if (searchBtn) searchBtn.innerHTML = '🔍';
+
     if (readerOverlay) readerOverlay.style.opacity = '0';
     
     setTimeout(() => {
@@ -1203,6 +1216,11 @@ window.applyCurrentTheme = function() {
     const themeBtn = document.getElementById('theme-toggle-btn');
     const readingProgress = document.getElementById('reading-progress');
     const closeReaderBtn = document.getElementById('close-reader-btn');
+    
+    // Riferimenti Ricerca
+    const searchContainer = document.getElementById('reader-search-container');
+    const searchInput = document.getElementById('reader-search-input');
+    const searchBtn = document.getElementById('reader-search-btn');
 
     // Riferimenti al nuovo Menu Laterale
     const sidebar = document.getElementById('settings-sidebar');
@@ -1231,21 +1249,36 @@ window.applyCurrentTheme = function() {
             scrollIndicator.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
         }
         if (readerOverlay) readerOverlay.style.background = '#121212';
+        
+        // Elementi Top Bar
         if (themeBtn) {
             themeBtn.innerText = '☀️ Light Mode';
             themeBtn.style.color = '#ffffff';
             themeBtn.style.background = 'rgba(255, 255, 255, 0.08)';
             themeBtn.style.border = '1px solid rgba(255, 255, 255, 0.2)';
         }
-        if (readingProgress) {
-            readingProgress.style.color = '#ffffff';
-            readingProgress.style.background = 'rgba(255, 255, 255, 0.08)';
-        }
         if (closeReaderBtn) {
             closeReaderBtn.style.color = '#ffffff';
             closeReaderBtn.style.background = 'rgba(255, 255, 255, 0.08)';
             closeReaderBtn.style.border = '1px solid rgba(255, 255, 255, 0.2)';
         }
+        if (searchContainer) {
+            searchContainer.style.background = 'rgba(255, 255, 255, 0.08)';
+            searchContainer.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+        }
+        if (searchInput) {
+            searchInput.style.color = '#ffffff';
+        }
+        if (searchBtn) {
+            searchBtn.style.color = '#ffffff';
+            searchBtn.style.borderLeft = '1px solid rgba(255, 255, 255, 0.2)';
+        }
+        
+        if (readingProgress) {
+            readingProgress.style.color = '#ffffff';
+            readingProgress.style.background = 'rgba(255, 255, 255, 0.08)';
+        }
+        
         if (sidebar) {
             sidebar.style.background = 'rgba(25, 25, 25, 0.95)';
             sidebar.style.color = '#ffffff';
@@ -1299,21 +1332,36 @@ window.applyCurrentTheme = function() {
             scrollIndicator.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
         }
         if (readerOverlay) readerOverlay.style.background = '#faf9f6';
+        
+        // Elementi Top Bar
         if (themeBtn) {
             themeBtn.innerText = '🌙 Dark Mode';
             themeBtn.style.color = '#000000';
             themeBtn.style.background = 'rgba(0, 0, 0, 0.1)';
             themeBtn.style.border = '1px solid rgba(0, 0, 0, 0.1)';
         }
-        if (readingProgress) {
-            readingProgress.style.color = '#000000';
-            readingProgress.style.background = 'rgba(0, 0, 0, 0.1)';
-        }
         if (closeReaderBtn) {
             closeReaderBtn.style.color = '#000000';
             closeReaderBtn.style.background = 'rgba(0, 0, 0, 0.1)';
             closeReaderBtn.style.border = '1px solid rgba(0, 0, 0, 0.1)';
         }
+       if (searchContainer) {
+            searchContainer.style.background = 'rgba(0, 0, 0, 0.08)';
+            searchContainer.style.border = '1px solid rgba(0, 0, 0, 0.1)';
+        }
+        if (searchInput) {
+            searchInput.style.color = '#000000';
+        }
+        if (searchBtn) {
+            searchBtn.style.color = '#000000';
+            searchBtn.style.borderLeft = '1px solid rgba(0, 0, 0, 0.1)';
+        }
+        
+        if (readingProgress) {
+            readingProgress.style.color = '#000000';
+            readingProgress.style.background = 'rgba(0, 0, 0, 0.1)';
+        }
+        
         if (sidebar) {
             sidebar.style.background = 'rgba(245, 245, 245, 0.95)';
             sidebar.style.color = '#000000';
@@ -1659,14 +1707,168 @@ document.addEventListener('DOMContentLoaded', () => {
     const readerOverlay = document.getElementById('reader-overlay');
     if (readerOverlay) {
         
-        // --- 1. BARRA SUPERIORE DESTRA (Tema e Chiudi) ---
+        // --- 1. BARRA SUPERIORE DESTRA (Ricerca, Tema e Chiudi) ---
         const topBar = document.createElement('div');
         topBar.style.position = 'absolute';
         topBar.style.top = '10px';
         topBar.style.right = '20px';
         topBar.style.zIndex = '1000';
         topBar.style.display = 'flex';
+        topBar.style.alignItems = 'center';
         topBar.style.gap = '10px';
+
+        // --- INIZIO INTEGRAZIONE RICERCA ---
+        const searchContainer = document.createElement('div');
+        searchContainer.id = 'reader-search-container'; // ID per il cambio tema
+        searchContainer.className = 'glass-effect';
+        searchContainer.style.display = 'flex';
+        searchContainer.style.alignItems = 'center';
+        searchContainer.style.marginRight = '10px';
+        searchContainer.style.borderRadius = '50px'; // Effetto a pillola unificato
+        searchContainer.style.overflow = 'hidden';
+        searchContainer.style.backdropFilter = 'blur(10px)';
+
+        const searchInput = document.createElement('input');
+        searchInput.id = 'reader-search-input';
+        searchInput.type = 'text';
+        searchInput.placeholder = window.t('searchPlaceholder') || 'Cerca nel libro...';
+        searchInput.style.background = 'transparent'; // Trasparente per mostrare il glass-effect del padre
+        searchInput.style.border = 'none';
+        searchInput.style.outline = 'none';
+        searchInput.style.padding = '8px 15px';
+        searchInput.style.width = '180px';
+        searchInput.style.fontFamily = 'inherit';
+
+        const searchBtn = document.createElement('button');
+        searchBtn.id = 'reader-search-btn';
+        searchBtn.innerHTML = '🔍';
+        searchBtn.style.background = 'transparent'; // Trasparente
+        searchBtn.style.border = 'none';
+        searchBtn.style.padding = '8px 15px';
+        searchBtn.style.cursor = 'pointer';
+
+        // Azzeramento ricerca al cambio del testo
+        searchInput.addEventListener('input', () => {
+            searchResults = [];
+            currentSearchIndex = -1;
+            searchBtn.innerHTML = '🔍';
+        });
+
+        // Esecuzione ricerca sulla pressione di Invia
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchBtn.click();
+        });
+
+        searchBtn.onclick = async () => {
+            const query = searchInput.value.trim();
+            if (!query) return;
+
+            // Se stiamo già scorrendo i risultati di una ricerca precedente
+            if (currentSearchIndex !== -1 && searchResults.length > 0) {
+                currentSearchIndex++;
+                if (currentSearchIndex >= searchResults.length) {
+                    alert(window.t('noMoreResults') || 'Nessun altro risultato trovato.');
+                    currentSearchIndex = -1;
+                    searchBtn.innerHTML = '🔍';
+                    return;
+                }
+                
+                // Vai al prossimo risultato EPUB
+                if (currentBook && rendition) {
+                    rendition.display(searchResults[currentSearchIndex].cfi);
+                } 
+                // Vai al prossimo risultato PDF
+                else if (pdfDoc) {
+                    const targetPage = searchResults[currentSearchIndex];
+                    if (localStorage.getItem('readerFlow') === 'scrolled-doc') {
+                        const target = document.getElementById(`pdf-page-wrapper-${targetPage}`);
+                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        pageNum = targetPage;
+                        if (typeof queueRenderPage === 'function') queueRenderPage(pageNum);
+                        else renderPage(pageNum);
+                    }
+                }
+                return;
+            }
+
+            // Nuova ricerca
+            searchBtn.innerHTML = '⏳';
+            searchResults = [];
+            currentSearchIndex = -1;
+
+            if (currentBook && rendition) {
+                // RICERCA EPUB CORRETTA
+                try {
+                    // FIX: Usare spineItems invece di items
+                    const spineItems = currentBook.spine.spineItems; 
+                    for (let i = 0; i < spineItems.length; i++) {
+                        const item = spineItems[i];
+                        try {
+                            await item.load(currentBook.load.bind(currentBook));
+                            const results = item.find(query);
+                            item.unload();
+                            if (results && results.length > 0) {
+                                searchResults.push(...results);
+                            }
+                        } catch (err) {
+                            console.warn("Impossibile cercare nel capitolo:", err);
+                        }
+                    }
+
+                    if (searchResults.length > 0) {
+                        currentSearchIndex = 0;
+                        rendition.display(searchResults[0].cfi);
+                        searchBtn.innerHTML = '🔽';
+                    } else {
+                        alert(window.t('noResultsFound') || 'Nessun risultato trovato.');
+                        searchBtn.innerHTML = '🔍';
+                    }
+                } catch(e) {
+                    console.error("Errore ricerca EPUB:", e);
+                    searchBtn.innerHTML = '🔍';
+                }
+            } else if (pdfDoc) {
+                // RICERCA PDF
+                try {
+                    for (let i = 1; i <= pdfDoc.numPages; i++) {
+                        const page = await pdfDoc.getPage(i);
+                        const content = await page.getTextContent();
+                        const pageText = content.items.map(item => item.str).join(' ');
+                        
+                        if (pageText.toLowerCase().includes(query.toLowerCase())) {
+                            searchResults.push(i);
+                        }
+                    }
+
+                    if (searchResults.length > 0) {
+                        currentSearchIndex = 0;
+                        const targetPage = searchResults[0];
+                        
+                        if (localStorage.getItem('readerFlow') === 'scrolled-doc') {
+                            const target = document.getElementById(`pdf-page-wrapper-${targetPage}`);
+                            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        } else {
+                            pageNum = targetPage;
+                            if (typeof queueRenderPage === 'function') queueRenderPage(pageNum);
+                            else renderPage(pageNum);
+                        }
+                        
+                        searchBtn.innerHTML = searchResults.length > 1 ? '🔽' : '✓';
+                    } else {
+                        alert(window.t('noResultsFound') || 'Nessun risultato trovato.');
+                        searchBtn.innerHTML = '🔍';
+                    }
+                } catch (e) {
+                    console.error("Errore ricerca PDF:", e);
+                    searchBtn.innerHTML = '🔍';
+                }
+            }
+        };
+
+        searchContainer.appendChild(searchInput);
+        searchContainer.appendChild(searchBtn);
+        // --- FINE INTEGRAZIONE RICERCA ---
 
         const themeBtn = document.createElement('button');
         themeBtn.id = 'theme-toggle-btn';
@@ -1704,6 +1906,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         closeReaderBtn.onclick = () => window.closeReader();
 
+        // Appendi nell'ordine desiderato: Ricerca -> Tema -> Chiudi
+        topBar.appendChild(searchContainer);
         topBar.appendChild(themeBtn);
         topBar.appendChild(closeReaderBtn);
         readerOverlay.appendChild(topBar);
@@ -1881,7 +2085,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 tocList.appendChild(btn);
                                 
                                 if (item.items && item.items.length > 0) {
-                                    buildPdfToc(item.items, level + 1);
+                                buildPdfToc(item.items, level + 1);
                                 }
                             });
                         };

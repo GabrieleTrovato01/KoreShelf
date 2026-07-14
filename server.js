@@ -140,13 +140,28 @@ try {
     // Se la colonna esiste già, SQLite lancerà un errore che ignoriamo in silenzio
 }
 // Helper per leggere tutti i libri dal DB
+// Helper per leggere tutti i libri dal DB
 function getAllBooks() {
     const rows = db.prepare('SELECT * FROM books').all();
-    return rows.map(row => ({
-        ...row,
-        tags: JSON.parse(row.tags || '[]'),
-        highlights: JSON.parse(row.highlights || '[]')
-    }));
+    return rows.map(row => {
+        let parsedHighlights = [];
+        try {
+            parsedHighlights = JSON.parse(row.highlights || '[]');
+            
+            // AUTO-FIX: Se per errore è stata "stringificata" due volte ed è rimasta una stringa
+            if (typeof parsedHighlights === 'string') {
+                parsedHighlights = JSON.parse(parsedHighlights);
+            }
+        } catch(e) {
+            console.warn("Errore nel parsing degli highlights per il libro:", row.id);
+        }
+
+        return {
+            ...row,
+            tags: JSON.parse(row.tags || '[]'),
+            highlights: parsedHighlights
+        };
+    });
 }
 // Helper per salvare un libro nel DB
 function upsertBook(book) {
@@ -1126,7 +1141,11 @@ app.post('/api/books/edit', upload.single('cover'), async (req, res) => {
         }
 
         // Prepariamo l'oggetto libro aggiornato
-        const currentBook = { ...row, tags: JSON.parse(row.tags || '[]') };
+        const currentBook = { 
+            ...row, 
+            tags: JSON.parse(row.tags || '[]'),
+            highlights: JSON.parse(row.highlights || '[]') // <-- FIX: decodifica la stringa in array prima del salvataggio
+        };
 
         // 2. Aggiorna i campi di testo
         currentBook.title = title || currentBook.title;
