@@ -50,7 +50,7 @@ If you want to avoid installing Docker or Node.js, you can use our standalone ex
       cd KoreShelf
 
       # 2. Download and extract the latest release
-      curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v2.2.2/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
+      curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v2.2.3/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
 
       # 3. Remove the compressed archive (optional, for cleanup)
       rm KoreShelf-macOS.zip

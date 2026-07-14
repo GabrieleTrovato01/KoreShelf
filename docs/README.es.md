@@ -49,7 +49,7 @@ Abre la Terminal y ejecuta los siguientes comandos:
    cd KoreShelf
 
    # 2. Descarga y extrae la última versión
-   curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v2.2.2/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
+   curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v2.2.3/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
 
    # 3. Elimina el archivo comprimido (opcional, para hacer limpieza)
    rm KoreShelf-macOS.zip
