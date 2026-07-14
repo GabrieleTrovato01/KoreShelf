@@ -134,24 +134,22 @@ export default {
     textAlignment: "Textausrichtung",
     helpTitle: "📖 Wie es funktioniert",
     helpContent: `
-        <li><b>Buch hochladen:</b> Klicken Sie auf den Upload-Button (oder ziehen Sie eine Datei per Drag & Drop), um Ihre persönlichen <b>.epub</b>- oder <b>.pdf</b>-Dateien hinzuzufügen.</li>
-        <li><b>Suchen:</b> Nutzen Sie die obere Leiste, um schnell ein Buch nach Titel, Autor oder Kategorie zu finden.</li>
-        <li><b>Regal-Navigation:</b> Scrollen Sie horizontal (wischen oder ←/→ Pfeile), um Werke zu durchsuchen, und vertikal (↑/↓), um die Kategorien zu wechseln.</li>
-        <li><b>Organisieren und Verwalten:</b> Verwenden Sie "🏷️ Kategorie zuweisen", um Bände zu klassifizieren, oder "⚙️ Verwalten" für erweiterte Bibliotheksvorgänge.</li>
-        <li><b>✏️ Metadaten bearbeiten:</b> Klicken Sie bei einem beliebigen Buch auf "Bearbeiten", um Titel, Autor, Beschreibung oder Kategorie manuell zu ändern. Sie können auch ein benutzerdefiniertes hochauflösendes Cover hochladen. Das 3D-Modell wird sofort aktualisiert.</li>
-        <li><b>Erweitertes Lesen:</b> Klicken Sie auf ein Buch, um es zu öffnen. Der Reader unterstützt nativ sowohl <b>EPUB</b> (fließendes Format) als auch <b>PDF</b> (festes Format).</li>
-        <li><b>Reader-Anpassung (Hamburger-Menü):</b> Öffnen Sie das Seitenmenü (≡), um Folgendes anzupassen:
-            <ul>
-                <li><b>Zoom:</b> Vergrößern Sie Text oder Seiten für optimales Lesen.</li>
-                <li><b>Schrift & Zeilenhöhe:</b> Passen Sie den typografischen Stil an (nur EPUB).</li>
-                <li><b>Lesemodus:</b> Wählen Sie zwischen "Paginiert" (horizontal) oder "Kontinuierliches Scrollen" (vertikal).</li>
-                <li><b>Textausrichtung:</b> Richten Sie den Text links, rechts oder zentriert aus (nur EPUB).</li>
-            </ul>
-        </li>
-        <li><b style="color: #f1c40f;">✍️ Markierungen & 3D-Pinnwand:</b> Wählen Sie beim Lesen Text aus, um Ihre Lieblingssätze zu unterstreichen. Ihre Markierungen erscheinen automatisch als <b>Post-it-Notizen auf der 3D-Pinnwand</b> über Ihrer Bibliothek!</li>
-        <li><b>Dunkler/Heller Modus:</b> Klicken Sie auf das Symbol oben rechts, um das Thema umzuschalten und die Augen zu schonen.</li>
-        <li><b>Entdecken:</b> Verwenden Sie "Zusammenfassung anzeigen", um das 3D-Buch zu drehen und die Zusammenfassung auf der Rückseite zu lesen.</li>
-        <li><b style="color: #d9534f;"> Ausschalten:</b> Verwenden Sie die "Ausschalten"-Taste oben rechts, um Ihre Sitzung zu beenden und den lokalen Server sicher zu schließen.</li>
+        <h3>📖 Willkommen bei KoreShelf</h3>
+        <p>Deine intelligente 3D-Bibliothek. So nutzt du alle Funktionen optimal:</p>
+        <ul>
+            <li><b>📥 Bücher hochladen:</b> Nutze den Upload-Button oder Drag-and-Drop, um <b>.epub</b> oder <b>.pdf</b> Dateien hinzuzufügen.</li>
+            <li><b>🔍 Suche:</b> Verwende die obere Leiste, um Titel, Autoren oder Kategorien zu finden.</li>
+            <li><b>🧭 Navigation:</b> Scrolle horizontal (←/→), um durch die Bücher zu blättern, und vertikal (↑/↓), um die Kategorien zu wechseln.</li>
+            <li><b>🛠️ Organisation:</b> Verwende "🏷️ Kategorie zuweisen" zum Sortieren oder "⚙️ Bearbeiten" für Metadaten.</li>
+            <li><b>📖 Reader:</b> Klicke ein Buch an, um es zu öffnen. Unterstützt nativ <b>EPUB</b> und <b>PDF</b> Formate.</li>
+            <li><b>📑 Schnellnavigation (Inhaltsverzeichnis):</b> Klicke unten links auf <b>"Inhalt" (📑)</b>, um direkt zu Kapiteln zu springen.</li>
+            <li><b>🔎 Textsuche:</b> Nutze die Suchleiste oben rechts im Reader, um gezielt nach Phrasen zu suchen. Ergebnisse werden im Text markiert.</li>
+            <li><b>⚙️ Reader-Menü (≡):</b> Passe Zoom, Schriftart, Zeilenabstand, Ausrichtung und Lesemodus (paginiert/scrollend) über das Seitenmenü an.</li>
+            <li><b style="color: #f1c40f;">✍️ Notizboard:</b> Markiere Text beim Lesen. Deine Highlights erscheinen automatisch als <b>3D-Post-its</b> an der Bibliothekswand.</li>
+            <li><b>🌓 Design:</b> Wechsle zwischen Dark- und Light-Mode über das Icon oben rechts.</li>
+            <li><b>👁️ Zusammenfassung:</b> Drehe das Buch oder klicke auf "Zusammenfassung anzeigen", um den Inhalt auf der Rückseite zu lesen.</li>
+            <li><b style="color: #d9534f;">⏻ Beenden:</b> Nutze den Shutdown-Button oben rechts, um den Server sicher zu beenden.</li>
+        </ul>
     `,
     donateBtn: "💙 Spenden",
 

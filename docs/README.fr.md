@@ -114,6 +114,8 @@ KoreShelf n'est pas qu'une simple archive, c'est un environnement de lecture imm
 
 - **Table des matières intelligente :** Naviguez facilement dans les textes longs grâce au nouveau bouton Table des matières. Compatible avec les fichiers EPUB et PDF structurés, il offre une solution de repli intelligente avec un sélecteur de page rapide pour les PDF numérisés sans navigation interne.
 
+- **Recherche textuelle** : Utilisez la barre de recherche en haut à droite du lecteur pour trouver des mots ou phrases spécifiques. Les résultats seront mis en surbrillance dans le texte.
+
 ### 📌 Tableau des passages surlignés (Palais de la mémoire)
 
 Vos annotations méritent mieux qu'une simple liste. KoreShelf propose un **tableau des passages surlignés 3D** unique qui s'affiche au-dessus de votre bibliothèque :

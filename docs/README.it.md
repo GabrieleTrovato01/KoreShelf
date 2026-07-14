@@ -98,6 +98,7 @@ KoreShelf non è solo un archivio, ma un ambiente di lettura immersivo:
 - **Progresso di Lettura:** Una fettuccia rossa (segnalibro) si sposta fisicamente sul tuo libro 3D nella mensola, mostrandoti la percentuale completata a colpo d'occhio.
 - **Recensioni Interattive:** Quando finisci un libro (100%), appare un elegante pop-up per valutare l'opera (1-5 stelle) e scrivere le tue riflessioni a caldo. La tua valutazione a stelle verrà letteralmente stampata in oro sul retro della copertina 3D del libro!
 - **Indice intelligente:** Naviga facilmente tra testi lunghi con il nuovo pulsante Indice. È perfettamente compatibile con EPUB e PDF strutturati e offre un pratico menu di accesso rapido con selettore di pagina per i PDF scansionati privi di navigazione interna.
+- **Ricerca nel testo**: Utilizza la barra di ricerca integrata nel lettore (in alto a destra) per trovare istantaneamente una parola o una frase specifica all'interno del libro. I risultati verranno evidenziati nel testo.
 
 ### 📌 Bacheca Sottolineature (Palazzo della Memoria)
 

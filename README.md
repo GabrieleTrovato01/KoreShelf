@@ -98,6 +98,7 @@ KoreShelf is not just an archive, it's a fully-featured immersive reading enviro
 - **Reading Progress:** A physical red ribbon bookmark moves along your 3D book on the shelf, showing your exact reading percentage at a glance.
 - **Interactive Reviews:** When you finish a book (100%), a seamless modal prompts you to rate it (1-5 stars) and write your review. Your rating will be stamped in gold on the back cover of the 3D book!
 - **Smart Table of Contents:** Navigate effortlessly through long texts with the new TOC button. It perfectly supports structured EPUBs and PDFs, and provides a smart fallback with a quick page-jump selector for scanned PDFs without internal navigation.
+- **Search within text**: Use the search bar in the top-right corner of the reader to find specific words or phrases. Results will be highlighted directly in the text.
 
 ### 📌 Highlights Board (Memory Palace)
 

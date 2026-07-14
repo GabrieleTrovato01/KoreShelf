@@ -135,24 +135,22 @@ export default {
         textAlignment: "Alineación del Texto",
         helpTitle: "📖 Cómo funciona",
         helpContent: `
-            <li><b>Subir un libro:</b> Haz clic en el botón de carga (o arrastra y suelta un archivo) para agregar tus archivos <b>.epub</b> o <b>.pdf</b> personales.</li>
-            <li><b>Buscar:</b> Usa la barra superior para encontrar rápidamente un libro ingresando el título, autor o categoría.</li>
-            <li><b>Navegación por la estantería:</b> Desplázate horizontalmente (desliza o usa las flechas ←/→) para explorar obras, y verticalmente (↑/↓) para cambiar de categoría.</li>
-            <li><b>Organizar y gestionar:</b> Usa "🏷️ Asignar Categoría" para clasificar volúmenes, o "⚙️ Gestionar" para operaciones avanzadas de la biblioteca.</li>
-            <li><b>✏️ Editar Metadatos:</b> Haz clic en el botón "Editar" en cualquier libro para modificar manualmente el título, autor, descripción o categoría. También puedes cargar una portada personalizada de alta resolución, y el modelo 3D se actualizará instantáneamente.</li>
-            <li><b>Lectura Avanzada:</b> Haz clic en un libro para abrirlo. El lector soporta nativamente tanto <b>EPUB</b> (formato adaptable) como <b>PDF</b> (formato fijo).</li>
-            <li><b>Personalización del lector (menú de hamburguesa):</b> Abre el menú lateral (≡) para ajustar:
-                <ul>
-                    <li><b>Zoom:</b> Amplía el texto o las páginas para una lectura óptima.</li>
-                    <li><b>Font & Line Height:</b> Personaliza el estilo tipográfico (solo EPUB).</li>
-                    <li><b>Flow Mode:</b> Elige entre "Paginado" (horizontal) o "Desplazamiento Continuo" (vertical) para una experiencia de estilo web.</li>
-                    <li><b>Text Alignment:</b> Alinea el texto a la izquierda, derecha o centro (solo EPUB).</li>
-                </ul>
-            </li>
-            <li><b style="color: #f1c40f;">✍️ Aspectos destacados y tablero en 3D: </b> Selecciona cualquier texto mientras lees para subrayar tus frases favoritas. ¡Tus fragmentos destacados aparecerán automáticamente como <b>notas adhesivas en el tablero 3D</b> que flota sobre tu biblioteca! Utiliza las flechas laterales para navegar por tu colección de notas.</li>
-            <li><b>Dark/Light Mode:</b> Haz clic en el icono de la esquina superior derecha para cambiar de tema y reducir la fatiga visual.</li>
-            <li><b>Explore:</b>Utiliza la opción «Mostrar ilustración» para girar el libro en 3D y leer la sinopsis de la contraportada. </li>
-            <li><b style="color: #d9534f;"> Apagar:</b> Utiliza el botón «Apagar», situado en la esquina superior derecha, para finalizar tu sesión y cerrar de forma segura el servidor local.</li>
+            <h3>📖 Bienvenido a KoreShelf</h3>
+            <p>Tu biblioteca 3D inteligente. Cómo sacar el máximo provecho:</p>
+            <ul>
+                <li><b>📥 Subir libros:</b> Usa el botón de carga o arrastra tus archivos <b>.epub</b> o <b>.pdf</b>.</li>
+                <li><b>🔍 Búsqueda en biblioteca:</b> Usa la barra superior para encontrar títulos, autores o categorías.</li>
+                <li><b>🧭 Navegación:</b> Desplázate horizontalmente (←/→) para explorar libros y verticalmente (↑/↓) para cambiar de categoría.</li>
+                <li><b>🛠️ Organización:</b> Usa "🏷️ Asignar categoría" para organizar volúmenes o "⚙️ Editar" para los metadatos.</li>
+                <li><b>📖 Lector avanzado:</b> Haz clic en un libro para abrirlo. El lector es compatible con formatos <b>EPUB</b> y <b>PDF</b>.</li>
+                <li><b>📑 Navegación rápida (Índice):</b> Haz clic en el botón <b>"Índice" (📑)</b> en la esquina inferior izquierda para saltar a cualquier capítulo.</li>
+                <li><b>🔎 Búsqueda de texto:</b> Usa la barra de búsqueda en la parte superior derecha del lector para encontrar frases específicas. Los resultados se resaltarán en el texto.</li>
+                <li><b>⚙️ Menú del lector (≡):</b> Ajusta el zoom, fuente, interlineado, alineación y flujo de lectura (paginado/continuo) desde el menú lateral.</li>
+                <li><b style="color: #f1c40f;">✍️ Tablero de notas:</b> Selecciona texto para subrayarlo. Tus citas aparecerán automáticamente como <b>post-its 3D</b> en la pared de la biblioteca.</li>
+                <li><b>🌓 Modo visual:</b> Cambia entre modo oscuro y claro desde el icono en la esquina superior derecha.</li>
+                <li><b>👁️ Sinopsis:</b> Gira el libro 3D o haz clic en "Ver sinopsis" para leer el resumen en la contraportada.</li>
+                <li><b style="color: #d9534f;">⏻ Apagar:</b> Usa el botón de apagado en la parte superior derecha para cerrar el servidor de forma segura.</li>
+            </ul>
         `,
         donateBtn: "💙 Donar",
 

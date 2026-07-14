@@ -135,24 +135,22 @@ export default {
         textAlignment: "Text Alignment",
         helpTitle: "📖 How it works",
         helpContent: `
-            <li><b>Upload a book:</b> Click the upload button (or drag and drop a file) to add your personal <b>.epub</b> or <b>.pdf</b> files.</li>
-            <li><b>Search:</b> Use the top bar to quickly find a book by entering the title, author, or category.</li>
-            <li><b>Shelf Navigation:</b> Scroll horizontally (swipe or ←/→ arrows) to browse works, and vertically (↑/↓) to switch categories.</li>
-            <li><b>Organize and Manage:</b> Use "🏷️ Assign Category" to classify volumes, or "⚙️ Manage" for advanced library operations.</li>
-            <li><b>✏️ Edit Metadata:</b> Click the "Edit" button on any book to manually modify the title, author, description, or category. You can also upload a custom high-res cover, and the 3D model will update instantly.</li>
-            <li><b>Advanced Reading:</b> Click on a book to open it. The reader natively supports both <b>EPUB</b> (reflowable format) and <b>PDF</b> (fixed format).</li>
-            <li><b>Reader Customization (Hamburger Menu):</b> Open the side menu (≡) to adjust:
-                <ul>
-                    <li><b>Zoom:</b> Magnify text or pages for optimal reading.</li>
-                    <li><b>Font & Line Height:</b> Customize typographical style (EPUB only).</li>
-                    <li><b>Flow Mode:</b> Choose between "Paginated" (horizontal) or "Continuous Scroll" (vertical) for a web-style experience.</li>
-                    <li><b>Text Alignment:</b> Align text to left, right, or center (EPUB only).</li>
-                </ul>
-            </li>
-            <li><b style="color: #f1c40f;">✍️ Highlights & 3D Board:</b> Select any text while reading to underline your favorite phrases. Your highlights will automatically appear as <b>post-it notes on the 3D board</b> floating above your library! Use the side arrows to browse through your collection of notes.</li>
-            <li><b>Dark/Light Mode:</b> Click the icon in the top right corner to toggle themes and reduce eye strain.</li>
-            <li><b>Explore:</b> Use "Show Plot" to rotate the 3D book and read the synopsis on the back cover.</li>
-            <li><b style="color: #d9534f;"> Shutdown:</b> Use the "Shutdown" button in the top right corner to end your session and safely close the local server.</li>
+            <h3>📖 Welcome to KoreShelf</h3>
+            <p>Your intelligent 3D library. Here's how to make the most of it:</p>
+            <ul>
+                <li><b>📥 Upload Books:</b> Drag and drop or use the upload button to add your <b>.epub</b> or <b>.pdf</b> files.</li>
+                <li><b>🔍 Library Search:</b> Use the top bar to find titles, authors, or categories.</li>
+                <li><b>🧭 Navigation:</b> Scroll horizontally (←/→) to browse books and vertically (↑/↓) to switch categories.</li>
+                <li><b>🛠️ Library Management:</b> Use "🏷️ Assign Category" to organize volumes or "⚙️ Edit" for advanced metadata operations.</li>
+                <li><b>📖 Advanced Reader:</b> Click a book to open it. The reader natively supports both <b>EPUB</b> and <b>PDF</b> formats.</li>
+                <li><b>📑 Fast Navigation (TOC):</b> Click the <b>"TOC" (📑)</b> button in the bottom-left corner while reading to jump to chapters.</li>
+                <li><b>🔎 Search within text:</b> Use the search bar in the top-right corner of the reader to find specific phrases. Results will be highlighted in the text.</li>
+                <li><b>⚙️ Reader Menu (≡):</b> Adjust zoom, font, line height, alignment, and reading flow (paginated/scrolled) via the side menu.</li>
+                <li><b style="color: #f1c40f;">✍️ Highlights Board:</b> Select text to underline it. Highlights automatically appear as <b>3D post-it notes</b> on the library wall. Use the side arrows to browse them.</li>
+                <li><b>🌓 Visual Mode:</b> Toggle between Dark and Light mode via the icon in the top-right corner.</li>
+                <li><b>👁️ Synopsis:</b> Rotate the book or click "Show Plot" to read the summary on the back cover.</li>
+                <li><b style="color: #d9534f;">⏻ Shutdown:</b> Use the Shutdown button in the top-right to safely close the local server.</li>
+            </ul>
         `,
         donateBtn: "💙 Donate",
 

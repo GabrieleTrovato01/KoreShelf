@@ -100,6 +100,7 @@ KoreShelf ist nicht nur ein Archiv, sondern eine immersive Leseumgebung:
 * **Lese-Fortschritt:** Ein rotes Lesezeichenband zeigt den Fortschritt direkt am 3D-Buch im Regal.
 * **Interaktive Rezensionen:** Wenn Sie ein Buch beenden, können Sie es bewerten und eine Rezension schreiben, die goldgeprägt auf der Rückseite des 3D-Buches erscheint.
 * **Intelligentes Inhaltsverzeichnis:** Navigieren Sie mühelos durch lange Texte mit der neuen Inhaltsverzeichnis-Schaltfläche. Strukturierte EPUBs und PDFs werden optimal unterstützt. Für gescannte PDFs ohne interne Navigation bietet die Funktion eine praktische Schnellnavigation.
+* **Textsuche**: Nutze die Suchleiste oben rechts im Reader, um gezielt nach Wörtern oder Phrasen zu suchen. Die Ergebnisse werden direkt im Text markiert.
 
 ### 📌 Markierungen & 3D-Pinnwand
 

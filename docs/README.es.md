@@ -102,7 +102,9 @@ KoreShelf no es solo un archivo, es un entorno de lectura inmersivo y completo:
 * **Modo Oscuro/Claro:** Alterna entre temas con un solo clic para reducir la fatiga visual.
 * **Progreso de Lectura:** Un marcador de cinta roja física se mueve a lo largo de tu libro 3D en la estantería, mostrando tu porcentaje exacto de lectura de un vistazo.
 * **Reseñas Interactivas:** Cuando terminas un libro (100%), un elegante modal te invita a calificarlo (1-5 estrellas) y escribir tu reseña. ¡Tu calificación se imprimirá en oro en la contraportada del libro 3D!
-- **Índice inteligente:** Navega sin esfuerzo por textos extensos con el nuevo botón de índice. Es compatible con EPUB y PDF estructurados, y ofrece una alternativa inteligente con un selector rápido de salto de página para PDF escaneados sin navegación interna.
+* **Índice inteligente:** Navega sin esfuerzo por textos extensos con el nuevo botón de índice. Es compatible con EPUB y PDF estructurados, y ofrece una alternativa inteligente con un selector rápido de salto de página para PDF escaneados sin navegación interna.
+
+* **Búsqueda de texto**: Usa la barra de búsqueda en la parte superior derecha del lector para encontrar palabras o frases específicas. Los resultados se resaltarán directamente en el texto.
 
 ### 📌 Pizarra de Subrayados (Palacio de la Memoria)
 
