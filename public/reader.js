@@ -4,6 +4,7 @@ let rendition = null;
 // --- VARIABILI GLOBALI RICERCA ---
 let searchResults = [];
 let currentSearchIndex = -1;
+let currentSearchQuery = "";
 
 // --- VARIABILI GLOBALI PDF.JS ---
 let pdfDoc = null;
@@ -839,6 +840,9 @@ async function renderTextLayer(page, viewport, wrapper, pageNum) {
         await renderTask.promise;
         
         loadPdfHighlights(pageNum, textLayerDiv);
+        if (currentSearchQuery) {
+            highlightSearchInLayer(textLayerDiv, currentSearchQuery);
+        }
     }
 }
 
@@ -1126,6 +1130,76 @@ function highlightTextInLayer(textLayerDiv, targetText, cfi) {
         if (afterText) parent.insertBefore(document.createTextNode(afterText), textNode);
 
         // Rimuoviamo il vecchio pezzo unico
+        parent.removeChild(textNode);
+    });
+}
+
+function highlightSearchInLayer(textLayerDiv, targetText) {
+    const treeWalker = document.createTreeWalker(textLayerDiv, NodeFilter.SHOW_TEXT, null, false);
+    const textNodes = [];
+    let currentNode;
+    while (currentNode = treeWalker.nextNode()) {
+        textNodes.push(currentNode);
+    }
+
+    const cleanTarget = targetText.replace(/\s+/g, '').toLowerCase();
+    if (!cleanTarget) return;
+
+    let currentString = '';
+    const charMap = [];
+
+    textNodes.forEach(node => {
+        const text = node.textContent;
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (char.trim() !== '') {
+                charMap.push({ node: node, offset: i, char: char.toLowerCase() });
+                currentString += char.toLowerCase();
+            }
+        }
+    });
+
+    const matchIndex = currentString.indexOf(cleanTarget);
+    if (matchIndex === -1) return;
+
+    const matchedChars = charMap.slice(matchIndex, matchIndex + cleanTarget.length);
+    const nodeGroups = new Map();
+
+    matchedChars.forEach(match => {
+        if (!nodeGroups.has(match.node)) {
+            nodeGroups.set(match.node, { minOffset: match.offset, maxOffset: match.offset });
+        } else {
+            const group = nodeGroups.get(match.node);
+            if (match.offset < group.minOffset) group.minOffset = match.offset;
+            if (match.offset > group.maxOffset) group.maxOffset = match.offset;
+        }
+    });
+
+    const groupsArray = Array.from(nodeGroups.entries());
+    
+    groupsArray.forEach(([textNode, offsets]) => {
+        const startOffset = offsets.minOffset;
+        const endOffset = offsets.maxOffset + 1; 
+
+        const originalText = textNode.textContent;
+        const beforeText = originalText.substring(0, startOffset);
+        const wrapText = originalText.substring(startOffset, endOffset);
+        const afterText = originalText.substring(endOffset);
+
+        const parent = textNode.parentNode; 
+
+        const highlightSpan = document.createElement('span');
+        highlightSpan.className = 'pdf-search-highlight';
+        highlightSpan.textContent = wrapText;
+        highlightSpan.style.backgroundColor = 'rgba(255, 152, 0, 0.6)'; // Colore Arancione
+        highlightSpan.style.borderRadius = '3px';
+        highlightSpan.style.position = 'static'; 
+        highlightSpan.style.color = 'transparent';
+
+        if (beforeText) parent.insertBefore(document.createTextNode(beforeText), textNode);
+        parent.insertBefore(highlightSpan, textNode);
+        if (afterText) parent.insertBefore(document.createTextNode(afterText), textNode);
+
         parent.removeChild(textNode);
     });
 }
@@ -1457,6 +1531,12 @@ window.applyCurrentTheme = function() {
                         fill: rgba(255, 80, 80, 0.5) !important;
                         fill-opacity: 0.5 !important;
                     }
+
+                    .search-highlight, .search-highlight rect {
+                        fill: rgba(255, 152, 0, 0.6) !important;
+                        fill-opacity: 0.5 !important;
+                        pointer-events: none !important;
+                    }
                 `;
             } else {
                 styleTag.innerHTML = `
@@ -1498,6 +1578,12 @@ window.applyCurrentTheme = function() {
                     .epubjs-hl:hover, .epubjs-hl:hover rect {
                         fill: #ff4d4d !important;
                         fill-opacity: 0.5 !important;
+                    }
+
+                    .search-highlight, .search-highlight rect {
+                        fill: rgba(255, 152, 0, 0.6) !important;
+                        fill-opacity: 0.5 !important;
+                        pointer-events: none !important;
                     }
                 `;
             }
@@ -1752,6 +1838,21 @@ document.addEventListener('DOMContentLoaded', () => {
             searchResults = [];
             currentSearchIndex = -1;
             searchBtn.innerHTML = '🔍';
+
+            if (currentBook && rendition && window.currentSearchCfi) {
+                rendition.annotations.remove(window.currentSearchCfi, "search-highlight");
+                window.currentSearchCfi = null;
+            }
+
+            if (pdfDoc) {
+                document.querySelectorAll('.pdf-search-highlight').forEach(el => {
+                    const parent = el.parentNode;
+                    if(parent) {
+                        parent.replaceChild(document.createTextNode(el.textContent), el);
+                        parent.normalize();
+                    }
+                });
+            }
         });
 
         // Esecuzione ricerca sulla pressione di Invia
@@ -1775,14 +1876,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Vai al prossimo risultato EPUB
                 if (currentBook && rendition) {
-                    rendition.display(searchResults[currentSearchIndex].cfi);
-                } 
-                // Vai al prossimo risultato PDF
-                else if (pdfDoc) {
+                    if (window.currentSearchCfi) rendition.annotations.remove(window.currentSearchCfi, "search-highlight");
+                    const resultCfi = searchResults[currentSearchIndex].cfi;
+                    rendition.display(resultCfi).then(() => {
+                        rendition.annotations.highlight(resultCfi, {}, null, "search-highlight");
+                        window.currentSearchCfi = resultCfi;
+                    });
+                } else if (pdfDoc) {
                     const targetPage = searchResults[currentSearchIndex];
                     if (localStorage.getItem('readerFlow') === 'scrolled-doc') {
                         const target = document.getElementById(`pdf-page-wrapper-${targetPage}`);
-                        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        if (target) {
+                            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            const textLayer = target.querySelector('.textLayer');
+                            if (textLayer) highlightSearchInLayer(textLayer, currentSearchQuery);
+                        }
                     } else {
                         pageNum = targetPage;
                         if (typeof queueRenderPage === 'function') queueRenderPage(pageNum);
@@ -1796,6 +1904,7 @@ document.addEventListener('DOMContentLoaded', () => {
             searchBtn.innerHTML = '⏳';
             searchResults = [];
             currentSearchIndex = -1;
+            currentSearchQuery = query;
 
             if (currentBook && rendition) {
                 // RICERCA EPUB CORRETTA
@@ -1818,7 +1927,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (searchResults.length > 0) {
                         currentSearchIndex = 0;
-                        rendition.display(searchResults[0].cfi);
+                        if (window.currentSearchCfi) rendition.annotations.remove(window.currentSearchCfi, "search-highlight");
+                        const resultCfi = searchResults[0].cfi;
+                        rendition.display(resultCfi).then(() => {
+                            rendition.annotations.highlight(resultCfi, {}, null, "search-highlight");
+                            window.currentSearchCfi = resultCfi;
+                        });
                         searchBtn.innerHTML = '🔽';
                     } else {
                         alert(window.t('noResultsFound') || 'Nessun risultato trovato.');
@@ -1847,7 +1961,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         if (localStorage.getItem('readerFlow') === 'scrolled-doc') {
                             const target = document.getElementById(`pdf-page-wrapper-${targetPage}`);
-                            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            if (target) {
+                                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                const textLayer = target.querySelector('.textLayer');
+                                if (textLayer) highlightSearchInLayer(textLayer, currentSearchQuery);
+                            }
                         } else {
                             pageNum = targetPage;
                             if (typeof queueRenderPage === 'function') queueRenderPage(pageNum);
