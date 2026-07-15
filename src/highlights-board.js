@@ -652,7 +652,7 @@ async function showSharePreview(book, highlightText) {
 
         // Imposta dimensioni
         canvas.width = 1080;
-        canvas.height = currentFormat === 'story' ? 1920 : 1080;
+        canvas.height = currentFormat === 'story' ? 1920 : 1350;
 
         // --- SFONDO ---
         if (currentBgStyle === 'blur' && coverImgObj) {
