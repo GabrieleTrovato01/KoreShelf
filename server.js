@@ -1208,24 +1208,8 @@ app.post('/api/books/edit', upload.single('cover'), async (req, res) => {
 });
 
 // --- ROTTA PER SPEGNIMENTO SERVER ---
-app.post('/api/shutdown', async (req, res) => {
+app.post('/api/shutdown', (req, res) => {
     console.log(tLog('logShutdownRequest'));
-
-    try {
-        // Leggiamo tutti i file presenti nella cartella uploads
-        const files = await fs.readdir(uploadDir);
-        
-        // Cicliamo e cancelliamo ogni singolo file
-        for (const file of files) {
-            await fs.unlink(path.join(uploadDir, file));
-        }
-        
-        if (files.length > 0) {
-            console.log(` Pulizia completata: rimossi ${files.length} file temporanei dalla cartella uploads.`);
-        }
-    } catch (error) {
-        console.error("Errore durante la pulizia della cartella uploads:", error.message);
-    }
 
     res.json({ success: true, message: tLog('successShutdown') });
     
