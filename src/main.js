@@ -1106,8 +1106,8 @@ fileInput.addEventListener('change', async (event) => {
 // --- 3. GENERATORI DI TEXTURE ---
 function createSpineTexture(title, author) {
     const canvas = document.createElement('canvas');
-    canvas.width = 128; 
-    canvas.height = 1024;
+    canvas.width = 256; 
+    canvas.height = 2048;
     const ctx = canvas.getContext('2d');
     
     // Sfondo e rotazione
@@ -1119,32 +1119,40 @@ function createSpineTexture(title, author) {
     ctx.rotate(Math.PI / 2); 
     
     // --- 1. RIDIMENSIONAMENTO DINAMICO TITOLO ---
-    let titleFontSize = 40; // Partiamo dalla grandezza massima desiderata
-    const maxWidth = canvas.height - 60; // 1024px meno un po' di margine ai bordi
+    let titleFontSize = 80; // Partiamo dalla grandezza massima desiderata
+    const maxWidth = canvas.height - 120; // 2048px meno un po' di margine ai bordi
     
     ctx.font = `bold ${titleFontSize}px Arial, sans-serif`;
     
     // Finché il testo è troppo largo, rimpiccioliscilo!
-    while (ctx.measureText(title).width > maxWidth && titleFontSize > 12) {
-        titleFontSize -= 2;
+    while (ctx.measureText(title).width > maxWidth && titleFontSize > 24) {
+        titleFontSize -= 4;
         ctx.font = `bold ${titleFontSize}px Arial, sans-serif`;
     }
     
     ctx.fillStyle = '#ffffff'; 
-    ctx.fillText(title, 0, -15);
+    ctx.fillText(title, 0, -30);
     
     // --- 2. RIDIMENSIONAMENTO DINAMICO AUTORE ---
-    let authorFontSize = 30;
+    let authorFontSize = 60;
     
     ctx.font = `italic ${authorFontSize}px Arial, sans-serif`;
     
-    while (ctx.measureText(author).width > maxWidth && authorFontSize > 10) {
-        authorFontSize -= 2;
+    while (ctx.measureText(author).width > maxWidth && authorFontSize > 20) {
+        authorFontSize -= 4;
         ctx.font = `italic ${authorFontSize}px Arial, sans-serif`;
     }
     
     ctx.fillStyle = '#cccccc'; 
-    ctx.fillText(author, 0, 30); 
+    ctx.fillText(author, 0, 60); 
+
+    const texture = new THREE.CanvasTexture(canvas);
+
+    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     
     return new THREE.CanvasTexture(canvas);
 }
@@ -1380,7 +1388,11 @@ async function loadBooks() {
                 const bookWidth = 2.0;
                 const bookHeight = 3.0;
                 const pages = bookData.pageCount || 350;
-                const bookThickness = pages * 0.001; 
+
+                const MAX_PAGES = 1000;
+                const effectivePages = Math.min(pages, MAX_PAGES);
+
+                const bookThickness = Math.max(0.1, effectivePages * 0.001); 
 
                 const geometry = new THREE.BoxGeometry(bookWidth, bookHeight, bookThickness);
                 const spineTexture = createSpineTexture(bookData.title, bookData.author);
