@@ -266,6 +266,8 @@ window.addEventListener('pointerup', (e) => {
         document.getElementById('share-preview-overlay') ||
         document.getElementById('reader-overlay')?.style.display === 'block') return;
 
+    if (e.target.closest('button, input, label, a')) return;
+    
     if (!localCamera || !boardGroup) return;
 
     mouse.x = (e.clientX / window.innerWidth) * 2 - 1;

@@ -274,6 +274,21 @@ uploadLabel.className = 'glass-effect modern-btn';
 uploadLabel.htmlFor = 'file-upload';
 topBar.appendChild(uploadLabel);
 
+uploadLabel.style.background = 'rgba(46, 204, 113, 0.15)';
+uploadLabel.style.borderColor = 'rgba(46, 204, 113, 0.4)';
+uploadLabel.style.color = '#2ecc71';
+
+uploadLabel.onmouseover = () => {
+    uploadLabel.style.background = 'rgba(46, 204, 113, 0.3)';
+    uploadLabel.style.transform = 'translateY(-3px)';
+    uploadLabel.style.boxShadow = '0 8px 15px rgba(46, 204, 113, 0.2)';
+};
+uploadLabel.onmouseout = () => {
+    uploadLabel.style.background = 'rgba(46, 204, 113, 0.15)';
+    uploadLabel.style.transform = 'translateY(0px)';
+    uploadLabel.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+};
+
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
 fileInput.id = 'file-upload';
