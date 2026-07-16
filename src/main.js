@@ -4,10 +4,17 @@ import { LibraryLoader } from './loader-optimizer.js';
 import { t, initI18n, setLanguage } from './i18n.js';
 import {openHelpModal} from './help-modal.js';
 import {openMetadataManager} from './metadata-manager.js';
+import { BookService } from './services/book-service.js';
+import { isMobilePlatform } from './services/platform.js';
 import './style.css';
 import * as THREE from 'three';
 
+window.BookService = BookService;
 window.t = t;
+
+if (isMobilePlatform()) {
+    document.body.classList.add('platform-mobile');
+}
 
 // --- TRADUZIONE ELEMENTI STATICI E UI DINAMICA ---
 function translateStaticHTML() {
@@ -21,7 +28,9 @@ function translateStaticHTML() {
         shutdownBtn.title = t('shutdownTooltip');
     }
     
-    if (closeReaderBtn) closeReaderBtn.innerHTML = `&times; ${t('closeReader')}`;
+    if (closeReaderBtn) {
+        closeReaderBtn.innerHTML = '<span class="reader-btn-icon">&times;</span> <span class="reader-btn-text">' + t('closeReader') + '</span>';
+    }
     
     if (themeBtn) {
         const isDark = localStorage.getItem('readerDarkMode') === 'true';
@@ -57,6 +66,18 @@ function translateStaticHTML() {
     }
     if (typeof donateBtn !== 'undefined') donateBtn.innerHTML = '<span class="btn-icon">☕</span><span class="btn-text">' + t('donateBtn') + '</span>';
     if (emptyLibraryHint) emptyLibraryHint.innerText = t('emptyLibraryMessage');
+}
+
+// Helper per ripulire i percorsi nativi Capacitor ed evitare il doppio prefisso su mobile
+function getSafeBookPath(path) {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('file:') || path.startsWith('_capacitor_')) {
+        return path;
+    }
+    if (path.startsWith('/')) {
+        return path;
+    }
+    return '/' + path;
 }
 
 // --- 1. SETUP BASE ---
@@ -138,6 +159,14 @@ let isViewingBoard= false; // Stato della bacheca dei post-it
 // --- 2. STILI CSS MODERNI E UI (Menu + Bottone Inferiore) ---
 const styleStyle = document.createElement('style');
 styleStyle.innerHTML = `
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #2c3e50 !important; /* Colore blu notte coerente con la scena 3D */
+    }   
     /* Stili condivisi per l'effetto Glassmorphism */
     .glass-effect {
         background: rgba(255, 255, 255, 0.08);
@@ -206,30 +235,48 @@ styleStyle.innerHTML = `
     .btn-icon { display: inline-block; margin-right: 6px; font-size: 15px; }
     .btn-text { display: inline-block; }
 
-    /* Quando lo schermo scende sotto gli 850px di larghezza... */
-    @media (max-width: 950px) {
-        .btn-text { display: none !important; } /* Nascondi il testo */
-        .btn-icon { margin-right: 0 !important; font-size: 18px; } /* Ingrandisci leggermente l'icona e centrala */
-        
-        .modern-btn { 
-            padding: 12px 15px !important; /* Rendi i bottoni più "quadrati" */
-            min-width: 48px;
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-        }
-        
-        .top-bar { width: 98%; gap: 8px; top: 15px; }
-        .modern-input { padding: 12px 15px; font-size: 13px; }
-        
-        /* Evita che nomi di categorie lunghissimi rompano la top bar */
-        #category-label-id { 
-            max-width: 120px; 
-            white-space: nowrap; 
-            overflow: hidden; 
-            text-overflow: ellipsis; 
-        }
+    /* Quando lo schermo scende sotto gli 950px di larghezza... */
+    .platform-mobile .btn-text { display: none !important; }
+    .platform-mobile .btn-icon { margin-right: 0 !important; font-size: 18px; }
+    
+    .platform-mobile .modern-btn { 
+        padding: 10px 12px !important;
+        min-width: 40px;
+        display: flex; 
+        justify-content: center; 
+        align-items: center;
     }
+    
+    .platform-mobile .top-bar { 
+        width: 96%; 
+        gap: 6px; 
+        top: calc(15px + env(safe-area-inset-top, 0px)) !important; 
+        justify-content: space-between;
+    }
+    
+    .platform-mobile .modern-input { 
+        padding: 10px 12px; 
+        font-size: 12px; 
+        max-width: 100px;
+    }
+    
+    .platform-mobile #category-label-id { 
+        max-width: 90px !important; 
+        white-space: nowrap !important; 
+        overflow: hidden !important; 
+        text-overflow: ellipsis !important;
+        padding: 10px 12px !important;
+        font-size: 11px !important;
+    }
+    .platform-mobile #ui-container-id {
+        padding: 0 15px !important; /* Sposta il pulsante caffè e aiuto più vicino ai bordi su mobile */
+    }
+    /* Consente la selezione del testo all'interno dei contenitori del lettore */
+    #viewer, #pdf-container, .epub-container, .epub-view {
+        -webkit-user-select: text !important;
+        user-select: text !important;
+    }
+
 `;
 document.head.appendChild(styleStyle);
 
@@ -243,6 +290,7 @@ document.body.appendChild(topBar);
 
 // 1. Etichetta Categoria Attuale
 const categoryLabel = document.createElement('div');
+categoryLabel.id = 'category-label-id';
 categoryLabel.className = 'glass-effect';
 categoryLabel.style.padding = '12px 20px';
 categoryLabel.style.borderRadius = '50px';
@@ -520,8 +568,11 @@ if (helpBtn) {
 
 // --- COSTRUZIONE MENU INFERIORE (FLEXBOX MACRO-CONTENITORE) ---
 const uiContainer = document.createElement('div');
+uiContainer.id = 'ui-container-id';
 uiContainer.style.position = 'absolute';
-uiContainer.style.bottom = '40px';
+uiContainer.style.bottom = isMobilePlatform() 
+    ? 'calc(15px + env(safe-area-inset-bottom, 0px))' 
+    : '40px';
 uiContainer.style.left = '0';
 uiContainer.style.width = '100%'; // Occupa tutta la larghezza dello schermo
 uiContainer.style.display = 'flex'; 
@@ -555,7 +606,7 @@ uiContainer.appendChild(rightUiGroup);
 if (helpBtn) rightUiGroup.appendChild(helpBtn);
 
 const infoBtn = document.createElement('button');
-infoBtn.innerText = t('showSynopsis');
+infoBtn.innerHTML = '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
 infoBtn.className = 'glass-effect modern-btn';
 centerUiGroup.appendChild(infoBtn);
 
@@ -621,7 +672,7 @@ editMetadataBtn.onclick = () => {
         // 4. HOT-SWAP DELLA COPERTINA FRONTALE
         if (updatedData.coverPath) {
             // Se c'è un'immagine reale, la scarichiamo e la applichiamo subito
-            textureLoader.load(`/${updatedData.coverPath}`, (tex) => {
+            textureLoader.load(getSafeBookPath(updatedData.coverPath), (tex) => {
                 tex.generateMipmaps = false;
                 tex.minFilter = THREE.LinearFilter;
                 tex.magFilter = THREE.LinearFilter;
@@ -781,12 +832,7 @@ assignCatBtn.onclick = () => {
         saveBtn.disabled = true;
 
         try {
-            const response = await fetch(`/api/books/${activeBook.userData.id}/tags`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tag: newTag.trim() })
-            });
-            const result = await response.json();
+            const result = await BookService.assignCategory(activeBook.userData.id, newTag);
             if (result.success) {
                 location.reload(); // Ricarica per spostare il libro fisicamente sulla nuova mensola
             } else {
@@ -830,10 +876,7 @@ deleteBookBtn.onclick = async () => {
         deleteBookBtn.disabled = true;
 
         try {
-            const response = await fetch(`/api/books/${activeBook.userData.id}`, {
-                method: 'DELETE'
-            });
-            const result = await response.json();
+             const result = await BookService.deleteBook(activeBook.userData.id);
             
             if (result.success) {
                 // Ricarichiamo la pagina per ricostruire la libreria senza il libro eliminato
@@ -902,7 +945,9 @@ function changeBook(direction) {
     if (newIndex >= 0 && newIndex < booksArray.length) {
         currentIndex = newIndex;
         isShowingBack = false;
-        infoBtn.innerText = t('showSynopsis');
+        if (typeof infoBtn !== 'undefined') {
+            infoBtn.innerHTML = '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
+        }
         updateCarousel();
     }
 }
@@ -974,7 +1019,9 @@ function changeShelf(direction) {
     if (targetIndex !== -1) {
         currentIndex = targetIndex;
         isShowingBack = false;
-        infoBtn.innerText = t('showSynopsis');
+        if (typeof infoBtn !== 'undefined') {
+            infoBtn.innerHTML = '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
+        }
         updateCarousel();
     }
 }
@@ -1007,11 +1054,10 @@ searchInput.addEventListener('input', (e) => {
     searchTimeout = setTimeout(async () => {
         try {
             // Chiediamo a SQLite i risultati perfetti
-            const res = await fetch(`/api/books/search?q=${encodeURIComponent(query)}`);
-            const matches = await res.json();
+           const matches = await BookService.searchBooks(query);
 
             // Se il database ha trovato qualcosa...
-            if (matches.length > 0) {
+            if (matches && matches.length > 0) {
                 // Prendiamo l'ID del miglior risultato (il primo)
                 const targetBookId = matches[0].id;
 
@@ -1031,7 +1077,9 @@ searchInput.addEventListener('input', (e) => {
                         manageCatBtn.style.display = 'block';
                     }
                     
-                    if (typeof infoBtn !== 'undefined') infoBtn.innerText = t('showSynopsis');
+                    if (typeof infoBtn !== 'undefined') {
+                        infoBtn.innerHTML = '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
+                    }
                     
                     updateCarousel();
                 }
@@ -1067,12 +1115,8 @@ fileInput.addEventListener('change', async (event) => {
 
         try {
             // Aspettiamo che il server finisca QUESTO libro prima di passare al prossimo
-            const response = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            });
+            const result = await BookService.uploadBook(file);
             
-            const result = await response.json();
             
             if (result.success) {
                 successCount++;
@@ -1306,8 +1350,7 @@ function createFrontPlaceholderTexture(title, author) {
 // --- 4. CARICAMENTO E LOGICA CAROSELLO (Con Modellazione Reale dello spessore) ---
 async function loadBooks() {
     try {
-        const response = await fetch('/api/books');
-        const booksData = await response.json();
+        const booksData = await BookService.getAllBooks();
 
         // 1. Raggruppiamo i libri per Categoria
         const categoriesMap = new Map();
@@ -1489,7 +1532,7 @@ async function loadBooks() {
             if (!shelf) return;
             const promises = shelf.meshes.map(async (mesh) => {
                 if (mesh.userData.coverPath) {
-                    const tex = await loadTextureAsync(`/${mesh.userData.coverPath}`);
+                    const tex = await loadTextureAsync(getSafeBookPath(mesh.userData.coverPath));
                     if (tex) {
                         mesh.material[4].map = tex;
                         mesh.material[4].color.setHex(0xffffff); // Ripristina i colori vividi
@@ -1505,7 +1548,7 @@ async function loadBooks() {
             if (!shelf) return;
             for (const mesh of shelf.meshes) {
                 if (mesh.userData.coverPath) {
-                    const tex = await loadTextureAsync(`/${mesh.userData.coverPath}`);
+                    const tex = await loadTextureAsync(getSafeBookPath(mesh.userData.coverPath));
                     if (tex) {
                         mesh.material[4].map = tex;
                         mesh.material[4].color.setHex(0xffffff); // Ripristina i colori vividi
@@ -1721,9 +1764,11 @@ window.addEventListener('pointerdown', (event) => {
 
     if (event.target.closest('button, input, label, a')) return;
 
-
+    // Catturiamo la posizione iniziale del tocco
     pointerStartX = event.clientX;
     pointerStartY = event.clientY;
+    pointerEndX = event.clientX; // Inizializza uguali per evitare calcoli errati
+    pointerEndY = event.clientY;
     isDragging = true;
 });
 
@@ -1735,30 +1780,32 @@ window.addEventListener('pointerup', (event) => {
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
     if (document.getElementById('highlights-manager-overlay')) return;
+    
     if (event.target.closest('button, input, label, a')) {
         isDragging = false; 
         return;
     }
     if (!isDragging) return;
     isDragging = false;
-    pointerEndX = event.clientX;
-    pointerEndY = event.clientY;
-    
+
     // Calcoliamo lo spostamento su entrambi gli assi
     const deltaX = pointerStartX - pointerEndX;
     const deltaY = pointerStartY - pointerEndY;
 
-    // 1. SWIPE ORIZZONTALE (Cambio Libro)
+    // 1. SWIPE ORIZZONTALE (Cambio Libro - tolleranza minima 50px)
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
         if (deltaX > 0) changeBook(1); 
         else changeBook(-1);           
     } 
-    // 2. SWIPE VERTICALE (Cambio Mensola)
+    // 2. SWIPE VERTICALE (Cambio Mensola e accesso alla Bacheca - tolleranza minima 50px)
     else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 50) {
-        if (deltaY > 0) changeShelf(-1); // Swipe in Su -> Guarda la mensola sotto
-        else changeShelf(1);             // Swipe in Giù -> Guarda la mensola sopra
+        if (deltaY > 0) {
+            changeShelf(-1); // Swipe verso l'alto con il dito -> Scendi alla mensola sotto
+        } else {
+            changeShelf(1);  // Swipe verso il basso con il dito -> Sali alla mensola sopra (o accedi alla bacheca)
+        }
     } 
-    // 2. È UN CLICK PURO? (Nessuno spostamento reale, o piccolissimo tremolio del dito)
+    // 3. EVENTO TAP / CLICK PURO (Nessun trascinamento significativo)
     else if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10) {
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -1779,7 +1826,7 @@ window.addEventListener('pointerup', (event) => {
                 currentIndex = clickedIndex;
                 isShowingBack = false;
                 if (typeof infoBtn !== 'undefined' && infoBtn) {
-                    infoBtn.innerText = t('showSynopsis');
+                    infoBtn.innerHTML = '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
                 }
                 updateCarousel();
                 return; 
@@ -1822,12 +1869,10 @@ window.addEventListener('pointerup', (event) => {
                 const isPdf = bookPath.toLowerCase().endsWith('.pdf');
 
                 if (isPdf) {
-                    console.log("📄 Apertura PDF rilevata...");
                     document.getElementById('viewer').style.display = 'none';
                     document.getElementById('pdf-container').style.display = 'flex'; 
                     window.openPdfReader(bookPath, activeBook.userData.id);
                 } else {
-                    console.log("📚 Apertura EPUB rilevata...");
                     document.getElementById('pdf-container').style.display = 'none'; 
                     document.getElementById('viewer').style.display = 'block';
                     window.openReader(bookPath, activeBook.userData.id);
@@ -1895,18 +1940,25 @@ window.addEventListener('keydown', (event) => {
 });
 
 window.addEventListener('pointermove', (event) => {
+    // Gestione cursore sopra copertina
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObjects(libraryGroup.children, true);
     
-    // Cambiamo il cursore se siamo sopra una backCover_mesh
     if (intersects.length > 0 && intersects[0].object.name === "backCover_mesh") {
         document.body.style.cursor = 'pointer';
     } else {
         document.body.style.cursor = 'auto';
     }
+
+    // TRACCIAMENTO CONTINUO MOBILE: Aggiorna costantemente la posizione del dito durante il movimento
+    if (isDragging) {
+        pointerEndX = event.clientX;
+        pointerEndY = event.clientY;
+    }
 });
+
 
 // Quando il lettore viene chiuso, ripristiniamo la vista 3D
 window.addEventListener('readerClosed', () => {
@@ -1936,6 +1988,8 @@ function animate() {
     // Movimento fluido della telecamera in verticale verso la mensola attiva
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCameraY, 0.05);
     // Spostiamo anche la luce per mantenere le ombre perfette!
+    const targetCameraZ = (isMobilePlatform() && window.innerWidth < window.innerHeight) ? 5.5 : 3.5;
+    camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetCameraZ, 0.05);
     directionalLight.position.y = camera.position.y + 10;
     
     booksArray.forEach(book => {
@@ -2047,7 +2101,7 @@ async function generateMissingPdfCovers() {
                     // BONUS: Aggiorniamo la texture 3D in tempo reale senza ricaricare la pagina!
                     const mesh = booksArray.find(b => b.userData.id === book.id);
                     if (mesh) {
-                        const newUrl = `/${result.coverPath}`;
+                         const newUrl = getSafeBookPath(result.coverPath);
                         const tex = await libLoader.loadTexture(newUrl);
                         mesh.material[4].map = tex;
                         mesh.material[4].color.setHex(0xffffff); // Rimuovi il colore scuro del placeholder

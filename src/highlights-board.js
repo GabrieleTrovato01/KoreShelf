@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { t } from './i18n.js';
+import { BookService } from './services/book-service.js';
 
 let boardGroup = new THREE.Group();
 let localCamera, localScene;
@@ -11,6 +12,17 @@ let currentPage = 0;
 const POSTITS_PER_PAGE = 5; // Massimo 5 post-it visibili contemporaneamente
 let initParams = null ;
 let boardInitialized = false;
+
+// Helper locale per evitare il doppio prefisso su mobile
+function getSafeBookPath(path) {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('file:') || path.startsWith('_capacitor_')) {
+        return path;
+    }
+    if (path.startsWith('/')) return path;
+    return '/' + path;
+}
+
 /**
  * Inizializza la bacheca delle sottolineature
  */
@@ -427,12 +439,7 @@ function openHighlightsManagerModal(book) {
             const cardElementId = event.currentTarget.getAttribute('data-card-id');
 
             try {
-                const response = await fetch(`/api/books/${book.id}/highlights`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ cfi: cfiCode })
-                });
-                const result = await response.json();
+                 const result = await BookService.deleteHighlight(book.id, cfiCode);
 
                 if (result.success) {
                     document.getElementById(cardElementId).remove();
@@ -553,7 +560,7 @@ async function showSharePreview(book, highlightText) {
                     </button>
                 </div>
                 
-                <button id="close-preview-btn" style="background: none; border: none; color: #888; cursor: pointer; font-size: 14px; padding: 10px; margin-top: 5px;">
+                <button id="close-preview-btn" class="modern-btn glass-effect" style="width: 100%; padding: 12px; background: rgba(217, 83, 79, 0.15); border: 1px solid rgba(217, 83, 79, 0.4); color: #ff9999; font-weight: bold; cursor: pointer; margin-top: 10px; font-size: 13px;" onmouseover="this.style.background='rgba(217, 83, 79, 0.3)'; this.style.borderColor='rgba(217, 83, 79, 0.6)';" onmouseout="this.style.background='rgba(217, 83, 79, 0.15)'; this.style.borderColor='rgba(217, 83, 79, 0.4)';">
                     ${t('cancelBtn') || 'Annulla'}
                 </button>
             </div>
@@ -586,7 +593,7 @@ async function showSharePreview(book, highlightText) {
             await new Promise((resolve, reject) => {
                 coverImgObj.onload = resolve;
                 coverImgObj.onerror = reject;
-                coverImgObj.src = '/' + book.coverPath;
+                coverImgObj.src = getSafeBookPath(book.coverPath);
             });
         } catch (e) {
             console.warn("Impossibile caricare la copertina per il canvas", e);

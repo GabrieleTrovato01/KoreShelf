@@ -1,4 +1,6 @@
 import { t } from './i18n.js';
+import { BookService } from './services/book-service.js';
+
 export function openCategoryManager(currentViewedCategory, booksArray) {
     // Variabile di stato: memorizza quale categoria stiamo gestendo in questo momento nel menu
     let selectedCategory = currentViewedCategory; 
@@ -193,18 +195,7 @@ export function openCategoryManager(currentViewedCategory, booksArray) {
             btn.disabled = true;
 
             try {
-                const res = await fetch('/api/categories', { 
-                    method: 'PUT', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ oldName: selectedCategory, newName: newName, action: 'rename' }) 
-                });
-                
-                // Se la rotta backend non esiste o va in crash
-                if (!res.ok) {
-                    throw new Error(`Errore di rete. Codice: ${res.status}`);
-                }
-                
-                const result = await res.json();
+                const result = await BookService.updateCategory(selectedCategory, newName, 'rename');
                 
                 if (result.success) {
                     // Successo! Ricarica e costruisci le nuove mensole
@@ -273,8 +264,7 @@ export function openCategoryManager(currentViewedCategory, booksArray) {
             if (selectedIds.length === 0) { alert(t('selectMoveError')); return; }
             if (!newCatName) { alert(t('writeCatNameError')); return; }
             try {
-                const res = await fetch('/api/books/bulk-tags', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookIds: selectedIds, newTag: newCatName }) });
-                const result = await res.json();
+                const result = await BookService.bulkUpdateTags(selectedIds, newCatName);
                 if (result.success) location.reload(); else alert(result.message);
             } catch (e) { console.error(e); }
         };
@@ -322,8 +312,7 @@ export function openCategoryManager(currentViewedCategory, booksArray) {
             const selectedIds = Array.from(document.querySelectorAll('.import-checkbox:checked')).map(cb => cb.value);
             if (selectedIds.length === 0) { alert(t('selectImportError')); return; }
             try {
-                const res = await fetch('/api/books/bulk-tags', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bookIds: selectedIds, newTag: selectedCategory }) });
-                const result = await res.json();
+                 const result = await BookService.bulkUpdateTags(selectedIds, selectedCategory);
                 if (result.success) location.reload(); else alert(result.message);
             } catch (e) { console.error(e); }
         };
@@ -342,8 +331,7 @@ export function openCategoryManager(currentViewedCategory, booksArray) {
         document.getElementById('back-btn').onclick = renderMainMenu;
         document.getElementById('action-delete').onclick = async () => {
             try {
-                const res = await fetch('/api/categories', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ oldName: selectedCategory, newName: null, action: 'delete' }) });
-                const result = await res.json();
+                const result = await BookService.updateCategory(selectedCategory, null, 'delete');
                 if (result.success) location.reload(); else alert(result.message);
             } catch (e) { console.error(e); }
         };
