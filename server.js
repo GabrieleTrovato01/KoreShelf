@@ -1208,7 +1208,7 @@ app.post('/api/books/edit', upload.single('cover'), async (req, res) => {
 });
 
 // --- ROTTA PER SPEGNIMENTO SERVER ---
-app.post('/api/shutdown', (req, res) => {
+app.post('/api/shutdown', async (req, res) => {
     console.log(tLog('logShutdownRequest'));
 
     try {
