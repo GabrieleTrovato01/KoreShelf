@@ -66,14 +66,16 @@ jobs:
           npm install
           npm run build
 
-      - name: Configura CocoaPods
-        run: gem install cocoapods
-
       # CORREZIONE: Inizializziamo la piattaforma iOS nativa prima della sincronizzazione
       - name: Inizializza e Sincronizza Capacitor per iOS
         run: |
           npx cap add ios
           npx cap sync ios
+
+      - name: Installa Dipendenze CocoaPods Nativo
+        run: |
+          cd ios/App
+          pod install
 
       - name: Compila Progetto iOS (Unsigned App)
         run: |
