@@ -148,7 +148,7 @@ export default {
             <li><b style="color: #f1c40f;">✍️ Notizboard:</b> Markiere Text beim Lesen. Deine Highlights erscheinen automatisch als <b>3D-Post-its</b> an der Bibliothekswand.</li>
             <li><b>🌓 Design:</b> Wechsle zwischen Dark- und Light-Mode über das Icon oben rechts.</li>
             <li><b>👁️ Zusammenfassung:</b> Drehe das Buch oder klicke auf "Zusammenfassung anzeigen", um den Inhalt auf der Rückseite zu lesen.</li>
-            <li><b style="color: #d9534f;">⏻ Beenden:</b> Nutze den Shutdown-Button oben rechts, um den Server sicher zu beenden.</li>
+            <li><b style="color: #d9534f;">🛑 Beenden:</b> Nutze den Shutdown-Button oben rechts, um den Server sicher zu beenden.</li>
         </ul>
     `,
     donateBtn: "💙 Spenden",

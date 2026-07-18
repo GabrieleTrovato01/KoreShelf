@@ -1,4 +1,5 @@
 import { t } from './i18n.js';
+import { BookService } from './services/book-service.js';
 
 export async function openMetadataManager(selectedBookUserData, onSaveSuccess) {
     // --- Salva lo stato dello scroll e bloccalo ---
@@ -25,8 +26,7 @@ export async function openMetadataManager(selectedBookUserData, onSaveSuccess) {
     // 2. Recuperiamo le categorie ESISTENTI leggendo i libri dal database
     let categories = [];
     try {
-        const res = await fetch('/api/books');
-        const allBooks = await res.json();
+        const allBooks = await BookService.getAllBooks();
         categories = [...new Set(allBooks.map(b => (b.tags && b.tags.length > 0) ? b.tags[0] : t('uncategorized')))]
                      .filter(c => c !== t('uncategorized') && c !== 'Senza Categoria');
     } catch (e) {
@@ -169,12 +169,7 @@ export async function openMetadataManager(selectedBookUserData, onSaveSuccess) {
         }
 
         try {
-            const response = await fetch('/api/books/edit', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
+            const result = await BookService.editBookMetadata(formData);
             
             if (result.success) {
                 closeForm();

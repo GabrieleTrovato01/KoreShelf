@@ -1,0 +1,10 @@
+{
+  "appId": "com.gabrieletrovato.koreshelf",
+  "appName": "KoreShelf",
+  "webDir": "dist",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+}

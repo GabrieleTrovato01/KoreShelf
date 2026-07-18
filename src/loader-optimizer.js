@@ -1,5 +1,14 @@
 import * as THREE from 'three';
 
+function getSafeBookPath(path) {
+    if (!path) return '';
+    if (path.startsWith('http') || path.startsWith('file:') || path.startsWith('_capacitor_')) {
+        return path;
+    }
+    if (path.startsWith('/')) return path;
+    return '/' + path;
+}
+
 export class LibraryLoader {
     constructor(textureLoader) {
         this.textureLoader = textureLoader;
@@ -29,7 +38,7 @@ export class LibraryLoader {
         const promises = booksInShelf.map(async (book) => {
             if (book.userData.coverPath) {
                 try {
-                    const texture = await this.loadTexture(`/${book.userData.coverPath}`);
+                    const texture = await this.loadTexture(getSafeBookPath(book.userData.coverPath));
                     book.material[4].map = texture;
                     book.material[4].needsUpdate = true;
                 } catch (e) {

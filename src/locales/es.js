@@ -149,7 +149,7 @@ export default {
                 <li><b style="color: #f1c40f;">✍️ Tablero de notas:</b> Selecciona texto para subrayarlo. Tus citas aparecerán automáticamente como <b>post-its 3D</b> en la pared de la biblioteca.</li>
                 <li><b>🌓 Modo visual:</b> Cambia entre modo oscuro y claro desde el icono en la esquina superior derecha.</li>
                 <li><b>👁️ Sinopsis:</b> Gira el libro 3D o haz clic en "Ver sinopsis" para leer el resumen en la contraportada.</li>
-                <li><b style="color: #d9534f;">⏻ Apagar:</b> Usa el botón de apagado en la parte superior derecha para cerrar el servidor de forma segura.</li>
+                <li><b style="color: #d9534f;">🛑 Apagar:</b> Usa el botón de apagado en la parte superior derecha para cerrar el servidor de forma segura.</li>
             </ul>
         `,
         donateBtn: "💙 Donar",

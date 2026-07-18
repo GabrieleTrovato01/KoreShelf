@@ -151,7 +151,7 @@ export default {
                 <li><b style="color: #f1c40f;">✍️ Bacheca Sottolineature:</b> Seleziona il testo per evidenziarlo. Le tue frasi appariranno come <b>post-it 3D</b> sopra la libreria. Usa le frecce per navigare tra le tue note.</li>
                 <li><b>🌓 Modalità Visiva:</b> Alterna tra Dark e Light mode dall'icona in alto a destra per un comfort ottimale.</li>
                 <li><b>👁️ Sinossi:</b> Ruota il libro 3D o clicca su "Vedi Trama" per leggere la sinossi sul retro di ogni volume.</li>
-                <li><b style="color: #d9534f;">⏻ Spegnimento:</b> Usa il tasto di spegnimento in alto a destra per chiudere in sicurezza il server locale.</li>
+                <li><b style="color: #d9534f;">🛑 Spegnimento:</b> Usa il tasto di spegnimento in alto a destra per chiudere in sicurezza il server locale.</li>
             </ul>
         `,
         donateBtn: " Supporta",

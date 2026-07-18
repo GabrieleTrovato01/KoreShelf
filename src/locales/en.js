@@ -149,7 +149,7 @@ export default {
                 <li><b style="color: #f1c40f;">✍️ Highlights Board:</b> Select text to underline it. Highlights automatically appear as <b>3D post-it notes</b> on the library wall. Use the side arrows to browse them.</li>
                 <li><b>🌓 Visual Mode:</b> Toggle between Dark and Light mode via the icon in the top-right corner.</li>
                 <li><b>👁️ Synopsis:</b> Rotate the book or click "Show Plot" to read the summary on the back cover.</li>
-                <li><b style="color: #d9534f;">⏻ Shutdown:</b> Use the Shutdown button in the top-right to safely close the local server.</li>
+                <li><b style="color: #d9534f;">🛑 Shutdown:</b> Use the Shutdown button in the top-right to safely close the local server.</li>
             </ul>
         `,
         donateBtn: "💙 Donate",

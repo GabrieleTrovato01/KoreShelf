@@ -1,7 +1,18 @@
 body {
-  margin: 0;
-  overflow: hidden;
-  background-color: #2c3e50;
+    /* Impedisce lo scorrimento e il rimbalzo elastico nativo (pull-to-refresh) su iOS/Android */
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: auto;
+    
+    /* Gestione dei margini di sicurezza nativi dei dispositivi mobili (Safe Areas) */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    
+    /* Impedisce la selezione del testo involontaria quando l'utente trascina i libri 3D */
+    -webkit-user-select: none;
+    user-select: none;
 }
 canvas {
   display: block;
@@ -29,4 +40,13 @@ canvas {
 
 #credits-footer a:hover {
     color: #fff;
+}
+.top-bar {
+    top: calc(20px + env(safe-area-inset-top, 0px)) !important;
+}
+
+/* Regola per i menu o i lettori a schermo intero */
+#reader-overlay {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }

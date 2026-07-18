@@ -148,7 +148,7 @@ export default {
             <li><b style="color: #f1c40f;">✍️ Tableau des surbrillances :</b> Sélectionnez du texte pour le souligner. Vos citations apparaîtront automatiquement sous forme de <b>post-its 3D</b> sur le mur de la bibliothèque.</li>
             <li><b>🌓 Mode visuel :</b> Basculez entre le mode sombre et clair via l'icône en haut à droite.</li>
             <li><b>👁️ Synopsis :</b> Faites pivoter le livre ou cliquez sur "Voir l'intrigue" pour lire le résumé au dos.</li>
-            <li><b style="color: #d9534f;">⏻ Arrêt :</b> Utilisez le bouton d'arrêt en haut à droite pour fermer le serveur local en toute sécurité.</li>
+            <li><b style="color: #d9534f;">🛑 Arrêt :</b> Utilisez le bouton d'arrêt en haut à droite pour fermer le serveur local en toute sécurité.</li>
         </ul>
     `,
     donateBtn: "💙 Faire un don",
