@@ -1,5 +1,6 @@
 let currentBook = null;
 let rendition = null;
+let selectionTimeout = null;
 
 // --- VARIABILI GLOBALI RICERCA ---
 let searchResults = [];
@@ -26,7 +27,7 @@ window.openReader = function(epubUrl, bookId) {
     const readerReviewBtn = document.getElementById('reader-review-btn');
     if (readerReviewBtn) {
         readerReviewBtn.style.display = 'none'; // Nascondilo all'apertura del libro
-        readerReviewBtn.innerHTML = window.t('readerReviewBtnText'); 
+        readerReviewBtn.innerHTML = '<span class="reader-btn-icon">⭐</span> <span class="reader-btn-text">' + window.t('readerReviewBtnText') + '</span>';
         readerReviewBtn.onclick = () => window.openReviewModal(bookId); 
     }
     
@@ -215,35 +216,38 @@ window.openReader = function(epubUrl, bookId) {
 
     // 2. ASCOLTA LA SELEZIONE DEL TESTO (Nuovi highlight)
     rendition.on("selected", function(cfiRange, contents) {
-        
-        // Applica l'evidenziazione visiva nel frontend in tempo reale
-        rendition.annotations.highlight(cfiRange, {}, (e) => {
-            handleHighlightClick(e, cfiRange); 
-        });
 
-        // Estrae il testo reale e salva nel database
-        currentBook.getRange(cfiRange).then(function (range) {
-            const text = range.toString();
+        if (selectionTimeout) clearTimeout(selectionTimeout);
 
-            BookService.addHighlight(bookId, cfiRange, text).then(data => {
-                if (data.success) {
-                    console.log("Testo salvato in memoria:", text);
-                    activeHighlights.push({ cfi: cfiRange, text: text });
-                    
-                    // --- LANCIA IL SEGNALE ALLA BACHECA 3D ---
-                    window.dispatchEvent(new CustomEvent('onHighlightAdded', { 
-                        detail: { bookId: bookId, highlight: { cfi: cfiRange, text: text } } 
-                    }));
-                }
-            }).catch(err => console.error("Errore nel salvataggio dell'highlight:", err));
-        });
+        selectionTimeout = setTimeout(() => {
+            // Applica l'evidenziazione visiva nel frontend in tempo reale
+            rendition.annotations.highlight(cfiRange, {}, (e) => {
+                handleHighlightClick(e, cfiRange); 
+            });
 
-        // Deseleziona il testo nativo del browser
-        contents.window.getSelection().removeAllRanges();
+            // Estrae il testo reale e salva nel database
+            currentBook.getRange(cfiRange).then(function (range) {
+                const text = range.toString().trim();
+                if (text.length < 3) return; 
+                BookService.addHighlight(bookId, cfiRange, text).then(data => {
+                    if (data.success) {
+                        console.log("Testo salvato in memoria:", text);
+                        activeHighlights.push({ cfi: cfiRange, text: text });
+                        
+                        window.dispatchEvent(new CustomEvent('onHighlightAdded', { 
+                            detail: { bookId: bookId, highlight: { cfi: cfiRange, text: text } } 
+                        }));
+                    }
+                }).catch(err => console.error("Errore nel salvataggio dell'highlight:", err));
+            });
+
+            contents.window.getSelection().removeAllRanges();
+        }, 1000); // 1 secondo di tolleranza: consente di regolare le maniglie blu comodamente
     });
 
     rendition.hooks.content.register((contents) => {
-        const style = contents.document.createElement("style");
+        const doc = contents.document;
+        const style = doc.createElement("style");
         style.innerHTML = `
             /* 1. Reset totale su tutte le immagini (incluse quelle dentro SVG) */
             img, image {
@@ -282,7 +286,37 @@ window.openReader = function(epubUrl, bookId) {
                 overflow: hidden !important;
             }
         `;
-        contents.document.head.appendChild(style);
+        doc.head.appendChild(style);
+
+        // --- SWIPE ORIZZONTALE MOBILE PER EPUB (PAGINATO) ---
+        let epubTouchStartX = 0;
+        let epubTouchStartY = 0;
+
+        doc.addEventListener('touchstart', (e) => {
+            epubTouchStartX = e.changedTouches[0].screenX;
+            epubTouchStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        doc.addEventListener('touchend', (e) => {
+            // Esegui lo scorrimento solo se la modalità di scorrimento attiva è "paginated" (orizzontale)
+            const savedFlow = localStorage.getItem('readerFlow') || 'paginated';
+            if (savedFlow !== 'paginated') return;
+
+            const epubTouchEndX = e.changedTouches[0].screenX;
+            const epubTouchEndY = e.changedTouches[0].screenY;
+
+            const deltaX = epubTouchStartX - epubTouchEndX;
+            const deltaY = epubTouchStartY - epubTouchEndY;
+
+            // Tolleranza: swipe orizzontale significativo rispetto allo spostamento verticale
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
+                if (deltaX > 0) {
+                    rendition.next().catch(() => {}); // Swipe a sinistra -> Pagina successiva
+                } else {
+                    rendition.prev().catch(() => {}); // Swipe a destra -> Pagina precedente
+                }
+            }
+        }, { passive: true });
     });
 
     const existingSlider = document.querySelector('.glass-slider');
@@ -544,13 +578,41 @@ window.openPdfReader = function(pdfUrl, bookId) {
     const readerOverlay = document.getElementById('reader-overlay');
     const pdfContainer = document.getElementById('pdf-container');
     
+    let pdfTouchStartX = 0;
+    let pdfTouchStartY = 0;
+
+    pdfContainer.addEventListener('touchstart', (e) => {
+        pdfTouchStartX = e.changedTouches[0].screenX;
+        pdfTouchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    pdfContainer.addEventListener('touchend', (e) => {
+        // Esegui lo scorrimento solo se la modalità di scorrimento attiva è "paginated" (orizzontale)
+        const savedFlow = localStorage.getItem('readerFlow') || 'paginated';
+        if (savedFlow !== 'paginated') return;
+
+        const pdfTouchEndX = e.changedTouches[0].screenX;
+        const pdfTouchEndY = e.changedTouches[0].screenY;
+
+        const deltaX = pdfTouchStartX - pdfTouchEndX;
+        const deltaY = pdfTouchStartY - pdfTouchEndY;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 40) {
+            if (deltaX > 0) {
+                onNextPage(); // Swipe a sinistra -> Pagina successiva
+            } else {
+                onPrevPage(); // Swipe a destra -> Pagina precedente
+            }
+        }
+    }, { passive: true });
+
     const savedFlow = localStorage.getItem('readerFlow') || 'paginated';
     const isContinuous = (savedFlow === 'scrolled-doc');
 
     const readerReviewBtn = document.getElementById('reader-review-btn');
     if (readerReviewBtn) {
         readerReviewBtn.style.display = 'none';
-        readerReviewBtn.innerHTML = window.t('readerReviewBtnText'); 
+        readerReviewBtn.innerHTML = '<span class="reader-btn-icon">⭐</span> <span class="reader-btn-text">' + window.t('readerReviewBtnText') + '</span>';
         readerReviewBtn.onclick = () => window.openReviewModal(bookId); 
     }
 
@@ -812,20 +874,25 @@ window.handlePdfHighlightClick = function(cfi) {
     }
 };
 
+// --- GESTIONE SELEZIONE TESTO PDF ---
 function setupPdfTextSelection() {
     const pdfContainer = document.getElementById('pdf-container');
     if (!pdfContainer) return;
 
-    pdfContainer.addEventListener('mouseup', async (e) => {
+    const handlePdfSelectionRelease = async (e) => {
         const selection = window.getSelection();
         if (!selection || selection.isCollapsed) return;
 
         const selectedText = selection.toString().trim();
         if (!selectedText || selectedText.length < 3) return;
 
+        // 1. IMPORTANTE: Catturiamo e cloniamo il Range esatto PRIMA che confirm() disattivi la selezione
+        const range = selection.getRangeAt(0).cloneRange();
+
         const pageNum = getCurrentPdfPage();
         if (!pageNum) return;
 
+        // Chiedi conferma all'utente (il pop-up nativo Android azzera la selezione a schermo, ma il range è clonato)
         const msg = window.t('confirmHighlight') || 'Vuoi sottolineare questo testo?';
         if (!confirm(msg)) {
             selection.removeAllRanges();
@@ -833,10 +900,13 @@ function setupPdfTextSelection() {
         }
 
         const highlightCfi = `pdf_page_${pageNum}_${Date.now()}`;
+        
         try {
             const result = await BookService.addHighlight(currentPdfId, highlightCfi, selectedText);
             if (result.success) {
-                highlightSelectedText(selection, pageNum, highlightCfi);
+                // 2. Passiamo il "range" clonato in memoria per l'evidenziazione visiva istantanea
+                highlightSelectedText(range, pageNum, highlightCfi);
+                
                 selection.removeAllRanges();
                 window.dispatchEvent(new CustomEvent('onHighlightAdded', { 
                     detail: { bookId: currentPdfId, highlight: { cfi: highlightCfi, text: selectedText } } 
@@ -845,7 +915,10 @@ function setupPdfTextSelection() {
         } catch (err) {
             console.error('Errore salvataggio highlight PDF:', err);
         }
-    });
+    };
+
+    pdfContainer.addEventListener('mouseup', handlePdfSelectionRelease);
+    pdfContainer.addEventListener('touchend', handlePdfSelectionRelease);
 }
 
 function getCurrentPdfPage() {
@@ -873,8 +946,7 @@ function getCurrentPdfPage() {
     }
 }
 
-function highlightSelectedText(selection, pageNum, cfi) {
-    const range = selection.getRangeAt(0);
+function highlightSelectedText(range, pageNum, cfi) {
 
     const nodes = [];
     const treeWalker = document.createTreeWalker(
@@ -1601,6 +1673,9 @@ window.openReviewModal = async function(bookId) {
             if (result.success) {
                 overlay.remove();
                 document.getElementById('reader-review-btn').innerHTML = window.t('reviewSavedBtn');
+                window.dispatchEvent(new CustomEvent('onBookReviewSaved', {
+                    detail: { bookId: bookId, rating: selectedRating, review: textArea.value }
+                }));
             }
         } catch(e) { 
             console.error("Errore salvataggio recensione:", e);
@@ -1684,7 +1759,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         .platform-mobile #theme-toggle-btn,
         .platform-mobile #close-reader-btn,
-        .platform-mobile #hamburger-menu-btn {
+        .platform-mobile #hamburger-menu-btn,
+        .platform-mobile #reader-toc-btn,
+        .platform-mobile #reader-review-btn {
             padding: 8px 12px !important;
             min-width: 40px;
             display: flex;
@@ -1692,6 +1769,14 @@ document.addEventListener('DOMContentLoaded', () => {
             align-items: center;
             border-radius: 50px !important;
             margin: 0 !important;
+        }
+        
+        /* Gestione della barra inferiore unificata per evitare l'HUD dei gesti di navigazione */
+        .platform-mobile #reader-bottom-bar-id {
+            bottom: calc(15px + env(safe-area-inset-bottom, 0px)) !important;
+            left: 20px !important;
+            right: 20px !important;
+            width: auto !important;
         }
         
         .platform-mobile .reader-btn-icon {
@@ -2001,14 +2086,26 @@ document.addEventListener('DOMContentLoaded', () => {
         readerOverlay.appendChild(topBar);
 
         // --- 2. BARRA INFERIORE DESTRA (Recensione + Percentuale) ---
+        // --- 2. BARRA INFERIORE UNIFICATA (Indice, Recensione e Percentuale nello stesso flusso Flexbox) ---
         const bottomBar = document.createElement('div');
+        bottomBar.id = 'reader-bottom-bar-id'; // <--- ID PER GESTIRE IL DESIGN MOBILE
         bottomBar.style.position = 'fixed';
         bottomBar.style.bottom = '20px';
+        bottomBar.style.left = '20px';
         bottomBar.style.right = '20px';
         bottomBar.style.display = 'flex';
         bottomBar.style.alignItems = 'center';
-        bottomBar.style.gap = '15px';
+        bottomBar.style.justifyContent = 'space-between'; // Spinge l'indice a sinistra e la percentuale a destra
         bottomBar.style.zIndex = '1000';
+
+        const tocBtn = document.createElement('button');
+        tocBtn.id = 'reader-toc-btn';
+        tocBtn.className = 'glass-effect modern-btn';
+        // Inseriamo gli span anche sull'indice per permettere l'autocollapse su mobile
+        tocBtn.innerHTML = '<span class="reader-btn-icon">📑</span> <span class="reader-btn-text">' + (window.t('tableOfContents') || 'Indice') + '</span>';
+        tocBtn.style.padding = '8px 20px';
+        tocBtn.style.fontWeight = 'bold';
+        tocBtn.style.color = isDarkMode ? 'white' : 'black';
 
         const readerReviewBtn = document.createElement('button');
         readerReviewBtn.id = 'reader-review-btn';
@@ -2026,27 +2123,11 @@ document.addEventListener('DOMContentLoaded', () => {
         progressText.style.fontWeight = 'bold';
         progressText.innerText = '0%';
 
+        // Appendi tutti gli elementi nello stesso identico contenitore inferiore unificato
+        bottomBar.appendChild(tocBtn);
         bottomBar.appendChild(readerReviewBtn);
         bottomBar.appendChild(progressText);
         readerOverlay.appendChild(bottomBar);
-
-        // --- 2.5 BARRA INFERIORE SINISTRA (Indice) ---
-        const leftBottomBar = document.createElement('div');
-        leftBottomBar.style.position = 'fixed';
-        leftBottomBar.style.bottom = '20px';
-        leftBottomBar.style.left = '20px';
-        leftBottomBar.style.zIndex = '1000';
-
-        const tocBtn = document.createElement('button');
-        tocBtn.id = 'reader-toc-btn';
-        tocBtn.className = 'glass-effect modern-btn';
-        tocBtn.innerHTML = '📑 ' + (window.t('tableOfContents') || 'Indice');
-        tocBtn.style.padding = '8px 20px';
-        tocBtn.style.fontWeight = 'bold';
-        tocBtn.style.color = isDarkMode ? 'white' : 'black';
-
-        leftBottomBar.appendChild(tocBtn);
-        readerOverlay.appendChild(leftBottomBar);
 
         // --- LOGICA MODALE INDICE (IBRIDA EPUB/PDF) ---
         tocBtn.onclick = async () => {

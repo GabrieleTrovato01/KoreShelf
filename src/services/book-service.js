@@ -5,6 +5,25 @@ import { extractBookMetadata } from './metadata-extractor.js';
 import { processCoverImage } from './image-processor.js';
 import { t } from '../i18n.js';
 
+// Helper di sistema per intercettare qualsiasi traduzione della categoria di default.
+// Se un libro corrisponde a uno di questi termini, il suo tag viene salvato vuoto [] 
+// in modo da essere risolto dinamicamente in base alla lingua attiva in tempo reale.
+function isSystemUncategorized(categoryName) {
+    if (!categoryName) return true;
+    const lower = categoryName.trim().toLowerCase();
+    const systemKeys = [
+        'senza categoria', 
+        'uncategorized', 
+        'sin categoría', 
+        'sans catégorie', 
+        'ohne kategorie',
+        'sin categoria',
+        'sans categorie',
+        'uncategorised'
+    ];
+    return systemKeys.includes(lower) || lower === t('uncategorized').toLowerCase();
+}
+
 export const BookService = {
     
     // 1. LEGGE TUTTI I LIBRI
@@ -218,18 +237,23 @@ export const BookService = {
             return await res.json();
         }
     },
+    // 8. ASSEGNA CATEGORIA (Prepara i tag in IndexedDB su Mobile o tramite Express su Desktop)
     async assignCategory(bookId, categoryName) {
+        const isDefault = isSystemUncategorized(categoryName);
+
         if (isMobilePlatform()) {
             console.log(`📱 [Mobile] Assegnazione categoria locale per il libro ${bookId}: "${categoryName}"`);
             const books = await getAllBooks();
             const book = books.find(b => b.id === bookId);
             
             if (book) {
-                if (!Array.isArray(book.tags)) book.tags = [];
-                // Rimuoviamo eventuali duplicati case-insensitive della stessa categoria
-                book.tags = book.tags.filter(t => t.toLowerCase() !== categoryName.toLowerCase());
-                // Inseriamo la nuova categoria in cima (l'indice 0 definisce la Categoria principale)
-                book.tags.unshift(categoryName.trim());
+                if (isDefault) {
+                    book.tags = []; // Salviamo vuoto su IndexedDB
+                } else {
+                    if (!Array.isArray(book.tags)) book.tags = [];
+                    book.tags = book.tags.filter(t => t.toLowerCase() !== categoryName.toLowerCase());
+                    book.tags.unshift(categoryName.trim());
+                }
                 await upsertBook(book);
                 return { success: true };
             }
@@ -239,7 +263,8 @@ export const BookService = {
             const res = await fetch(`/api/books/${bookId}/tags`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tag: categoryName })
+                // Se è la categoria di default, mandiamo una stringa vuota al server Express per azzerare il tag
+                body: JSON.stringify({ tag: isDefault ? "" : categoryName })
             });
             return await res.json();
         }
@@ -323,7 +348,9 @@ export const BookService = {
                 book.description = description || book.description;
 
                 // Gestione Categoria (il primo tag all'indice 0 rappresenta la Categoria)
-                if (category) {
+                if (isDefault){
+                    book.tags = []; // Salviamo vuoto su IndexedDB per la categoria di default
+                } else {
                     if (!book.tags) book.tags = [];
                     if (book.tags.length > 0) {
                         book.tags[0] = category.trim();

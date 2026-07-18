@@ -22,6 +22,7 @@
     "start": "concurrently \"node server.js\" \"npm run dev\""
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.2",
     "concurrently": "^10.0.3",
     "esbuild": "^0.28.0",

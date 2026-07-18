@@ -23,8 +23,8 @@ function translateStaticHTML() {
     const themeBtn = document.getElementById('theme-toggle-btn');
     const lang = localStorage.getItem('KoreShelf_lang') || 'it';
 
-    if (typeof shutdownBtn !== 'undefined') {
-        shutdownBtn.innerHTML = '<span class="btn-icon">⏻</span><span class="btn-text">' + t('shutdownBtn') + '</span>';
+    if (typeof shutdownBtn !== 'undefined' && !isMobilePlatform()) {
+        shutdownBtn.innerHTML = '<span class="btn-icon">🛑</span><span class="btn-text">' + t('shutdownBtn') + '</span>';
         shutdownBtn.title = t('shutdownTooltip');
     }
     
@@ -44,7 +44,7 @@ function translateStaticHTML() {
     // 2. AGGIORNAMENTO TESTI BOTTONI (La vera soluzione al tuo problema!)
     // Dato che la lingua ora è caricata, applichiamo i testi corretti ai bottoni creati in alto
     if (typeof manageCatBtn !== 'undefined') {
-        manageCatBtn.innerHTML = '<span class="btn-icon">📁</span><span class="btn-text">' + t('manageShelf') + '</span>';
+        manageCatBtn.innerHTML = '<span class="btn-icon">⚙️</span><span class="btn-text">' + t('manageShelf') + '</span>';
         manageCatBtn.title = t('manageShelfTooltip');
     }
     if (typeof searchInput !== 'undefined') searchInput.placeholder = t('searchPlaceholder');
@@ -166,7 +166,8 @@ styleStyle.innerHTML = `
         height: 100%;
         overflow: hidden;
         background-color: #2c3e50 !important; /* Colore blu notte coerente con la scena 3D */
-    }   
+        touch-action: none;
+        }   
     /* Stili condivisi per l'effetto Glassmorphism */
     .glass-effect {
         background: rgba(255, 255, 255, 0.08);
@@ -254,20 +255,40 @@ styleStyle.innerHTML = `
         justify-content: space-between;
     }
     
+    /* Barra di ricerca collassabile ad icona su Mobile (Stato di riposo) */
     .platform-mobile .modern-input { 
-        padding: 10px 12px; 
+        padding: 10px 0 !important; 
         font-size: 12px; 
-        max-width: 100px;
+        max-width: 40px !important; /* Si contrae occupando pochissimo spazio */
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     
+    /* Espansione della barra di ricerca mobile quando viene cliccata/focalizzata */
+    .platform-mobile .modern-input:focus {
+        max-width: 130px !important; /* Si allarga per permettere la scrittura */
+        padding: 10px 15px !important;
+        text-align: left;
+        cursor: text;
+    }
+    
+    /* Label Categoria estesa per mobile (Stato di riposo) */
     .platform-mobile #category-label-id { 
-        max-width: 90px !important; 
+        max-width: 130px !important; /* Aumentato da 90px a 130px grazie allo spazio recuperato */
         white-space: nowrap !important; 
         overflow: hidden !important; 
         text-overflow: ellipsis !important;
         padding: 10px 12px !important;
         font-size: 11px !important;
+        transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important; /* Transizione fluida */
     }
+    
+    /* Quando l'utente sta cercando, la label si contrae automaticamente per fargli spazio */
+    .platform-mobile .top-bar:focus-within #category-label-id {
+        max-width: 70px !important;
+    }
+
     .platform-mobile #ui-container-id {
         padding: 0 15px !important; /* Sposta il pulsante caffè e aiuto più vicino ai bordi su mobile */
     }
@@ -275,6 +296,34 @@ styleStyle.innerHTML = `
     #viewer, #pdf-container, .epub-container, .epub-view {
         -webkit-user-select: text !important;
         user-select: text !important;
+    }
+
+    /* Stile unificato per i crediti inferiori su Desktop */
+    #credits-footer {
+        position: absolute;
+        bottom: 8px; /* Posizionato sotto la linea dei pulsanti */
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4); /* Colore tenue e non distratto */
+        text-align: center;
+        white-space: nowrap; /* Forza la visualizzazione su un'unica riga */
+        z-index: 50; /* Sotto lo z-index dei bottoni (1000) ma sopra il canvas 3D */
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        pointer-events: none; /* I tocchi passano attraverso il testo alla scena 3D */
+    }
+    
+    #credits-footer a {
+        color: rgba(255, 255, 255, 0.6);
+        text-decoration: underline;
+        pointer-events: auto; /* Riattiva i clic solo sul collegamento ipertestuale */
+    }
+
+    /* Adattamento super-compatto specifico per Mobile Nativo */
+    .platform-mobile #credits-footer {
+        bottom: calc(2px + env(safe-area-inset-bottom, 0px)) !important; /* Quasi a contatto con il bordo */
+        font-size: 9px !important; /* Carattere leggermente ridotto per schermi piccoli */
+        opacity: 0.8;
     }
 
 `;
@@ -346,7 +395,7 @@ topBar.appendChild(fileInput);
 
 // --- BOTTONE SPEGNIMENTO SERVER ---
 const shutdownBtn = document.createElement('button');
-shutdownBtn.innerHTML = '⏻ ' + t('shutdownBtn'); 
+shutdownBtn.innerHTML = '🛑 ' + t('shutdownBtn'); 
 shutdownBtn.className = 'glass-effect modern-btn';
 shutdownBtn.style.padding = '12px 15px';
 shutdownBtn.style.fontWeight = 'bold';
@@ -391,10 +440,11 @@ shutdownBtn.onclick = async () => {
     }
 };
 
-// Aggiungiamo il bottone alla barra in alto, subito dopo la lingua
-topBar.appendChild(shutdownBtn);
+// Aggiungiamo il bottone alla barra in alto solo se NON siamo su dispositivo mobile nativo
+if (!isMobilePlatform()) {
+    topBar.appendChild(shutdownBtn);
+}
 
-// --- PULSANTE CAMBIO LINGUA ---
 // --- PULSANTE CAMBIO LINGUA CON MENU A TENDINA ---
 const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
 
@@ -857,6 +907,12 @@ assignCatBtn.onclick = () => {
         if (e.target === overlay) overlay.remove();
     });
 
+    window.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+        e.preventDefault();
+    }
+}, { passive: false }); 
+
     // Focus automatico sull'input
     setTimeout(() => catInput.focus(), 100);
 };
@@ -978,6 +1034,7 @@ function changeShelf(direction) {
                 // Aggiorniamo l'interfaccia 2D
                 manageCatBtn.style.display = 'none'; 
                 uiContainer.style.opacity = '0'; 
+                uiContainer.style.display = 'none';
                 
                 // LASCIAMO LE FRECCE VISIBILI PER GIRARE LE PAGINE!
                 leftArrow.style.opacity = '1';   
@@ -993,6 +1050,7 @@ function changeShelf(direction) {
         if (isViewingBoard) {
             // SCENDIAMO DALLA BACHECA ALLA MENSOLA PIU' ALTA
             isViewingBoard = false;
+            uiContainer.style.display = 'flex';
             uiContainer.style.opacity = '1';
             leftArrow.style.opacity = '1';
             rightArrow.style.opacity = '1';
@@ -1855,6 +1913,7 @@ window.addEventListener('pointerup', (event) => {
 
             document.querySelector('.top-bar').style.opacity = '0';
             uiContainer.style.opacity = '0';
+            uiContainer.style.display = 'none';
             leftArrow.style.opacity = '0';
             rightArrow.style.opacity = '0';
             creditsFooter.style.opacity = '0';
@@ -1964,6 +2023,7 @@ window.addEventListener('pointermove', (event) => {
 window.addEventListener('readerClosed', () => {
     // Rendi l'interfaccia 3D visibile
     document.querySelector('.top-bar').style.opacity = '1';
+    uiContainer.style.display = 'flex';
     uiContainer.style.opacity = '1';
     leftArrow.style.opacity = '1';
     rightArrow.style.opacity = '1';
@@ -2289,6 +2349,34 @@ window.addEventListener('onHighlightRemoved', (e) => {
         // Se la bacheca esiste, le diciamo di rimuovere il post-it (o accorciarlo)
         if (window.highlightsBoardModule) {
             window.highlightsBoardModule.removeHighlightLocally(bookId, cfi);
+        }
+    }
+});
+
+// --- ASCOLTO SALVATAGGIO RECENSIONI IN TEMPO REALE (Aggiorna le stelline sul retro del libro 3D) ---
+window.addEventListener('onBookReviewSaved', (e) => {
+    const { bookId, rating, review } = e.detail;
+    
+    // 1. Trova l'oggetto 3D del libro corrispondente nella libreria corrente
+    const activeBook = booksArray.find(b => b.userData.id === bookId);
+    
+    if (activeBook) {
+        console.log(`✨ [3D Hot-Swap] Aggiornamento stelle recensione per: "${activeBook.userData.title}"`);
+        
+        // 2. Aggiorna i dati in memoria dell'oggetto 3D
+        activeBook.userData.rating = rating;
+        activeBook.userData.review = review;
+
+        // 3. Trova la mesh del retro copertina e rigenera la sua texture al volo
+        const backMesh = activeBook.children.find(child => child.name === "backCover_mesh");
+        if (backMesh) {
+            backMesh.userData.rating = rating;
+            backMesh.userData.review = review;
+            
+            // Rigenera la texture piatta includendo le nuove stelle dorate lucide
+            const newBackTex = createBackCoverTexture(activeBook.userData.description, activeBook.userData.tags, rating);
+            backMesh.material.map = newBackTex;
+            backMesh.material.needsUpdate = true;
         }
     }
 });

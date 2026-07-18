@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { t } from './i18n.js';
 import { BookService } from './services/book-service.js';
+import { isMobilePlatform } from './services/platform.js';
 
 let boardGroup = new THREE.Group();
 let localCamera, localScene;
@@ -9,7 +10,7 @@ let currentHighestShelfY = 0;
 
 // STATO DEL CAROSELLO
 let currentPage = 0;
-const POSTITS_PER_PAGE = 5; // Massimo 5 post-it visibili contemporaneamente
+const POSTITS_PER_PAGE = isMobilePlatform() ? 2 : 5;  // Massimo 5 post-it visibili contemporaneamente
 let initParams = null ;
 let boardInitialized = false;
 
