@@ -1,5 +1,10 @@
 name: Compila App Mobile (Android e iOS)
 
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Ti permette di avviare la build manualmente da GitHub!
+
 jobs:
   # COMPILAZIONE ANDROID (Gira su macchina virtuale Linux)
   build-android:
