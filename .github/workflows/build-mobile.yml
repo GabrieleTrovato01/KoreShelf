@@ -1,12 +1,9 @@
-name: Compila ed Esporta App Mobile (Android e iOS)
+name: Compila App Mobile (Android e iOS)
 
 on:
   push:
     tags:
-      - 'v*' # Si attiva solo quando crei un tag di versione (es. v2.2.4)
-
-permissions:
-  contents: write # Permesso necessario per poter allegare file alle release di GitHub
+      - 'v*' # Si attiva quando crei un tag di versione (es. v2.2.4)
 
 jobs:
   # COMPILAZIONE ANDROID (Gira su macchina virtuale Linux)
@@ -32,19 +29,25 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Sincronizza Capacitor per Android
-        run: npx cap sync android
+      # CORREZIONE: Inizializziamo la piattaforma Android nativa prima della sincronizzazione
+      - name: Inizializza e Sincronizza Capacitor per Android
+        run: |
+          npx cap add android
+          npx cap sync android
 
       - name: Compila APK (Gradle)
         run: |
           cd android
           ./gradlew assembleDebug
 
-      - name: Carica APK temporaneo
+      - name: Rinomina l'APK per il download
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk KoreShelf-Android.apk
+
+      - name: Carica APK Android come allegato scaricabile
         uses: actions/upload-artifact@v4
         with:
-          name: apk-android
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: KoreShelf-Android
+          path: KoreShelf-Android.apk
 
   # COMPILAZIONE iOS (Gira su macchina virtuale macOS di GitHub)
   build-ios:
@@ -66,14 +69,16 @@ jobs:
       - name: Configura CocoaPods
         run: gem install cocoapods
 
-      - name: Sincronizza Capacitor per iOS
-        run: npx cap sync ios
+      # CORREZIONE: Inizializziamo la piattaforma iOS nativa prima della sincronizzazione
+      - name: Inizializza e Sincronizza Capacitor per iOS
+        run: |
+          npx cap add ios
+          npx cap sync ios
 
       - name: Compila Progetto iOS (Unsigned App)
         run: |
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO
 
-      # NUOVO: Creazione manuale del pacchetto .ipa non firmato (Payload trick)
       - name: Impacchetta in formato .ipa per Sideloading (AltStore/Sideloadly)
         run: |
           cd build/Build/Products/Debug-iphoneos
@@ -82,37 +87,8 @@ jobs:
           zip -vr KoreShelf-iOS.ipa Payload/
           rm -rf Payload
 
-      - name: Carica pacchetto iOS temporaneo
+      - name: Carica pacchetto iOS come allegato scaricabile
         uses: actions/upload-artifact@v4
         with:
-          name: app-ios
+          name: KoreShelf-iOS
           path: build/Build/Products/Debug-iphoneos/KoreShelf-iOS.ipa
-
-  # CREAZIONE AUTOMATICA RELEASE SU GITHUB
-  create-release:
-    needs: [build-android, build-ios]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Scarica l'APK Android compilato
-        uses: actions/download-artifact@v4
-        with:
-          name: apk-android
-          path: .
-
-      - name: Scarica il pacchetto iOS compilato
-        uses: actions/download-artifact@v4
-        with:
-          name: app-ios
-          path: .
-
-      - name: Rinomina l'APK per la release
-        run: mv app-debug.apk KoreShelf-Android.apk
-
-      - name: Crea la Release su GitHub ed allega i pacchetti Mobile
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            KoreShelf-Android.apk
-            KoreShelf-iOS.ipa
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
