@@ -1,10 +1,5 @@
 name: Compila App Mobile (Android e iOS)
 
-on:
-  push:
-    tags:
-      - 'v*' # Si attiva quando crei un tag di versione (es. v2.2.4)
-
 jobs:
   # COMPILAZIONE ANDROID (Gira su macchina virtuale Linux)
   build-android:
