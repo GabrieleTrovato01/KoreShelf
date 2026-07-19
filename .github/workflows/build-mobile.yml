@@ -71,13 +71,17 @@ jobs:
         run: |
           npx cap add ios || true
           npx cap sync ios
+          
+      # Diagnostica utile per verificare la struttura generata in tempo reale nei log di GitHub
+      - name: Diagnostica Struttura Directory iOS
+        run: |
+          ls -R ios || echo "Cartella ios non trovata"
 
-      # NOTA: CocoaPods rimosso. Capacitor 6+ utilizza Swift Package Manager (Package.swift) integrato in Xcode
-
+      # COMPILAZIONE: Utilizziamo "-project" indicando il file ".xcodeproj" anziché la workspace CocoaPods
       - name: Compila Progetto iOS (Unsigned App)
         run: |
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO
-
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO
+      
       - name: Impacchetta in formato .ipa per Sideloading (AltStore/Sideloadly)
         run: |
           cd build/Build/Products/Debug-iphoneos
