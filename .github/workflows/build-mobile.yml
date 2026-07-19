@@ -18,11 +18,11 @@ jobs:
         with:
           node-version: 22
 
-      # CORREZIONE: Forziamo l'installazione della versione stabile di Capacitor 6 per evitare conflitti nativi
+      # Installazione sicura con installazione esplicita della dipendenza nativa Android
       - name: Installa Dipendenze e Compila Frontend
         run: |
           npm install --legacy-peer-deps
-          npm install @capacitor/core@6 @capacitor/android@6 @capacitor/filesystem@6 --legacy-peer-deps
+          npm install @capacitor/core@6 @capacitor/android@6 @capacitor/filesystem@6 @capacitor/assets --legacy-peer-deps
           npm run build
 
       - name: Configura Java JDK
@@ -31,9 +31,11 @@ jobs:
           distribution: 'zulu'
           java-version: '21'
 
+      # CORREZIONE: Generiamo le icone native a partire da assets/icon.png direttamente sul server di build di GitHub
       - name: Inizializza e Sincronizza Capacitor per Android
         run: |
           npx cap add android || true
+          npx capacitor-assets generate --icon
           npx cap sync android
 
       - name: Compila APK (Gradle)
@@ -49,7 +51,7 @@ jobs:
         with:
           name: KoreShelf-Android
           path: KoreShelf-Android.apk
-          
+
   # COMPILAZIONE iOS (Gira su macchina virtuale macOS di GitHub)
   build-ios:
     runs-on: macos-14
@@ -66,22 +68,22 @@ jobs:
       - name: Installa Dipendenze e Compila Frontend
         run: |
           npm install --legacy-peer-deps
-          npm install @capacitor/ios@6 @capacitor/core@6 @capacitor/filesystem@6 --legacy-peer-deps
+          npm install @capacitor/core@6 @capacitor/ios@6 @capacitor/filesystem@6 @capacitor/assets --legacy-peer-deps
           npm run build
 
-      # Inizializziamo il progetto iOS nativo
+      # CORREZIONE: Generiamo le icone native a partire da assets/icon.png direttamente sul server di build di GitHub
       - name: Inizializza e Sincronizza Capacitor per iOS
         run: |
           npx cap add ios || true
+          npx capacitor-assets generate --icon
           npx cap sync ios
 
-      # Diagnostica utile per verificare la struttura generata in tempo reale nei log di GitHub
-      - name: Diagnostica Struttura Directory iOS
+      # Genera la Xcode Workspace nativa tramite CocoaPods pre-installato sul Mac di GitHub
+      - name: Installa Dipendenze CocoaPods Nativo
         run: |
-          ls -R ios || echo "Cartella ios non trovata"
+          cd ios/App
+          pod install
 
-      # COMPILAZIONE: Utilizziamo "-project" indicando il file ".xcodeproj" anziché la workspace CocoaPods
-      # Swift Package Manager scaricherà e compilerà i plugin in automatico durante questo step
       - name: Compila Progetto iOS (Unsigned App)
         run: |
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO
