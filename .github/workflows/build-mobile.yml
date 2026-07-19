@@ -35,7 +35,7 @@ jobs:
       - name: Inizializza e Sincronizza Capacitor per Android
         run: |
           npx cap add android || true
-          npx capacitor-assets generate --icon
+          npx capacitor-assets generate
           npx cap sync android
 
       - name: Compila APK (Gradle)
@@ -75,7 +75,7 @@ jobs:
       - name: Inizializza e Sincronizza Capacitor per iOS
         run: |
           npx cap add ios || true
-          npx capacitor-assets generate --icon
+          npx capacitor-assets generate
           npx cap sync ios
 
       # Genera la Xcode Workspace nativa tramite CocoaPods pre-installato sul Mac di GitHub
