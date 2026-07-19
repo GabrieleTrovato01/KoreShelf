@@ -6,7 +6,6 @@ on:
   workflow_dispatch: # Ti permette di avviare la build manualmente da GitHub!
 
 jobs:
-  # COMPILAZIONE ANDROID (Gira su macchina virtuale Linux)
   build-android:
     runs-on: ubuntu-latest
     steps:
@@ -18,19 +17,18 @@ jobs:
         with:
           node-version: 22
 
-      # CORREZIONE: Installazione sicura con --legacy-peer-deps per evitare blocchi npm
       - name: Installa Dipendenze e Compila Frontend
         run: |
           npm install --legacy-peer-deps
+          npm install @capacitor/android @capacitor/core --legacy-peer-deps
           npm run build
 
       - name: Configura Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
-          java-version: '17'
+          java-version: '21'
 
-      # CORREZIONE: Aggiunto "|| true" per evitare blocchi se la piattaforma risulta già registrata nel repository
       - name: Inizializza e Sincronizza Capacitor per Android
         run: |
           npx cap add android || true
@@ -62,19 +60,17 @@ jobs:
         with:
           node-version: 22
 
-      # CORREZIONE: Installazione sicura con --legacy-peer-deps per evitare blocchi npm
       - name: Installa Dipendenze e Compila Frontend
         run: |
           npm install --legacy-peer-deps
+          npm install @capacitor/ios @capacitor/core --legacy-peer-deps
           npm run build
 
-      # CORREZIONE: Aggiunto "|| true" per evitare blocchi se la piattaforma risulta già registrata nel repository
       - name: Inizializza e Sincronizza Capacitor per iOS
         run: |
           npx cap add ios || true
           npx cap sync ios
 
-      # Genera la Xcode Workspace nativa tramite CocoaPods pre-installato sul Mac di GitHub
       - name: Installa Dipendenze CocoaPods Nativo
         run: |
           cd ios/App
