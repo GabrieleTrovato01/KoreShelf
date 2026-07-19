@@ -48,7 +48,6 @@ jobs:
           name: KoreShelf-Android
           path: KoreShelf-Android.apk
 
-  # COMPILAZIONE iOS (Gira su macchina virtuale macOS di GitHub)
   build-ios:
     runs-on: macos-14
     steps:
@@ -60,21 +59,20 @@ jobs:
         with:
           node-version: 22
 
+      # Installazione sicura con installazione esplicita della dipendenza nativa iOS
       - name: Installa Dipendenze e Compila Frontend
         run: |
           npm install --legacy-peer-deps
           npm install @capacitor/ios @capacitor/core --legacy-peer-deps
           npm run build
 
+      # Con le dipendenze forzate sopra, il comando "add ios" genererà il progetto iOS nativo
       - name: Inizializza e Sincronizza Capacitor per iOS
         run: |
           npx cap add ios || true
           npx cap sync ios
 
-      - name: Installa Dipendenze CocoaPods Nativo
-        run: |
-          cd ios/App
-          pod install
+      # NOTA: CocoaPods rimosso. Capacitor 6+ utilizza Swift Package Manager (Package.swift) integrato in Xcode
 
       - name: Compila Progetto iOS (Unsigned App)
         run: |
