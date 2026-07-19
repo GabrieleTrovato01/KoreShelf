@@ -18,9 +18,10 @@ jobs:
         with:
           node-version: 22
 
+      # CORREZIONE: Installazione sicura con --legacy-peer-deps per evitare blocchi npm
       - name: Installa Dipendenze e Compila Frontend
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Configura Java JDK
@@ -29,10 +30,10 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # CORREZIONE: Inizializziamo la piattaforma Android nativa prima della sincronizzazione
+      # CORREZIONE: Aggiunto "|| true" per evitare blocchi se la piattaforma risulta già registrata nel repository
       - name: Inizializza e Sincronizza Capacitor per Android
         run: |
-          npx cap add android
+          npx cap add android || true
           npx cap sync android
 
       - name: Compila APK (Gradle)
@@ -61,17 +62,19 @@ jobs:
         with:
           node-version: 22
 
+      # CORREZIONE: Installazione sicura con --legacy-peer-deps per evitare blocchi npm
       - name: Installa Dipendenze e Compila Frontend
         run: |
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
-      # CORREZIONE: Inizializziamo la piattaforma iOS nativa prima della sincronizzazione
+      # CORREZIONE: Aggiunto "|| true" per evitare blocchi se la piattaforma risulta già registrata nel repository
       - name: Inizializza e Sincronizza Capacitor per iOS
         run: |
-          npx cap add ios
+          npx cap add ios || true
           npx cap sync ios
 
+      # Genera la Xcode Workspace nativa tramite CocoaPods pre-installato sul Mac di GitHub
       - name: Installa Dipendenze CocoaPods Nativo
         run: |
           cd ios/App
