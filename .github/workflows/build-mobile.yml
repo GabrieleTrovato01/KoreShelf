@@ -49,7 +49,6 @@ jobs:
         with:
           name: KoreShelf-Android
           path: KoreShelf-Android.apk
-
   # COMPILAZIONE iOS (Gira su macchina virtuale macOS di GitHub)
   build-ios:
     runs-on: macos-14
@@ -62,27 +61,29 @@ jobs:
         with:
           node-version: 22
 
-      # CORREZIONE: Forziamo l'installazione della versione stabile di Capacitor 6 per evitare conflitti nativi
+      # Installazione sicura con installazione esplicita della dipendenza nativa iOS
       - name: Installa Dipendenze e Compila Frontend
         run: |
           npm install --legacy-peer-deps
-          npm install @capacitor/core@6 @capacitor/ios@6 @capacitor/filesystem@6 --legacy-peer-deps
+          npm install @capacitor/ios@6 @capacitor/core@6 @capacitor/filesystem@6 --legacy-peer-deps
           npm run build
 
+      # Inizializziamo il progetto iOS nativo
       - name: Inizializza e Sincronizza Capacitor per iOS
         run: |
           npx cap add ios || true
           npx cap sync ios
 
-      # Genera la Xcode Workspace nativa tramite CocoaPods pre-installato sul Mac di GitHub
-      - name: Installa Dipendenze CocoaPods Nativo
+      # Diagnostica utile per verificare la struttura generata in tempo reale nei log di GitHub
+      - name: Diagnostica Struttura Directory iOS
         run: |
-          cd ios/App
-          pod install
+          ls -R ios || echo "Cartella ios non trovata"
 
+      # COMPILAZIONE: Utilizziamo "-project" indicando il file ".xcodeproj" anziché la workspace CocoaPods
+      # Swift Package Manager scaricherà e compilerà i plugin in automatico durante questo step
       - name: Compila Progetto iOS (Unsigned App)
         run: |
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO
 
       - name: Impacchetta in formato .ipa per Sideloading (AltStore/Sideloadly)
         run: |
