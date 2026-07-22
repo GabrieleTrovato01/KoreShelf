@@ -1855,6 +1855,48 @@ document.addEventListener('DOMContentLoaded', () => {
             opacity: 1;
             pointer-events: auto;
         }
+            /* 1. Sblocca i menu a tendina (Font e Modalità di Lettura) */
+        .platform-mobile #settings-sidebar select,
+        .platform-mobile #sidebar-font-select,
+        .platform-mobile #sidebar-flow-select {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 12px 15px !important;
+            font-size: 14px !important;
+            text-align: left !important;
+            cursor: pointer !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            border-radius: 12px !important;
+            height: auto !important;
+        }
+
+        /* 2. Sblocca le caselle di testo Zoom e Interlinea */
+        .platform-mobile #sidebar-zoom-input,
+        .platform-mobile #sidebar-line-input {
+            max-width: 100% !important;
+            width: 100% !important;
+            text-align: center !important;
+            padding: 0 !important;
+            font-size: 14px !important;
+            font-weight: bold !important;
+            border-radius: 12px !important;
+            height: 45px !important;
+        }
+
+        /* 3. Dimensiona correttamente la barra laterale su smartphone */
+        .platform-mobile #settings-sidebar {
+            width: 310px !important;
+            max-width: 85vw !important;
+            padding: 25px 20px !important;
+            box-sizing: border-box !important;
+            overflow-y: auto !important;
+        }
+
+        .platform-mobile #settings-sidebar .modern-btn {
+            min-width: 0 !important;
+        }
+
     `;
     document.head.appendChild(pdfTextLayerStyle);
     
