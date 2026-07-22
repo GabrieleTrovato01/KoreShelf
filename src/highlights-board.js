@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { t } from './i18n.js';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { BookService } from './services/book-service.js';
 import { isMobilePlatform } from './services/platform.js';
 
@@ -497,7 +498,7 @@ async function showSharePreview(book, highlightText) {
 
     // 1. Creazione Overlay Anteprima
     const previewOverlay = document.createElement('div');
-    previewOverlay.id = 'share-preview-overlay'; // <--- AGGIUNTO ID PER BLOCCO RAYCASTER
+    previewOverlay.id = 'share-preview-overlay'; 
     Object.assign(previewOverlay.style, {
         position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
         backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '4000',
@@ -568,7 +569,6 @@ async function showSharePreview(book, highlightText) {
         </div>
     `;
 
-    // <--- AGGIUNTI BLOCCHI PROPAGAZIONE CLICK --->
     previewOverlay.addEventListener('pointerdown', (e) => e.stopPropagation());
     previewOverlay.addEventListener('pointerup', (e) => e.stopPropagation());
     previewBox.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -777,32 +777,96 @@ async function showSharePreview(book, highlightText) {
     // Esegue il primo rendering
     generateCanvas();
 
-    // --- AZIONI ---
-    document.getElementById('dl-img-btn').onclick = () => {
-        const a = document.createElement('a');
-        a.href = canvas.toDataURL('image/jpeg', 0.95);
-        a.download = `KoreShelf_${book.title.replace(/\s+/g, '_')}_Quote.jpg`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+    // --- AZIONI SCARICA / CONDIVIDI (COMPATIBILI DESKTOP & MOBILE NATIVO) ---
+    document.getElementById('dl-img-btn').onclick = async () => {
+        const fileName = `KoreShelf_${book.title.replace(/[^a-zA-Z0-9]/g, '_')}_Quote.jpg`;
+
+        if (isMobilePlatform()) {
+            try {
+                // Estraiamo la stringa Base64 dal Canvas
+                const base64Data = canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
+                
+                // Salvataggio fisico sul File System nativo dello smartphone (Cartella Documenti)
+                const savedFile = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64Data,
+                    directory: Directory.Documents
+                });
+
+                alert(`✅ Citazione salvata nei Documenti del dispositivo!\n\nPercorso: ${savedFile.uri}`);
+            } catch (err) {
+                console.error("Errore salvataggio immagine mobile:", err);
+                alert("Impossibile salvare l'immagine sul dispositivo.");
+            }
+        } else {
+            // Comportamento standard per Browser Desktop
+            const a = document.createElement('a');
+            a.href = canvas.toDataURL('image/jpeg', 0.95);
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     };
 
     document.getElementById('sh-img-btn').onclick = async () => {
-        canvas.toBlob(async (blob) => {
-            const file = new File([blob], `KoreShelf_Quote_${Date.now()}.jpg`, { type: 'image/jpeg' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({
-                        files: [file],
+        const cleanText = highlightText.trim();
+        const fileName = `KoreShelf_Quote_${Date.now()}.jpg`;
+
+        if (isMobilePlatform()) {
+            try {
+                const base64Data = canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
+                
+                // 1. Salviamo temporaneamente l'immagine nella Cache nativa dello smartphone
+                const savedFile = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64Data,
+                    directory: Directory.Cache
+                });
+
+                // 2. Controlliamo se il plugin nativo Capacitor Share è presente
+                const capacitorShare = window.Capacitor?.Plugins?.Share;
+
+                if (capacitorShare) {
+                    // Condivisione Nativa Android / iOS con Immagine e Testo
+                    await capacitorShare.share({
                         title: book.title,
-                        text: `"${cleanText}"\n— ${book.author}`
+                        text: `"${cleanText}"\n— ${book.author}`,
+                        url: savedFile.uri,
+                        dialogTitle: 'Condividi Citazione'
                     });
-                } catch (err) {
-                    console.warn("Condivisione annullata dall'utente", err);
+                } else if (navigator.share) {
+                    // Fallback Web Share API (es. iOS Safari)
+                    const nativeUrl = window.Capacitor ? window.Capacitor.convertFileSrc(savedFile.uri) : savedFile.uri;
+                    await navigator.share({
+                        title: book.title,
+                        text: `"${cleanText}"\n— ${book.author}`,
+                        url: nativeUrl
+                    });
+                } else {
+                    alert("⚠️ Per abilitare la condivisione nativa su Android, esegui nel terminale:\nnpm install @capacitor/share && npx cap sync");
                 }
-            } else {
-                alert(t('shareNotSupported') || "Il tuo dispositivo/browser non supporta la condivisione nativa. Usa il tasto Scarica!");
+            } catch (err) {
+                console.warn("Condivisione annullata o non riuscita:", err);
             }
-        }, 'image/jpeg', 0.95);
+        } else {
+            // Comportamento standard per Browser Desktop
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], fileName, { type: 'image/jpeg' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            files: [file],
+                            title: book.title,
+                            text: `"${cleanText}"\n— ${book.author}`
+                        });
+                    } catch (err) {
+                        console.warn("Condivisione annullata dall'utente", err);
+                    }
+                } else {
+                    alert(t('shareNotSupported') || "Il tuo dispositivo/browser non supporta la condivisione nativa. Usa il tasto Scarica!");
+                }
+            }, 'image/jpeg', 0.95);
+        }
     };
 }

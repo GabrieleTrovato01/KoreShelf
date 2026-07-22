@@ -33,6 +33,7 @@
     "@capacitor/core": "^8.4.2",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/ios": "^8.4.2",
+    "@capacitor/share": "^8.0.1",
     "@capawesome/capacitor-file-picker": "^8.0.3",
     "@langchain/community": "^1.1.27",
     "@langchain/core": "^1.1.43",

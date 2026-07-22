@@ -48,13 +48,13 @@ window.openReader = function(epubUrl, bookId) {
     setTimeout(() => readerOverlay.style.opacity = '1', 50);
 
     if (viewer) {
-        viewer.style.width = "90%";            // Adattamento dinamico
+        viewer.style.width = "calc(100% - 100px)";           // Adattamento dinamico
         viewer.style.maxWidth = "850px";       // Limite massimo anti-affaticamento
 
-        viewer.style.height = "88vh"; // Altezza totale schermo MENO 120px (spazio per menu sopra e sotto)
-        viewer.style.margin = "2vh auto 0 auto";    // Spinge il div giù di 60px e lo centra orizzontalmente
+        viewer.style.height = "calc(100vh - 130px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))"; // Altezza totale schermo MENO 120px (spazio per menu sopra e sotto)
+        viewer.style.margin = "calc(60px + env(safe-area-inset-top, 0px)) auto 0 auto";    // Spinge il div giù di 60px e lo centra orizzontalmente
         // Centratura automatica
-        viewer.style.padding = "0";            
+        viewer.style.padding = "0"; 
         viewer.style.boxSizing = "border-box";
         viewer.style.position = "relative";    // Annulla eventuali margini forzati dall'HTML
     }
@@ -249,6 +249,17 @@ window.openReader = function(epubUrl, bookId) {
         const doc = contents.document;
         const style = doc.createElement("style");
         style.innerHTML = `
+
+            html, body {
+                margin: 0 !important;
+                padding: 0 0px 35px 0 !important;
+                box-sizing: border-box !important;
+            }
+            p, div, section, blockquote {
+                margin-left: 0 !important;
+                margin-right: 0 !important;
+            }
+
             /* 1. Reset totale su tutte le immagini (incluse quelle dentro SVG) */
             img, image {
                 max-width: 100% !important;
@@ -622,6 +633,12 @@ window.openPdfReader = function(pdfUrl, bookId) {
     if (!pdfContainer) return;
     pdfContainer.innerHTML = ''; 
     pdfContainer.style.display = 'block';
+
+    pdfContainer.style.width = 'calc(100% - 120px)'; // Lascia spazio per le frecce
+    pdfContainer.style.maxWidth = '800px';
+    pdfContainer.style.margin = 'calc(120px + env(safe-area-inset-top, 0px)) auto 0 auto';
+    pdfContainer.style.height = 'calc(100vh - 130px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))';
+    pdfContainer.style.boxSizing = 'border-box';
 
     const fontS = document.getElementById('sidebar-font-select');
     const lineS = document.getElementById('sidebar-line-height-slider');
@@ -1451,6 +1468,14 @@ window.applyCurrentTheme = function() {
                         font-family: ${savedFont} !important;
                         -ms-overflow-style: none !important;
                         scrollbar-width: none !important;
+                        margin: 0 !important;
+                        padding: 0 0 35px 0 !important;
+                        box-sizing: border-box !important;
+                    }
+
+                    p, div, section, blockquote {
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
                     }
                     
                     /* Forza lo sblocco delle maniglie blu di trascinamento native di Android */
@@ -1505,6 +1530,14 @@ window.applyCurrentTheme = function() {
                         font-family: ${savedFont} !important;
                         -ms-overflow-style: none !important;
                         scrollbar-width: none !important; 
+                        margin: 0 !important;
+                        padding: 0 0 35px 0 !important;
+                        box-sizing: border-box !important;
+                    }
+
+                    p, div, section, blockquote {
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
                     }
 
                     html, body, p, span, li, h1, h2, h3, h4, h5, h6, div, section {

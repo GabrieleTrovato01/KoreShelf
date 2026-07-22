@@ -290,8 +290,23 @@ styleStyle.innerHTML = `
     }
 
     .platform-mobile #ui-container-id {
-        padding: 0 15px !important; /* Sposta il pulsante caffè e aiuto più vicino ai bordi su mobile */
+        padding: 0 10px !important;
+        left: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+        justify-content: space-between !important;
     }
+    
+    .platform-mobile #ui-container-id > div {
+        gap: 6px !important;
+    }
+
+    .platform-mobile #ui-container-id .modern-btn {
+        padding: 8px 10px !important;
+        min-width: 36px !important;
+    }
+
     /* Consente la selezione del testo all'interno dei contenitori del lettore */
     #viewer, #pdf-container, .epub-container, .epub-view {
         -webkit-user-select: text !important;
@@ -1031,6 +1046,8 @@ function changeShelf(direction) {
                 isViewingBoard = true;
                 targetCameraY = booksArray[booksArray.length - 1].userData.baseShelfY + 4.5;
                 
+                categoryLabel.style.display = 'none';
+                manageCatBtn.style.display = 'none';
                 // Aggiorniamo l'interfaccia 2D
                 manageCatBtn.style.display = 'none'; 
                 uiContainer.style.opacity = '0'; 
@@ -1050,6 +1067,9 @@ function changeShelf(direction) {
         if (isViewingBoard) {
             // SCENDIAMO DALLA BACHECA ALLA MENSOLA PIU' ALTA
             isViewingBoard = false;
+            categoryLabel.style.display = 'block';
+            manageCatBtn.style.display = 'block';
+
             uiContainer.style.display = 'flex';
             uiContainer.style.opacity = '1';
             leftArrow.style.opacity = '1';
@@ -1658,6 +1678,14 @@ async function loadBooks() {
 
 function updateCarousel() {
     if (booksArray.length === 0) return;
+
+     if (isViewingBoard) {
+        categoryLabel.style.display = 'none';
+        manageCatBtn.style.display = 'none';
+    } else {
+        categoryLabel.style.display = 'block';
+        manageCatBtn.style.display = 'block';
+    }
     
     const activeBook = booksArray[currentIndex];
     const activeCategory = activeBook.userData.category;
@@ -2101,8 +2129,12 @@ async function generateMissingPdfCovers() {
     }
 
     // 2. Chiediamo al server la lista aggiornata dei libri
-    const res = await fetch('/api/books');
-    const booksData = await res.json();
+    let booksData = [];
+    try {
+        booksData = await BookService.getAllBooks();
+    } catch(e) {
+        return;
+    }
 
     // 3. Filtra solo i PDF che NON hanno ancora una copertina
     const pdfsMissingCover = booksData.filter(b => 
@@ -2145,30 +2177,27 @@ async function generateMissingPdfCovers() {
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
             
             if (blob) {
-                const formData = new FormData();
-                formData.append('cover', blob, `cover_${book.id}.jpg`);
-                
-                // Inviamo al server
-                const uploadRes = await fetch(`/api/books/${book.id}/cover`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (uploadRes.ok) {
-                    const result = await uploadRes.json();
-                    console.log(t('logCoverGenerated', { title: book.title }));
+                // Su mobile la copertina generata viene gestita localmente
+                if (!isMobilePlatform()) {
+                    const formData = new FormData();
+                    formData.append('cover', blob, `cover_${book.id}.jpg`);
                     
-                    // BONUS: Aggiorniamo la texture 3D in tempo reale senza ricaricare la pagina!
-                    const mesh = booksArray.find(b => b.userData.id === book.id);
-                    if (mesh) {
-                         const newUrl = getSafeBookPath(result.coverPath);
-                        const tex = await libLoader.loadTexture(newUrl);
-                        mesh.material[4].map = tex;
-                        mesh.material[4].color.setHex(0xffffff); // Rimuovi il colore scuro del placeholder
-                        mesh.material[4].needsUpdate = true;
+                    const uploadRes = await fetch(`/api/books/${book.id}/cover`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (uploadRes.ok) {
+                        const result = await uploadRes.json();
+                        const mesh = booksArray.find(b => b.userData.id === book.id);
+                        if (mesh) {
+                            const newUrl = getSafeBookPath(result.coverPath);
+                            const tex = await libLoader.loadTexture(newUrl);
+                            mesh.material[4].map = tex;
+                            mesh.material[4].color.setHex(0xffffff);
+                            mesh.material[4].needsUpdate = true;
+                        }
                     }
-                } else {
-                    console.warn(t('logCoverGenerationError', { title: book.title, statusText: uploadRes.statusText }));
                 }
             }
         } catch (err) {
