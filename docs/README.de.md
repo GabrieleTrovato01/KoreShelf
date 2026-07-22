@@ -32,7 +32,7 @@ Um dieses Projekt auszuführen, müssen Sie keine Server konfigurieren oder Node
 
 ### 🚀 Installationsanleitung (Schritt für Schritt)
 
-Sie haben zwei Möglichkeiten, KoreShelf auszuführen.
+Sie haben drei Möglichkeiten, KoreShelf auszuführen.
 
 #### Option 1: Der einfache Weg (Portable Desktop App - Empfohlen)
 
@@ -51,7 +51,7 @@ Wenn Sie Docker oder Node.js nicht installieren möchten, können Sie unser eige
       cd KoreShelf
 
       # 2. Lade die neueste Version herunter und entpacke sie
-      curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v2.2.3/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
+      curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v3.0.0/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
 
       # 3. Entferne das komprimierte Archiv (optional, zum Aufräumen)
       rm KoreShelf-macOS.zip
@@ -63,7 +63,19 @@ Wenn Sie Docker oder Node.js nicht installieren möchten, können Sie unser eige
 
 **Sicherheitshinweis:** Da es sich um ein unabhängiges Open-Source-Projekt ohne kostenpflichtige digitale Signatur handelt, zeigen Windows SmartScreen oder Apple Gatekeeper beim ersten Start möglicherweise eine Warnung an. Wählen Sie einfach "Weitere Informationen" und "Trotzdem ausführen", um loszulegen. Der Quellcode ist hier transparent verfügbar.
 
-#### Option 2: Der fortgeschrittene Weg (Docker - Für Entwickler/Linux/macOS)
+#### Option 2 : Applications Mobiles (Android & iOS)
+
+KoreShelf peut être installé nativement sur votre smartphone ou tablette !
+
+- 🤖 **Android (.apk) :**
+  1. Accédez à la page des [Versions (Releases)](https://github.com/GabrieleTrovato01/KoreShelf/releases) et téléchargez `KoreShelf.apk`.
+  2. Ouvrez le fichier `.apk` sur votre appareil Android et appuyez sur **Installer** (autorisez "Installer des applications de sources inconnues" dans vos paramètres si demandé).
+
+- 🍎 **iOS / iPhone (.ipa) :**
+  1. Accédez à la page des [Versions (Releases)](https://github.com/GabrieleTrovato01/KoreShelf/releases) et téléchargez `KoreShelf.ipa`.
+  2. Installez le fichier `.ipa` sur votre iPhone ou iPad en utilisant votre méthode de sideloading préférée telle que **AltStore**, **SideStore**, **Sideloadly** ou **Scarlet**.
+
+#### Option 3: Der fortgeschrittene Weg (Docker - Für Entwickler/Linux/macOS)
 
 Wenn Sie das Projekt lieber über Docker ausführen möchten oder ein anderes Betriebssystem als Windows verwenden, folgen Sie diesen Schritten.
 

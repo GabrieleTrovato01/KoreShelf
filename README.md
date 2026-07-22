@@ -32,7 +32,7 @@ To run this project, you do not need to configure servers or install Node.js! Th
 
 ### 🚀 Installation Guide (Step-by-Step)
 
-You have two ways to run KoreShelf.
+You have three ways to run KoreShelf.
 
 #### Option 1: The Easy Way (Portable Desktop App - Recommended)
 
@@ -53,7 +53,7 @@ If you want to avoid installing Docker or Node.js, you can use our standalone ex
       cd KoreShelf
 
       # 2. Download and extract the latest release
-      curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v2.2.3/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
+      curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v3.0.0/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
 
       # 3. Remove the compressed archive (optional, for cleanup)
       rm KoreShelf-macOS.zip
@@ -65,6 +65,15 @@ If you want to avoid installing Docker or Node.js, you can use our standalone ex
 **Note on Security:** As this is an independent open-source project without a paid digital signature, SmartScreen or Gatekeeper may show a warning at the first launch. Simply choose "More info" and "Run anyway" to get started; the source code is fully transparent and available here.
 
 #### Option 2: The Advanced Way (Docker - For Developers/Linux/macOS)
+KoreShelf can be installed natively on your smartphone or tablet!
+- 🤖 Android (.apk):
+   1. Go to the Releases page and download KoreShelf.apk.
+   2. Open the .apk file on your Android device and tap Install (allow "Install from unknown sources" in your settings if prompted).
+- 🍎 iOS / iPhone (.ipa):
+   1. Go to the Releases page and download KoreShelf.ipa.
+   2. Install the .ipa file on your iPhone or iPad using your preferred sideloading method such as AltStore, SideStore, Sideloadly, or Scarlet.
+
+#### Option 3: The Advanced Way (Docker - For Developers/Linux/macOS)
 
 If you prefer to run the project via Docker or are on a non-Windows OS, follow these steps.
 

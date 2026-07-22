@@ -32,7 +32,7 @@ Per far funzionare questo progetto non devi configurare server o installare Node
 
 ### 🚀 Guida all'Installazione (Passo Passo)
 
-Hai due modi per avviare KoreShelf.
+Hai tre modi per avviare KoreShelf.
 
 #### Opzione 1: La via più semplice (App Portatile Desktop - Consigliata)
 
@@ -52,7 +52,7 @@ Se vuoi evitare di installare Docker o Node.js, puoi usare il nostro eseguibile 
          cd KoreShelf
 
          # 2. Scarica ed estrai l'ultima release
-         curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v2.2.3/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
+         curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v3.0.0/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
 
          # 3. Rimuovi l'archivio compresso (opzionale, per fare pulizia)
          rm KoreShelf-macOS.zip
@@ -63,7 +63,19 @@ Se vuoi evitare di installare Docker o Node.js, puoi usare il nostro eseguibile 
 
 **Nota sulla Sicurezza:** Essendo un progetto open-source indipendente privo di firma digitale a pagamento, Windows SmartScreen o Apple Gatekeeper potrebbero mostrare un avviso al primo avvio. Basta cliccare su "Ulteriori informazioni" e poi su "Esegui comunque"; il codice sorgente è completamente trasparente e verificabile in questo repository.
 
-#### Opzione 2: La via avanzata (Docker - Per Sviluppatori/Linux/macOS)
+#### Opzione 2: App Mobile (Android & iOS)
+
+KoreShelf può essere installata nativamente sul tuo smartphone o tablet!
+
+- 🤖 **Android (.apk):**
+  1. Vai alla pagina delle [Release](https://github.com/GabrieleTrovato01/KoreShelf/releases) e scarica `KoreShelf.apk`.
+  2. Apri il file `.apk` sul tuo dispositivo Android e tocca **Installa** (se richiesto, abilita "Consenti installazione da fonti sconosciute" nelle impostazioni).
+
+- 🍎 **iOS / iPhone (.ipa):**
+  1. Vai alla pagina delle [Release](https://github.com/GabrieleTrovato01/KoreShelf/releases) e scarica `KoreShelf.ipa`.
+  2. Installa il file `.ipa` sul tuo iPhone o iPad utilizzando il tuo metodo di sideloading preferito come **AltStore**, **SideStore**, **Sideloadly** o **Scarlet**.
+
+#### Opzione 3: La via avanzata (Docker - Per Sviluppatori/Linux/macOS)
 
 Se preferisci far girare il progetto tramite Docker o sei su un sistema operativo diverso da Windows, segui questi passaggi.
 

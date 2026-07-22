@@ -2102,7 +2102,7 @@ window.addEventListener('resize', () => {
 });
 
 // --- 7. CONTROLLO AGGIORNAMENTI GITHUB ---
-const CURRENT_VERSION = "v2.2.3"; 
+const CURRENT_VERSION = "v3.0.0"; 
 const GITHUB_API_URL = "https://api.github.com/repos/GabrieleTrovato01/KoreShelf/releases/latest";
 
 async function checkForUpdates() {
