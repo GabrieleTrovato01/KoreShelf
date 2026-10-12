@@ -190,14 +190,17 @@ styleStyle.innerHTML = `
     /* Bottone moderno */
     .modern-btn {
         padding: 12px 30px;
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 600;
-        letter-spacing: 2px;
-        text-transform: uppercase;
+        letter-spacing: 0.2px;
         border-radius: 50px;
         cursor: pointer;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
         text-align: center;
+        box-sizing: border-box;
     }
     .modern-btn:hover {
         background: rgba(255, 255, 255, 0.2);
@@ -221,6 +224,29 @@ styleStyle.innerHTML = `
         z-index: 100;
         width: 90%;
         max-width: 700px;
+    }
+    /* Tutti gli elementi della barra hanno la stessa altezza e non vanno mai a capo */
+    .top-bar > * {
+        flex: 0 0 auto;
+        height: 44px;
+        box-sizing: border-box;
+    }
+    .top-bar > .modern-input {
+        flex: 1 1 auto; /* La ricerca prende lo spazio che resta */
+        min-width: 120px;
+    }
+    .top-bar > .modern-btn,
+    .top-bar > div > .modern-btn {
+        height: 44px;
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    #category-label-id {
+        align-items: center;
+        max-width: 220px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .modern-input {
         padding: 12px 25px;
@@ -254,6 +280,10 @@ styleStyle.innerHTML = `
         align-items: center;
     }
     
+    .platform-mobile .top-bar > *,
+    .platform-mobile .top-bar > .modern-btn,
+    .platform-mobile .top-bar > div > .modern-btn { height: 40px; }
+
     .platform-mobile .top-bar { 
         width: 96%; 
         gap: 6px; 
@@ -362,11 +392,10 @@ document.body.appendChild(topBar);
 const categoryLabel = document.createElement('div');
 categoryLabel.id = 'category-label-id';
 categoryLabel.className = 'glass-effect';
-categoryLabel.style.padding = '12px 20px';
+categoryLabel.style.padding = '0 20px';
 categoryLabel.style.borderRadius = '50px';
-categoryLabel.style.fontSize = '13px';
-categoryLabel.style.fontWeight = 'bold';
-categoryLabel.style.letterSpacing = '1px';
+categoryLabel.style.fontSize = '14px';
+categoryLabel.style.fontWeight = '600';
 categoryLabel.style.display = 'none';
 topBar.appendChild(categoryLabel);
 
@@ -376,7 +405,7 @@ const manageCatBtn = document.createElement('button');
 manageCatBtn.innerHTML = t('manageShelf');
 manageCatBtn.title = t('manageShelfTooltip');
 manageCatBtn.className = 'glass-effect modern-btn';
-manageCatBtn.style.padding = '12px 15px';
+manageCatBtn.style.padding = '0 15px';
 manageCatBtn.style.display = 'none';
 topBar.appendChild(manageCatBtn);
 
@@ -418,7 +447,7 @@ topBar.appendChild(fileInput);
 const shutdownBtn = document.createElement('button');
 shutdownBtn.innerHTML = '🛑 ' + t('shutdownBtn'); 
 shutdownBtn.className = 'glass-effect modern-btn';
-shutdownBtn.style.padding = '12px 15px';
+shutdownBtn.style.padding = '0 15px';
 shutdownBtn.style.fontWeight = 'bold';
 shutdownBtn.title = t('shutdownTooltip');
 
@@ -488,7 +517,7 @@ const langBtn = document.createElement('button');
 const currentLangData = availableLangs[savedLang] || availableLangs['it'];
 langBtn.innerHTML = `<span class="btn-icon">${currentLangData.icon}</span><span class="btn-text">${currentLangData.text}</span>`;
 langBtn.className = 'glass-effect modern-btn';
-langBtn.style.padding = '12px 15px';
+langBtn.style.padding = '0 15px';
 langBtn.style.fontWeight = 'bold';
 langBtn.title = 'Cambia lingua / Change language';
 
@@ -1113,14 +1142,14 @@ function changeShelf(direction) {
         if (isViewingBoard) {
             // SCENDIAMO DALLA BACHECA ALLA MENSOLA PIU' ALTA
             isViewingBoard = false;
-            categoryLabel.style.display = 'block';
-            manageCatBtn.style.display = 'block';
+            categoryLabel.style.display = 'inline-flex';
+            manageCatBtn.style.display = 'inline-flex';
 
             uiContainer.style.display = 'flex';
             uiContainer.style.opacity = '1';
             leftArrow.style.opacity = '1';
             rightArrow.style.opacity = '1';
-            manageCatBtn.style.display = 'block';
+            manageCatBtn.style.display = 'inline-flex';
             updateCarousel(); // Ripristina i dati del libro
             return;
         }
@@ -1256,7 +1285,7 @@ searchInput.addEventListener('input', (e) => {
                         uiContainer.style.opacity = '1';
                         leftArrow.style.opacity = '1';
                         rightArrow.style.opacity = '1';
-                        manageCatBtn.style.display = 'block';
+                        manageCatBtn.style.display = 'inline-flex';
                     }
                     
                     if (typeof infoBtn !== 'undefined') {
@@ -1789,8 +1818,8 @@ function updateCarousel() {
         categoryLabel.style.display = 'none';
         manageCatBtn.style.display = 'none';
     } else {
-        categoryLabel.style.display = 'block';
-        manageCatBtn.style.display = 'block';
+        categoryLabel.style.display = 'inline-flex';
+        manageCatBtn.style.display = 'inline-flex';
     }
     
     const activeBook = booksArray[currentIndex];
@@ -1800,13 +1829,14 @@ function updateCarousel() {
 
     const displayCategory = isUncategorized 
         ? t('uncategorized') 
-        : activeCategory.toUpperCase();
+        : activeCategory;
 
     categoryLabel.innerText = `${t('shelfTitlePrefix')}${displayCategory}`;
 
-    categoryLabel.style.display = 'block'; 
-    manageCatBtn.style.display = 'block'; // Mostriamo anche il bottoncino
-    categoryLabel.innerText = `📁 ${activeCategory.toUpperCase()}`;
+    categoryLabel.style.display = 'inline-flex'; 
+    manageCatBtn.style.display = 'inline-flex'; // Mostriamo anche il bottoncino
+    categoryLabel.innerText = `📁 ${displayCategory}`;
+    categoryLabel.title = displayCategory; // Nome completo se viene troncato
 
     // SPOSTA LA TELECAMERA sull'asse Y della mensola attiva
     targetCameraY = activeBook.userData.baseShelfY;
