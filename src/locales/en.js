@@ -120,7 +120,8 @@ export default {
         confirmDeleteBtn: "Confirm Deletion",
 
 
-        credits: "&copy; 2026 KoreShelf - All rights reserved. Created by",
+
+        credits: "&copy; 2026 KoreShelf - Open source project. Created by",
 
         //help guide 
         closeReader: "Close Book",
@@ -235,10 +236,9 @@ export default {
         bgStyleSolid: "Solid Color",
         downloadBtn: "Download",
         shareNotSupported: "Your device/browser does not support native sharing. Use the Download button!",
-
+        readersearchPlaceholder: "Search in the book...",
         tableOfContents: "Table of Contents",
         noTocFound: "No index found. Use quick jump:",
-        searchPlaceholder: "Search in the book...",
         noResultsFound: "No results found.",
         noMoreResults: "No more results found.",
 

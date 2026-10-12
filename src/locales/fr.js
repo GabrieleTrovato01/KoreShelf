@@ -119,7 +119,7 @@ export default {
     deleteWarningText: "Vous êtes sur le point de supprimer la catégorie \"{cat}\".\nAucun fichier ne sera supprimé, mais tous les livres de cette étagère retourneront dans \"Non classé\".",
     confirmDeleteBtn: "Confirmer la suppression",
 
-    credits: "&copy; 2026 KoreShelf - Tous droits réservés. Créé par",
+    credits: "&copy; 2026 KoreShelf · Projet open source. Créé par",
 
     //help guide 
     closeReader: "Fermer le livre",
@@ -236,7 +236,7 @@ export default {
 
     tableOfContents: "Table des matières",
     noTocFound: "Aucune table des matières trouvée. Utilisez le saut rapide :",
-    searchPlaceholder: "Rechercher dans le livre...",
+    readersearchPlaceholder: "Rechercher dans le livre...",
     noResultsFound: "Aucun résultat trouvé.",
     noMoreResults: "Aucun autre résultat trouvé.",
 

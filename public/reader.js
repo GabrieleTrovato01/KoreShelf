@@ -459,7 +459,7 @@ window.translateReaderUI = function() {
     if(el('sidebar-flow-horiz')) el('sidebar-flow-horiz').innerText = window.t('horizontal');
     if(el('sidebar-flow-vert')) el('sidebar-flow-vert').innerText = window.t('vertical');
     if(el('sidebar-align-label')) el('sidebar-align-label').innerText = window.t('textAlignment') || 'Allineamento';
-    if(el('reader-search-input')) el('reader-search-input').placeholder = window.t('searchPlaceholder') || 'Cerca...';
+    if(el('reader-search-input')) el('reader-search-input').placeholder = window.t('readersearchPlaceholder') || 'Cerca...';
 };
 
 // --- FUNZIONI DI RENDERING PDF ---
@@ -1928,7 +1928,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const searchInput = document.createElement('input');
         searchInput.id = 'reader-search-input';
         searchInput.type = 'text';
-        searchInput.placeholder = window.t('searchPlaceholder') || 'Cerca nel libro...';
+        searchInput.placeholder = window.t('readersearchPlaceholder') || 'Cerca nel libro...';
         searchInput.style.background = 'transparent'; // Trasparente per mostrare il glass-effect del padre
         searchInput.style.border = 'none';
         searchInput.style.outline = 'none';

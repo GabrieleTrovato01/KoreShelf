@@ -119,7 +119,7 @@ export default {
     deleteWarningText: "Sie sind im Begriff, die Kategorie \"{cat}\" zu löschen.\nEs werden keine Dateien gelöscht, aber alle Bücher in diesem Regal werden in \"Nicht kategorisiert\" verschoben.",
     confirmDeleteBtn: "Löschen bestätigen",
 
-    credits: "&copy; 2026 KoreShelf - Alle Rechte vorbehalten. Erstellt von",
+    credits: "&copy; 2026 KoreShelf · Open-Source-Projekt. Erstellt von",
 
     //help guide 
     closeReader: "Buch schließen",
@@ -236,7 +236,7 @@ export default {
 
     tableOfContents: "Inhaltsverzeichnis",
     noTocFound: "Kein Inhaltsverzeichnis gefunden. Schnellsprung nutzen:",
-    searchPlaceholder: "Suche in dem Buch...",
+    readersearchPlaceholder: "Suche in dem Buch...",
     noResultsFound: "Keine Ergebnisse gefunden.",
     noMoreResults: "Keine weiteren Ergebnisse gefunden.",
 

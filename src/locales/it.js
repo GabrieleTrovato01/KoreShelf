@@ -117,7 +117,7 @@ export default {
         deleteWarningText: "Stai per eliminare la categoria \"{cat}\".\nNessun file verrà cancellato, ma tutti i libri torneranno in \"Senza Categoria\".",
         confirmDeleteBtn: "Conferma Eliminazione",
 
-        credits: "&copy; 2026 KoreShelf - Tutti i diritti riservati. Creata da",
+        credits: "&copy; 2026 KoreShelf - Progetto open source. Creata da",
 
         // help guide
         // --- LETTORE E HELP MODAL ---
@@ -163,7 +163,7 @@ export default {
         emptySearchBtn: "Cerca su Amazon",
         searchNoResults: "Nessun risultato in libreria.",
         amazonSuggestion: "Cerca «{q}» su Amazon",
-        
+
         //recensione
         readerReviewBtnText: "⭐ Hai finito! Scrivi una Recensione",
         reviewModalTitleLong: "Cosa ne pensi di questo libro?",
@@ -225,7 +225,7 @@ export default {
 
         tableOfContents: "Indice",
         noTocFound: "Nessun indice trovato. Usa il salto rapina:",
-        searchPlaceholder: "Cerca nel libro...",
+        readersearchPlaceholder: "Cerca nel libro...",
         noResultsFound: "Nessun risultato trovato.",
         noMoreResults: "Nessun altro risultato trovato.",
 

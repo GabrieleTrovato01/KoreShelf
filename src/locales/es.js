@@ -120,7 +120,7 @@ export default {
         confirmDeleteBtn: "Confirmar Eliminación",
 
 
-        credits: "&copy; 2026 KoreShelf - Todos los derechos reservados. Creado por",
+        credits: "&copy; 2026 KoreShelf · Proyecto de código abierto. Creado por",
 
         //help guide 
         closeReader: "Cerrar el libro",
@@ -240,7 +240,7 @@ export default {
 
         tableOfContents: "Tabla de Contenidos",
         noTocFound: "No se encontró índice. Usa el salto rápido:",
-        searchPlaceholder: "Buscar en el libro...",
+        readersearchPlaceholder: "Buscar en el libro...",
         noResultsFound: "No se han encontrado resultados.",
         noMoreResults: "No hay más resultados.",
 
