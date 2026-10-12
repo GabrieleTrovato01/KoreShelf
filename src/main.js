@@ -1,4 +1,3 @@
-import { thickness } from 'three/src/nodes/core/PropertyNode.js';
 import { openCategoryManager } from './category-manager.js';
 import { LibraryLoader } from './loader-optimizer.js';
 import { t, initI18n, setLanguage } from './i18n.js';
@@ -34,12 +33,10 @@ function translateStaticHTML() {
     
     if (themeBtn) {
         const isDark = localStorage.getItem('readerDarkMode') === 'true';
-        themeBtn.innerText = isDark 
-            ? (lang === 'it' ? '☀️ Modalità Chiara' : '☀️ Light Mode')
-            : (lang === 'it' ? '🌙 Modalità Scura' : '🌙 Dark Mode');
+        themeBtn.innerHTML = '<span class="reader-btn-icon">' + (isDark ? '🌙' : '☀️') + '</span> <span class="reader-btn-text">' + t(isDark ? 'darkMode' : 'lightMode') + '</span>';
     }
 
-    document.title = lang === 'it' ? "KoreShelf - Libreria 3D" : "KoreShelf - 3D Library";
+    document.title = t('appTitle');
 
     // 2. AGGIORNAMENTO TESTI BOTTONI (La vera soluzione al tuo problema!)
     // Dato che la lingua ora è caricata, applichiamo i testi corretti ai bottoni creati in alto
@@ -76,6 +73,7 @@ function translateStaticHTML() {
         emptySearchInput.placeholder = t('emptySearchPlaceholder');
         emptySearchBtn.innerText = '🔍 ' + t('emptySearchBtn');
     }
+    if (typeof langBtn !== 'undefined') langBtn.title = t('changeLanguage');
 }
 
 // Helper per ripulire i percorsi nativi Capacitor ed evitare il doppio prefisso su mobile
@@ -106,10 +104,10 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap; 
 document.body.appendChild(renderer.domElement);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
 directionalLight.position.set(5, 10, 7.5); // Spostata un po' più avanti per ombre migliori
 directionalLight.castShadow = true; // ABILITA PROIEZIONE
 
@@ -859,7 +857,8 @@ editMetadataBtn.onclick = () => {
         activeBook.userData = { ...activeBook.userData, ...updatedData };
 
         // 3. HOT-SWAP DEL DORSO (Ridisegnamo titolo e autore sul lato)
-        const newSpineTex = createSpineTexture(updatedData.title, updatedData.author);
+        const newSpineTex = createSpineTexture(updatedData.title, updatedData.author, activeBook.userData.thickness);
+        if (activeBook.material[1].map) activeBook.material[1].map.dispose(); // Libera la texture precedente
         activeBook.material[1].map = newSpineTex;
         activeBook.material[1].needsUpdate = true;
 
@@ -1029,7 +1028,7 @@ assignCatBtn.onclick = () => {
                 location.reload(); // Ricarica per spostare il libro fisicamente sulla nuova mensola
             } else {
                 alert(result.message);
-                saveBtn.innerText = 'Salva';
+                saveBtn.innerText = t('saveBtn');
                 saveBtn.disabled = false;
             }
         } catch (e) { 
@@ -1413,57 +1412,87 @@ fileInput.addEventListener('change', async (event) => {
 });
 
 // --- 3. GENERATORI DI TEXTURE ---
-function createSpineTexture(title, author) {
+// --- DORSO DEL LIBRO ---
+// La canvas ha le stesse proporzioni del dorso reale (spessore × altezza), così il testo
+// non viene schiacciato sui libri sottili. Titolo in alto, autore in fondo, come sui dorsi veri.
+function createSpineTexture(title, author, thickness = 0.35) {
+    const SPINE_HEIGHT_PX = 2048;
+    const BOOK_HEIGHT = 3.0; // Deve corrispondere a bookHeight dei libri 3D
+    const W = Math.round(THREE.MathUtils.clamp(SPINE_HEIGHT_PX * (thickness / BOOK_HEIGHT), 64, 768));
+    const H = SPINE_HEIGHT_PX;
+
     const canvas = document.createElement('canvas');
-    canvas.width = 256; 
-    canvas.height = 2048;
+    canvas.width = W;
+    canvas.height = H;
     const ctx = canvas.getContext('2d');
-    
-    // Sfondo e rotazione
-    ctx.fillStyle = baseCoverColor; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.textAlign = 'center'; 
+
+    const SERIF = "Georgia, 'Times New Roman', serif";
+    const GOLD = '#d4af37';
+
+    // Sfondo scuro con una leggera sfumatura laterale, per dare volume al dorso
+    const bg = ctx.createLinearGradient(0, 0, W, 0);
+    bg.addColorStop(0, '#151515');
+    bg.addColorStop(0.5, '#262626');
+    bg.addColorStop(1, '#151515');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Due sottili fasce dorate vicino alle estremità, come sui dorsi rilegati
+    ctx.fillStyle = GOLD;
+    const band = THREE.MathUtils.clamp(W * 0.03, 3, 8);
+    [70, 70 + band * 3, H - 70 - band, H - 70 - band * 4].forEach(yBand => ctx.fillRect(0, yBand, W, band));
+
+    // Da qui in poi disegniamo ruotati: l'asse x corre lungo il dorso, dall'alto verso il basso
+    ctx.translate(W / 2, H / 2);
+    ctx.rotate(Math.PI / 2);
     ctx.textBaseline = 'middle';
-    ctx.translate(canvas.width / 2, canvas.height / 2); 
-    ctx.rotate(Math.PI / 2); 
-    
-    // --- 1. RIDIMENSIONAMENTO DINAMICO TITOLO ---
-    let titleFontSize = 80; // Partiamo dalla grandezza massima desiderata
-    const maxWidth = canvas.height - 120; // 2048px meno un po' di margine ai bordi
-    
-    ctx.font = `bold ${titleFontSize}px Arial, sans-serif`;
-    
-    // Finché il testo è troppo largo, rimpiccioliscilo!
-    while (ctx.measureText(title).width > maxWidth && titleFontSize > 24) {
-        titleFontSize -= 4;
-        ctx.font = `bold ${titleFontSize}px Arial, sans-serif`;
+
+    const lengthStart = -H / 2 + 150; // Dopo le fasce in alto
+    const lengthEnd = H / 2 - 150;    // Prima delle fasce in basso
+    const usableLength = lengthEnd - lengthStart;
+
+    // Riduce il font finché il testo non entra nello spazio dato
+    const fitFont = (text, style, startSize, minSize, maxLength) => {
+        let size = startSize;
+        ctx.font = `${style} ${size}px ${SERIF}`;
+        while (ctx.measureText(text).width > maxLength && size > minSize) {
+            size -= 2;
+            ctx.font = `${style} ${size}px ${SERIF}`;
+        }
+        return size;
+    };
+
+    // Tronca con i puntini se, anche alla dimensione minima, il testo non entra
+    const fitText = (text, maxLength) => {
+        if (ctx.measureText(text).width <= maxLength) return text;
+        let cut = text;
+        while (cut.length > 1 && ctx.measureText(`${cut}…`).width > maxLength) cut = cut.slice(0, -1).trimEnd();
+        return `${cut}…`;
+    };
+
+    const hasAuthor = Boolean(author && author.trim());
+    const titleLength = hasAuthor ? usableLength * 0.66 : usableLength;
+    const authorLength = usableLength * 0.28;
+
+    // Titolo: avorio, serif in grassetto, allineato in alto
+    if (title) {
+        fitFont(title, 'bold', Math.min(W * 0.5, 88), Math.max(16, Math.min(W * 0.22, 36)), titleLength);
+        ctx.fillStyle = '#f3ead8';
+        ctx.textAlign = 'left';
+        ctx.fillText(fitText(title, titleLength), lengthStart, 0);
     }
-    
-    ctx.fillStyle = '#ffffff'; 
-    ctx.fillText(title, 0, -30);
-    
-    // --- 2. RIDIMENSIONAMENTO DINAMICO AUTORE ---
-    let authorFontSize = 60;
-    
-    ctx.font = `italic ${authorFontSize}px Arial, sans-serif`;
-    
-    while (ctx.measureText(author).width > maxWidth && authorFontSize > 20) {
-        authorFontSize -= 4;
-        ctx.font = `italic ${authorFontSize}px Arial, sans-serif`;
+
+    // Autore: avorio attenuato, corsivo, allineato in fondo
+    if (hasAuthor) {
+        fitFont(author, 'italic', Math.min(W * 0.36, 60), Math.max(14, Math.min(W * 0.18, 28)), authorLength);
+        ctx.fillStyle = 'rgba(243, 234, 216, 0.72)';
+        ctx.textAlign = 'right';
+        ctx.fillText(fitText(author, authorLength), lengthEnd, 0);
     }
-    
-    ctx.fillStyle = '#cccccc'; 
-    ctx.fillText(author, 0, 60); 
 
     const texture = new THREE.CanvasTexture(canvas);
-
-    texture.generateMipmaps = false;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-
-    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    
-    return new THREE.CanvasTexture(canvas);
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy(); // Testo nitido anche visto di sbieco
+    return texture;
 }
 
 // --- RETRO DEL LIBRO ---
@@ -1796,7 +1825,7 @@ async function loadBooks() {
                 const bookThickness = Math.max(0.1, effectivePages * 0.001); 
 
                 const geometry = new THREE.BoxGeometry(bookWidth, bookHeight, bookThickness);
-                const spineTexture = createSpineTexture(bookData.title, bookData.author);
+                const spineTexture = createSpineTexture(bookData.title, bookData.author, bookThickness);
                 const spineMaterial = new THREE.MeshStandardMaterial({ map: spineTexture, roughness: 0.7 });
 
                 // Materiale placeholder: invece di un blocco nero, generiamo una copertina di testo!
@@ -1950,7 +1979,7 @@ async function loadBooks() {
             for (const shelf of otherShelves) {
                 await loadShelfCoversOneByOne(shelf);
             }
-            console.log(`${t('allTexturesLoaded')}d`);
+            console.log(`${t('allTexturesLoaded')}`);
         })();
 
     } catch (e) { console.error(e); }
@@ -2072,14 +2101,14 @@ window.showFullPlotModal = function(bookData) {
     overlay.appendChild(modal);
 
     const title = document.createElement('h2');
-    title.innerText = bookData.title || "Titolo Sconosciuto";
+    title.innerText = bookData.title || t('unknownTitle');
     title.style.marginTop = '0';
     title.style.marginBottom = '10px';
     title.style.color = '#d4af37';
     modal.appendChild(title);
 
     const author = document.createElement('h4');
-    author.innerText = `${t('authorLabel')} ${bookData.author || "Sconosciuto"}`;
+    author.innerText = `${t('authorLabel')} ${bookData.author || t('unknownAuthor')}`;
     author.style.marginTop = '0';
     author.style.marginBottom = '30px';
     author.style.color = '#ccc';
@@ -2586,6 +2615,17 @@ async function startApp() {
     // Recuperiamo la lingua salvata per i testi di caricamento
     const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
 
+        // Testi mostrati prima che le traduzioni siano caricate (t() non è ancora disponibile)
+    const bootTexts = {
+        it: { language: 'Caricamento lingua...', error: 'Errore durante l\'avvio' },
+        en: { language: 'Loading language...', error: 'Startup error' },
+        es: { language: 'Cargando idioma...', error: 'Error al iniciar' },
+        fr: { language: 'Chargement de la langue...', error: 'Erreur au démarrage' },
+        de: { language: 'Sprache wird geladen...', error: 'Fehler beim Start' }
+    };
+    const boot = bootTexts[savedLang] || bootTexts.it;
+
+
     try {
         // sync della lingua con il server.
         fetch('/api/sync-language', {
@@ -2596,7 +2636,7 @@ async function startApp() {
 
         // 1. Carica le traduzioni dal server
         if (loadingText) {
-            loadingText.innerText = savedLang === 'it' ? "Caricamento lingua..." : "Loading language...";
+            loadingText.innerText = boot.language;
         }
         await initI18n(); 
 
@@ -2609,7 +2649,7 @@ async function startApp() {
 
         // 3. Carica i libri
         if (loadingText) {
-            loadingText.innerText = savedLang === 'it' ? "Allestimento scaffali..." : "Setting up shelves...";
+            loadingText.innerText = t('loadingShelves');
         }
         await loadBooks();
 
@@ -2630,7 +2670,7 @@ async function startApp() {
 
     } catch (error) {
         console.error("Errore durante l'avvio dell'app:", error);
-        if (loadingText) loadingText.innerText = "Error / Errore";
+        if (loadingText) loadingText.innerText = boot.error;
     }
 }
 

@@ -1,5 +1,9 @@
 export default {
         // Top Bar
+        appTitle: "KoreShelf - 3D Library",
+        loadingShelves: "Setting up shelves...",
+        changeLanguage: "Change language",
+        
         manageShelf: " Manage",
         manageShelfTooltip: "Rename or delete this category",
         searchPlaceholder: "Search by title or author...",

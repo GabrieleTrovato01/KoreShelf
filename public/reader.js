@@ -1297,7 +1297,7 @@ window.applyCurrentTheme = function() {
         if (readerOverlay) readerOverlay.style.background = '#121212';
         
         if (themeBtn) {
-            themeBtn.innerHTML = '<span class="reader-btn-icon">☀️</span> <span class="reader-btn-text">Light Mode</span>';
+            themeBtn.innerHTML = '<span class="reader-btn-icon">☀️</span> <span class="reader-btn-text">t(\'lightMode\')</span>';
             themeBtn.style.color = '#ffffff';
             themeBtn.style.background = 'rgba(255, 255, 255, 0.08)';
             themeBtn.style.border = '1px solid rgba(255, 255, 255, 0.2)';
@@ -1379,7 +1379,7 @@ window.applyCurrentTheme = function() {
         if (readerOverlay) readerOverlay.style.background = '#faf9f6';
         
         if (themeBtn) {
-            themeBtn.innerHTML = '<span class="reader-btn-icon">🌙</span> <span class="reader-btn-text">Dark Mode</span>';
+            themeBtn.innerHTML = '<span class="reader-btn-icon">🌙</span> <span class="reader-btn-text">t(\'darkMode\')</span>';
             themeBtn.style.color = '#000000';
             themeBtn.style.background = 'rgba(0, 0, 0, 0.1)';
             themeBtn.style.border = '1px solid rgba(0, 0, 0, 0.1)';

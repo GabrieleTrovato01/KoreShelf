@@ -1,4 +1,9 @@
 export default {
+
+    appTitle: "KoreShelf - 3D-Bibliothek",
+    loadingShelves: "Regale werden eingerichtet...",
+    changeLanguage: "Sprache ändern",
+
     // Top Bar
     manageShelf: " Gérer",
     manageShelfTooltip: "Renommer ou supprimer cette catégorie",
