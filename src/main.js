@@ -212,6 +212,35 @@ styleStyle.innerHTML = `
         transform: translateY(0px);
     }
 
+    /* --- Varianti di colore: un solo accento (Carica) e il rosso solo per ciò che è distruttivo --- */
+    .btn-primary {
+        background: rgba(46, 204, 113, 0.15);
+        border-color: rgba(46, 204, 113, 0.45);
+        color: #5fe39a;
+    }
+    .btn-primary:hover {
+        background: rgba(46, 204, 113, 0.28);
+        border-color: rgba(46, 204, 113, 0.7);
+        box-shadow: 0 8px 15px rgba(46, 204, 113, 0.2);
+    }
+    .btn-danger {
+        background: rgba(255, 50, 50, 0.12);
+        border-color: rgba(255, 100, 100, 0.3);
+        color: #ffb3b3;
+    }
+    .btn-danger:hover {
+        background: rgba(255, 50, 50, 0.28);
+        border-color: rgba(255, 100, 100, 0.55);
+        box-shadow: 0 8px 15px rgba(255, 0, 0, 0.2);
+    }
+    /* Neutro a riposo, rosso solo al passaggio del mouse (es. Spegni) */
+    .btn-danger-hover:hover {
+        background: rgba(217, 83, 79, 0.25);
+        border-color: rgba(217, 83, 79, 0.6);
+        color: #ffb3b3;
+        box-shadow: 0 8px 15px rgba(217, 83, 79, 0.2);
+    }
+
     /* Barra superiore e Input di ricerca */
     .top-bar {
         position: absolute;
@@ -421,20 +450,7 @@ uploadLabel.className = 'glass-effect modern-btn';
 uploadLabel.htmlFor = 'file-upload';
 topBar.appendChild(uploadLabel);
 
-uploadLabel.style.background = 'rgba(46, 204, 113, 0.15)';
-uploadLabel.style.borderColor = 'rgba(46, 204, 113, 0.4)';
-uploadLabel.style.color = '#2ecc71';
-
-uploadLabel.onmouseover = () => {
-    uploadLabel.style.background = 'rgba(46, 204, 113, 0.3)';
-    uploadLabel.style.transform = 'translateY(-3px)';
-    uploadLabel.style.boxShadow = '0 8px 15px rgba(46, 204, 113, 0.2)';
-};
-uploadLabel.onmouseout = () => {
-    uploadLabel.style.background = 'rgba(46, 204, 113, 0.15)';
-    uploadLabel.style.transform = 'translateY(0px)';
-    uploadLabel.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-};
+uploadLabel.classList.add('btn-primary'); // Unica azione principale con colore d'accento
 
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
@@ -448,27 +464,9 @@ const shutdownBtn = document.createElement('button');
 shutdownBtn.innerHTML = '🛑 ' + t('shutdownBtn'); 
 shutdownBtn.className = 'glass-effect modern-btn';
 shutdownBtn.style.padding = '0 15px';
-shutdownBtn.style.fontWeight = 'bold';
 shutdownBtn.title = t('shutdownTooltip');
+shutdownBtn.classList.add('btn-danger-hover'); // Neutro, diventa rosso solo al passaggio del mouse
 
-// Colore rossastro/violaceo per distinguerlo dalla lingua, ma in stile Glassmorphism
-shutdownBtn.style.background = 'rgba(217, 83, 79, 0.15)';
-shutdownBtn.style.borderColor = 'rgba(217, 83, 79, 0.4)';
-shutdownBtn.style.color = '#ff9999';
-
-// Effetto hover
-shutdownBtn.onmouseover = () => {
-    shutdownBtn.style.background = 'rgba(217, 83, 79, 0.3)';
-    shutdownBtn.style.borderColor = 'rgba(217, 83, 79, 0.6)';
-    shutdownBtn.style.transform = 'translateY(-3px)';
-    shutdownBtn.style.boxShadow = '0 8px 15px rgba(217, 83, 79, 0.2)';
-};
-shutdownBtn.onmouseout = () => {
-    shutdownBtn.style.background = 'rgba(217, 83, 79, 0.15)';
-    shutdownBtn.style.borderColor = 'rgba(217, 83, 79, 0.4)';
-    shutdownBtn.style.transform = 'translateY(0px)';
-    shutdownBtn.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-};
 
 shutdownBtn.onclick = async () => {
     const confermato = confirm(t('shutdownConfirm'));
@@ -669,21 +667,8 @@ donateBtn.style.textDecoration = 'none';
 donateBtn.style.position = 'relative'; 
 donateBtn.style.zIndex = '1000';
 donateBtn.style.padding = '12px 15px';
-donateBtn.style.fontWeight = 'bold';
 donateBtn.style.whiteSpace = 'nowrap'; 
-donateBtn.style.background = 'rgba(0, 112, 186, 0.15)'; 
-donateBtn.style.borderColor = 'rgba(0, 112, 186, 0.4)';
-donateBtn.style.color = '#66b3ff';
-
-// Gestiamo solo il cambio di colore su hover
-donateBtn.onmouseover = () => {
-    donateBtn.style.background = 'rgba(0, 112, 186, 0.3)';
-    donateBtn.style.borderColor = 'rgba(0, 112, 186, 0.6)';
-};
-donateBtn.onmouseout = () => {
-    donateBtn.style.background = 'rgba(0, 112, 186, 0.15)';
-    donateBtn.style.borderColor = 'rgba(0, 112, 186, 0.4)';
-};
+// Stile neutro come gli altri pulsanti: l'icona ☕ basta a distinguerlo
 
 // Aggiungiamo il bottone al BODY invece che alla topBar
 document.body.appendChild(donateBtn);
@@ -693,6 +678,8 @@ const helpBtn = document.getElementById('help-btn');
 if (helpBtn) {
     // Reset totale (Uccidiamo qualsiasi vecchia regola ereditata dal CSS)
     helpBtn.style.position = 'static'; 
+    helpBtn.style.border = '';    // Bordo standard del vetro invece di quello più marcato
+    helpBtn.style.boxShadow = ''; // Ombra standard dei pulsanti
     helpBtn.style.margin = '0';
     helpBtn.style.transform = 'none'; // <-- È questo che lo spostava in alto!
     helpBtn.style.top = 'auto';
@@ -759,22 +746,7 @@ centerUiGroup.appendChild(assignCatBtn);
 const deleteBookBtn = document.createElement('button');
 deleteBookBtn.innerHTML = t('deleteBook');
 deleteBookBtn.className = 'glass-effect modern-btn';
-// Diamo un colore rossastro coerente col design glassmorphism
-deleteBookBtn.style.background = 'rgba(255, 50, 50, 0.15)';
-deleteBookBtn.style.borderColor = 'rgba(255, 100, 100, 0.3)';
-deleteBookBtn.style.color = '#ffb3b3';
-
-// Effetto hover personalizzato (rosso acceso)
-deleteBookBtn.onmouseover = () => {
-    deleteBookBtn.style.background = 'rgba(255, 50, 50, 0.3)';
-    deleteBookBtn.style.transform = 'translateY(-3px)';
-    deleteBookBtn.style.boxShadow = '0 8px 15px rgba(255, 0, 0, 0.2)';
-};
-deleteBookBtn.onmouseout = () => {
-    deleteBookBtn.style.background = 'rgba(255, 50, 50, 0.15)';
-    deleteBookBtn.style.transform = 'translateY(0px)';
-    deleteBookBtn.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-};
+deleteBookBtn.classList.add('btn-danger'); // Rosso: azione distruttiva
 centerUiGroup.appendChild(deleteBookBtn);
 
 const editMetadataBtn = document.createElement('button');
