@@ -243,6 +243,7 @@ export default {
         readersearchPlaceholder: "Buscar en el libro...",
         noResultsFound: "No se han encontrado resultados.",
         noMoreResults: "No hay más resultados.",
+        moreActions: "Más acciones", 
 
         //--------------------------------------------------server.js locales-------------------------------------------------------------
 

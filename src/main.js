@@ -59,6 +59,10 @@ function translateStaticHTML() {
     }
     if (typeof assignCatBtn !== 'undefined') assignCatBtn.innerHTML = '<span class="btn-icon">🏷️</span><span class="btn-text">' + t('assignCategory') + '</span>';
     if (typeof deleteBookBtn !== 'undefined') deleteBookBtn.innerHTML = '<span class="btn-icon">🗑️</span><span class="btn-text">' + t('deleteBook') + '</span>';
+    if (typeof moreBtn !== 'undefined') {
+        moreBtn.title = t('moreActions');
+        moreBtn.setAttribute('aria-label', t('moreActions'));
+    }
     if (typeof editMetadataBtn !== 'undefined') editMetadataBtn.innerHTML = '<span class="btn-icon">✏️</span><span class="btn-text">' + (t('editMetadata') || 'Modifica') + '</span>';
 
     if (typeof creditsFooter !== 'undefined') {
@@ -233,6 +237,48 @@ styleStyle.innerHTML = `
         border-color: rgba(255, 100, 100, 0.55);
         box-shadow: 0 8px 15px rgba(255, 0, 0, 0.2);
     }
+    /* --- Menu "⋯" delle azioni secondarie sul libro --- */
+    .more-wrap { position: relative; display: inline-flex; }
+    .more-menu {
+        position: absolute;
+        bottom: calc(100% + 10px); /* Si apre verso l'alto, sopra la barra */
+        right: 0;
+        display: none;
+        flex-direction: column;
+        min-width: 220px;
+        padding: 6px;
+        border-radius: 16px;
+        background: rgba(30, 45, 59, 0.88); /* Più pieno del vetro normale: leggibile sopra la scena 3D */
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        z-index: 2000;
+    }
+    .more-menu.open { display: flex; }
+    .more-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 11px 14px;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: #ffffff;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 14px;
+        text-align: left;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .more-menu-item:hover { background: rgba(255, 255, 255, 0.1); }
+    .more-menu-item.danger { color: #ffb3b3; }
+    .more-menu-item.danger:hover { background: rgba(255, 50, 50, 0.2); }
+    .more-menu-item:disabled { opacity: 0.6; cursor: default; }
+    .more-menu-separator { height: 1px; margin: 4px 8px; background: rgba(255, 255, 255, 0.15); }
+    /* Nel menu il testo resta sempre visibile, anche su mobile */
+    .more-menu .btn-icon, .platform-mobile .more-menu .btn-icon { margin-right: 0 !important; font-size: 16px; }
+    .more-menu .btn-text, .platform-mobile .more-menu .btn-text { display: inline !important; }
+
     /* Neutro a riposo, rosso solo al passaggio del mouse (es. Spegni) */
     .btn-danger-hover:hover {
         background: rgba(217, 83, 79, 0.25);
@@ -740,20 +786,56 @@ centerUiGroup.appendChild(infoBtn);
 // 3. Bottone per Assegnare la Categoria al Libro
 const assignCatBtn = document.createElement('button');
 assignCatBtn.innerHTML = t('assignCategory');
-assignCatBtn.className = 'glass-effect modern-btn';
-centerUiGroup.appendChild(assignCatBtn);
+assignCatBtn.className = 'more-menu-item';
 
 const deleteBookBtn = document.createElement('button');
 deleteBookBtn.innerHTML = t('deleteBook');
-deleteBookBtn.className = 'glass-effect modern-btn';
-deleteBookBtn.classList.add('btn-danger'); // Rosso: azione distruttiva
-centerUiGroup.appendChild(deleteBookBtn);
+deleteBookBtn.className = 'more-menu-item danger'; // Rosso: azione distruttiva
 
 const editMetadataBtn = document.createElement('button');
 // Puoi aggiungere la traduzione in i18n, per ora usiamo un testo fisso con fallback
 editMetadataBtn.innerHTML = t('editMetadata') || '✏️ Modifica'; 
-editMetadataBtn.className = 'glass-effect modern-btn';
-centerUiGroup.appendChild(editMetadataBtn);
+editMetadataBtn.className = 'more-menu-item';
+
+// --- MENU "⋯": raccoglie le azioni meno frequenti (Elimina in fondo, separata) ---
+const moreWrap = document.createElement('div');
+moreWrap.className = 'more-wrap';
+
+const moreBtn = document.createElement('button');
+moreBtn.className = 'glass-effect modern-btn';
+moreBtn.innerHTML = '<span class="btn-icon" style="margin-right:0;font-size:18px;line-height:1;">⋯</span>';
+moreBtn.style.padding = '12px 18px';
+moreBtn.setAttribute('aria-haspopup', 'menu');
+moreBtn.setAttribute('aria-expanded', 'false');
+
+const moreMenu = document.createElement('div');
+moreMenu.className = 'more-menu glass-effect';
+moreMenu.setAttribute('role', 'menu');
+
+const moreSeparator = document.createElement('div');
+moreSeparator.className = 'more-menu-separator';
+
+[assignCatBtn, editMetadataBtn].forEach(btn => btn.setAttribute('role', 'menuitem'));
+deleteBookBtn.setAttribute('role', 'menuitem');
+moreMenu.append(assignCatBtn, editMetadataBtn, moreSeparator, deleteBookBtn);
+moreWrap.append(moreBtn, moreMenu);
+centerUiGroup.appendChild(moreWrap);
+
+function setMoreMenuOpen(open) {
+    moreMenu.classList.toggle('open', open);
+    moreBtn.setAttribute('aria-expanded', String(open));
+}
+moreBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setMoreMenuOpen(!moreMenu.classList.contains('open'));
+});
+// Dopo aver scelto una voce il menu si chiude (l'azione della voce parte prima)
+moreMenu.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (e.target.closest('.more-menu-item')) setMoreMenuOpen(false);
+});
+window.addEventListener('click', () => setMoreMenuOpen(false));
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMoreMenuOpen(false); });
 
 
 editMetadataBtn.onclick = () => {
@@ -803,9 +885,7 @@ editMetadataBtn.onclick = () => {
         const backMesh = activeBook.children.find(child => child.name === "backCover_mesh");
         if (backMesh) {
             backMesh.userData = { ...backMesh.userData, ...updatedData }; // Aggiorna anche per il click della trama
-            const newBackTex = createBackCoverTexture(updatedData.description, updatedData.tags, updatedData.rating);
-            backMesh.material.map = newBackTex;
-            backMesh.material.needsUpdate = true;
+            redrawBackCover(activeBook);
         }
     });
 };
@@ -1001,7 +1081,7 @@ deleteBookBtn.onclick = async () => {
                 location.reload(); 
             } else {
                 alert(result.message);
-                deleteBookBtn.innerHTML = t('deleteBook');
+                deleteBookBtn.innerHTML = '<span class="btn-icon">🗑️</span><span class="btn-text">' + t('deleteBook') + '</span>';
                 deleteBookBtn.disabled = false;
             }
         } catch (e) {
@@ -1386,98 +1466,191 @@ function createSpineTexture(title, author) {
     return new THREE.CanvasTexture(canvas);
 }
 
-function createBackCoverTexture(description, tags, rating) {
+// --- RETRO DEL LIBRO ---
+// Disegna il retro con struttura: categoria, titolo, autore, trama (con dimensione adattiva) e voto.
+// scale = 1 per tutti i libri (leggero in memoria), 2 solo per il libro di cui si sta guardando il retro.
+function createBackCoverTexture(description, tags, rating, info = {}, scale = 1) {
+    const S = scale;
+    const W = 512 * S;
+    const H = 768 * S;
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 768;
+    canvas.width = W;
+    canvas.height = H;
     const ctx = canvas.getContext('2d');
 
-    // Sfondo elegante per il retro
-    ctx.fillStyle = '#1e1e1e'; // Grigio scuro
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const SERIF = "Georgia, 'Times New Roman', serif";
+    const SANS = "'Segoe UI', system-ui, sans-serif";
+    const GOLD = '#d4af37';
+    const IVORY = '#f3ead8';
 
-    // Bordo dorato opzionale
-    ctx.strokeStyle = '#d4af37';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+    // Sfondo con una leggera sfumatura verticale
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#262626');
+    bg.addColorStop(1, '#191919');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
 
-    let currentY = 70;
+    // Cornice dorata sottile
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 2 * S;
+    ctx.strokeRect(16 * S, 16 * S, W - 32 * S, H - 32 * S);
 
-    // --- DISEGNA I TAG ---
-    if (tags && tags.length > 0) {
-        ctx.fillStyle = '#d4af37';
-        ctx.font = 'bold 24px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(tags[0].toUpperCase(), canvas.width / 2, currentY);
-        currentY += 40;
-        
-        // Linea separatrice
-        ctx.beginPath();
-        ctx.moveTo(100, currentY - 20);
-        ctx.lineTo(canvas.width - 100, currentY - 20);
-        ctx.stroke();
-    }
+    const padX = 44 * S;
+    const contentW = W - padX * 2;
+    const centerX = W / 2;
 
-    // --- LIMITE DI SICUREZZA PER LE STELLE ---
-    // Riserviamo gli ultimi 120 pixel del canvas esclusivamente per le stelle
-    const maxBottomY = canvas.height - 120; 
-
-    // --- DISEGNA LA TRAMA (Con Word Wrap e Truncation) ---
-    if (description) {
-        ctx.fillStyle = '#ecf0f1';
-        ctx.font = '22px serif';
-        ctx.textAlign = 'left';
-        
-        // Puliamo l'HTML dalla trama (es. <i>, <b>)
-        const cleanDesc = description.replace(/<[^>]*>?/gm, '');
-        const words = cleanDesc.split(' ');
-        
+    // Divide un testo in righe che stanno nella larghezza data (gestisce anche parole lunghissime)
+    const wrap = (text, maxWidth) => {
+        const words = text.split(/\s+/).filter(Boolean);
+        const lines = [];
         let line = '';
-        const maxWidth = canvas.width - 80;
-        const x = 40;
-        const lineHeight = 32;
-
-        for (let n = 0; n < words.length; n++) {
-            const testLine = line + words[n] + ' ';
-            const metrics = ctx.measureText(testLine);
-            
-            if (metrics.width > maxWidth && n > 0) {
-                ctx.fillText(line, x, currentY);
-                line = words[n] + ' ';
-                currentY += lineHeight;
-                
-                // Se la prossima riga invade l'area delle stelle, ci fermiamo!
-                if (currentY > maxBottomY) {
-                    ctx.fillText("...", x, currentY - lineHeight + 10);
-                    break; 
-                }
+        for (const word of words) {
+            const test = line ? `${line} ${word}` : word;
+            if (ctx.measureText(test).width <= maxWidth) {
+                line = test;
             } else {
-                line = testLine;
+                if (line) lines.push(line);
+                line = word;
+                while (ctx.measureText(line).width > maxWidth && line.length > 1) {
+                    let cut = line.length - 1;
+                    while (cut > 1 && ctx.measureText(line.slice(0, cut)).width > maxWidth) cut--;
+                    lines.push(line.slice(0, cut));
+                    line = line.slice(cut);
+                }
             }
         }
-        
-        // Disegna l'ultima riga se non abbiamo superato il limite
-        if (currentY <= maxBottomY) {
-            ctx.fillText(line, x, currentY);
+        if (line) lines.push(line);
+        return lines;
+    };
+
+    // Tronca le righe al numero massimo, chiudendo l'ultima con i puntini
+    const clampLines = (lines, maxLines, maxWidth) => {
+        if (lines.length <= maxLines) return lines;
+        const kept = lines.slice(0, maxLines);
+        let last = kept[maxLines - 1];
+        while (last.length > 0 && ctx.measureText(`${last}…`).width > maxWidth) {
+            last = last.slice(0, -1).trimEnd();
         }
+        kept[maxLines - 1] = `${last}…`;
+        return kept;
+    };
+
+    let y = 58 * S;
+
+    // 1. Categoria (piccola etichetta dorata)
+    if (tags && tags.length > 0 && tags[0]) {
+        const category = tags[0] === 'Senza Categoria' ? t('uncategorized') : tags[0];
+        ctx.fillStyle = GOLD;
+        ctx.font = `600 ${13 * S}px ${SANS}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        const label = clampLines(wrap(category.toUpperCase(), contentW), 1, contentW)[0];
+        ctx.fillText(label, centerX, y);
+        y += 34 * S;
+    } else {
+        y += 10 * S;
     }
 
-    // --- DISEGNA LE STELLE (Fisse in basso) ---
-    if (rating && rating > 0) {
+    // 2. Titolo (al massimo 2 righe)
+    if (info.title) {
+        ctx.fillStyle = IVORY;
+        ctx.font = `bold ${26 * S}px ${SERIF}`;
         ctx.textAlign = 'center';
-        ctx.font = '45px Arial';
-        let starsText = '';
-        
-        for (let s = 1; s <= 5; s++) {
-            starsText += s <= rating ? '★ ' : '☆ ';
+        const titleLines = clampLines(wrap(info.title, contentW), 2, contentW);
+        titleLines.forEach(l => { ctx.fillText(l, centerX, y); y += 32 * S; });
+    }
+
+    // 3. Autore
+    if (info.author) {
+        ctx.fillStyle = 'rgba(243, 234, 216, 0.7)';
+        ctx.font = `italic ${18 * S}px ${SERIF}`;
+        ctx.textAlign = 'center';
+        const authorLine = clampLines(wrap(info.author, contentW), 1, contentW)[0];
+        ctx.fillText(authorLine, centerX, y);
+        y += 22 * S;
+    }
+
+    // 4. Separatore dorato corto
+    if (info.title || info.author || (tags && tags.length > 0)) {
+        y += 6 * S;
+        ctx.strokeStyle = GOLD;
+        ctx.lineWidth = 1.5 * S;
+        ctx.beginPath();
+        ctx.moveTo(centerX - 40 * S, y);
+        ctx.lineTo(centerX + 40 * S, y);
+        ctx.stroke();
+        y += 22 * S;
+    }
+
+    // Spazio riservato in fondo alle stelle (solo se c'è un voto)
+    const hasRating = rating && rating > 0;
+    const bottomLimit = H - (hasRating ? 96 : 48) * S;
+
+    // 5. Trama: sceglie la dimensione più grande che entra nello spazio, poi la centra in verticale
+    if (description) {
+        const decoder = document.createElement('textarea');
+        decoder.innerHTML = description.replace(/<[^>]*>?/gm, ' ');
+        const cleanDesc = decoder.value.replace(/\s+/g, ' ').trim();
+
+        const available = bottomLimit - y;
+        let fontSize = 22;
+        let lines = [];
+        let lineHeight = 0;
+        for (fontSize = 22; fontSize >= 14; fontSize--) {
+            ctx.font = `${fontSize * S}px ${SERIF}`;
+            lineHeight = fontSize * 1.45 * S;
+            lines = wrap(cleanDesc, contentW);
+            if (lines.length * lineHeight <= available) break;
         }
-        
-        ctx.fillStyle = '#d4af37'; // Oro brillante
-        // Posizionate sempre a 80px dal fondo, indipendentemente dalla trama
-        ctx.fillText(starsText.trim(), canvas.width / 2, canvas.height - 80);
+        // Se non entra neanche alla dimensione minima, tronchiamo con i puntini
+        const maxLines = Math.max(1, Math.floor(available / lineHeight));
+        lines = clampLines(lines, maxLines, contentW);
+
+        const blockHeight = lines.length * lineHeight;
+        let textY = y + Math.max(0, (available - blockHeight) / 2) + fontSize * S;
+
+        ctx.fillStyle = '#e8e2d6';
+        ctx.textAlign = 'left';
+        lines.forEach(l => { ctx.fillText(l, padX, textY); textY += lineHeight; });
+    }
+
+    // 6. Voto in stelle, fisso in basso
+    if (hasRating) {
+        ctx.textAlign = 'center';
+        ctx.font = `${34 * S}px ${SANS}`;
+        let starsText = '';
+        for (let s = 1; s <= 5; s++) starsText += s <= rating ? '★' : '☆';
+        ctx.fillStyle = GOLD;
+        ctx.fillText(starsText.split('').join(' '), centerX, H - 50 * S);
     }
 
     return new THREE.CanvasTexture(canvas);
+}
+
+// Il libro di cui si sta guardando il retro usa la texture ad alta risoluzione;
+// tutti gli altri restano a risoluzione normale per non occupare troppa memoria video.
+let hiResBackBook = null;
+
+function redrawBackCover(book) {
+    const backMesh = book.children.find(child => child.name === "backCover_mesh");
+    if (!backMesh) return;
+    const d = backMesh.userData;
+    const oldTex = backMesh.material.map;
+    backMesh.material.map = createBackCoverTexture(
+        d.description, d.tags, d.rating,
+        { title: d.title, author: d.author },
+        book === hiResBackBook ? 2 : 1
+    );
+    backMesh.material.needsUpdate = true;
+    if (oldTex) oldTex.dispose(); // Libera la memoria della texture precedente
+}
+
+function setHiResBackBook(book) {
+    if (hiResBackBook === book) return;
+    const previous = hiResBackBook;
+    hiResBackBook = book;
+    if (previous) redrawBackCover(previous);
+    if (book) redrawBackCover(book);
 }
 
 function createFrontPlaceholderTexture(title, author) {
@@ -1641,7 +1814,7 @@ async function loadBooks() {
 
                 // Modifica anche il retro per stampare i tag personalizzati e la trama
                 const planeGeo = new THREE.PlaneGeometry(bookWidth, bookHeight); 
-                const planeMat = new THREE.MeshStandardMaterial({ map: createBackCoverTexture(bookData.description, bookData.tags,bookData.rating), roughness: 0.8 });
+                const planeMat = new THREE.MeshStandardMaterial({ map: createBackCoverTexture(bookData.description, bookData.tags, bookData.rating, { title: bookData.title, author: bookData.author }), roughness: 0.8 });
                 const backPlane = new THREE.Mesh(planeGeo, planeMat);
 
                 backPlane.name = "backCover_mesh";
@@ -1796,6 +1969,9 @@ function updateCarousel() {
     
     const activeBook = booksArray[currentIndex];
     const activeCategory = activeBook.userData.category;
+
+    // Retro ad alta risoluzione solo mentre lo si sta guardando
+    setHiResBackBook(isShowingBack ? activeBook : null);
 
     const isUncategorized = (activeCategory === 'Senza Categoria');
 
@@ -2511,9 +2687,7 @@ window.addEventListener('onBookReviewSaved', (e) => {
             backMesh.userData.review = review;
             
             // Rigenera la texture piatta includendo le nuove stelle dorate lucide
-            const newBackTex = createBackCoverTexture(activeBook.userData.description, activeBook.userData.tags, rating);
-            backMesh.material.map = newBackTex;
-            backMesh.material.needsUpdate = true;
+            redrawBackCover(activeBook);
         }
     }
 });

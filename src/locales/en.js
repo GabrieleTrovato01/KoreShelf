@@ -241,6 +241,7 @@ export default {
         noTocFound: "No index found. Use quick jump:",
         noResultsFound: "No results found.",
         noMoreResults: "No more results found.",
+        moreActions: "More actions",  
 
         //--------------------------------------------------server.js locales-------------------------------------------------------------
 

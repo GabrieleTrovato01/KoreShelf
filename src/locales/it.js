@@ -228,6 +228,7 @@ export default {
         readersearchPlaceholder: "Cerca nel libro...",
         noResultsFound: "Nessun risultato trovato.",
         noMoreResults: "Nessun altro risultato trovato.",
+        moreActions: "Altre azioni",  
 
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",
