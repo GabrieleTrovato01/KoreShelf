@@ -153,8 +153,13 @@ export default {
     `,
     donateBtn: "💙 Spenden",
 
-    emptyLibraryMessage: "Ihre Bibliothek ist leer. Klicken Sie auf '+ E-Book hochladen', um Ihre Sammlung zu beginnen!",
-    
+    emptyLibraryMessage: "Ihre Bibliothek ist leer. Laden Sie Ihre E-Books hoch oder suchen Sie neue Titel auf Amazon.",
+    emptyUploadBtn: "E-Book hochladen",
+    emptyOrDivider: "— oder —",
+    emptySearchPlaceholder: "Titel, Autor oder ISBN...",
+    emptySearchBtn: "Auf Amazon suchen",
+    searchNoResults: "Keine Ergebnisse in Ihrer Bibliothek.",
+    amazonSuggestion: "„{q}“ auf Amazon suchen",
     //review
     readerReviewBtnText: "⭐ Sie sind fertig! Schreiben Sie eine Rezension",
     reviewModalTitleLong: "Was denken Sie über dieses Buch?",

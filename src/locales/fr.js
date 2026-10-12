@@ -153,8 +153,13 @@ export default {
     `,
     donateBtn: "💙 Faire un don",
 
-    emptyLibraryMessage: "Votre bibliothèque est vide. Cliquez sur '+ Uploader Ebook' pour commencer votre collection !",
-    
+    emptyLibraryMessage: "Votre bibliothèque est vide. Importez vos ebooks ou recherchez de nouveaux titres sur Amazon.",
+    emptyUploadBtn: "Importer un ebook",
+    emptyOrDivider: "— ou —",
+    emptySearchPlaceholder: "Titre, auteur ou ISBN...",
+    emptySearchBtn: "Rechercher sur Amazon",
+    searchNoResults: "Aucun résultat dans votre bibliothèque.",
+    amazonSuggestion: "Rechercher « {q} » sur Amazon",
     //review
     readerReviewBtnText: "⭐ Vous avez terminé ! Écrire une critique",
     reviewModalTitleLong: "Que pensez-vous de ce livre ?",

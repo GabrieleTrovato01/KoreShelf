@@ -154,8 +154,13 @@ export default {
         `,
         donateBtn: "💙 Donate",
 
-        emptyLibraryMessage: "Your library is empty. Click '+ Upload Ebook' to start your collection!",
-        
+        emptyLibraryMessage: "Your library is empty. Upload your ebooks or search for new titles on Amazon.",
+        emptyUploadBtn: "Upload Ebook",
+        emptyOrDivider: "— or —",
+        emptySearchPlaceholder: "Title, author or ISBN...",
+        emptySearchBtn: "Search on Amazon",
+        searchNoResults: "No results found in the library.",
+        amazonSuggestion: "Search «{q}» on Amazon",
         //review
         readerReviewBtnText: "⭐ You finished! Write a Review",
         reviewModalTitleLong: "What do you think of this book?",

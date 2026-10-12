@@ -156,7 +156,14 @@ export default {
         `,
         donateBtn: " Supporta",
         // Aggiungi questo in fondo all'oggetto export default
-        emptyLibraryMessage: "La tua libreria è vuota. Clicca su '+ Carica Ebook' per iniziare la tua collezione!",
+        emptyLibraryMessage: "La tua libreria è vuota. Carica i tuoi ebook o cerca nuovi titoli su Amazon.",
+        emptyUploadBtn: "Carica Ebook",
+        emptyOrDivider: "— oppure —",
+        emptySearchPlaceholder: "Titolo, autore o ISBN...",
+        emptySearchBtn: "Cerca su Amazon",
+        searchNoResults: "Nessun risultato in libreria.",
+        amazonSuggestion: "Cerca «{q}» su Amazon",
+        
         //recensione
         readerReviewBtnText: "⭐ Hai finito! Scrivi una Recensione",
         reviewModalTitleLong: "Cosa ne pensi di questo libro?",

@@ -155,7 +155,13 @@ export default {
         donateBtn: "💙 Donar",
 
         // Aggiungi questo in fondo all'oggetto export default
-        emptyLibraryMessage: "Tu biblioteca está vacía. ¡Haz clic en «+ Subir libro electrónico» para empezar tu colección!",
+        emptyLibraryMessage: "Tu biblioteca está vacía. Sube tus ebooks o busca nuevos títulos en Amazon.",
+        emptyUploadBtn: "Subir ebook",
+        emptyOrDivider: "— o —",
+        emptySearchPlaceholder: "Título, autor o ISBN...",
+        emptySearchBtn: "Buscar en Amazon",
+        searchNoResults: "No hay resultados en tu biblioteca.",
+        amazonSuggestion: "Buscar «{q}» en Amazon",
         //review
         readerReviewBtnText: "⭐ ¡Ya has terminado! Escribe una reseña",
         reviewModalTitleLong: "¿Qué te parece este libro?",

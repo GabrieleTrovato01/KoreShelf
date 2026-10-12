@@ -65,7 +65,13 @@ function translateStaticHTML() {
         creditsFooter.innerHTML = `${t('credits')} <a href="https://github.com/GabrieleTrovato01" target="_blank">GabrieleTrovato01</a>`;
     }
     if (typeof donateBtn !== 'undefined') donateBtn.innerHTML = '<span class="btn-icon">☕</span><span class="btn-text">' + t('donateBtn') + '</span>';
-    if (emptyLibraryHint) emptyLibraryHint.innerText = t('emptyLibraryMessage');
+    if (typeof emptyMsg !== 'undefined') {
+        emptyMsg.innerText = t('emptyLibraryMessage');
+        emptyUploadBtn.innerText = '📤 ' + t('emptyUploadBtn');
+        emptyDivider.innerText = t('emptyOrDivider');
+        emptySearchInput.placeholder = t('emptySearchPlaceholder');
+        emptySearchBtn.innerText = '🔍 ' + t('emptySearchBtn');
+    }
 }
 
 // Helper per ripulire i percorsi nativi Capacitor ed evitare il doppio prefisso su mobile
@@ -565,21 +571,61 @@ window.addEventListener('click', () => {
 });
 
 // --- MESSAGGIO LIBRERIA VUOTA ---
+// --- MESSAGGIO LIBRERIA VUOTA (con upload + ricerca Amazon) ---
 const emptyLibraryHint = document.createElement('div');
 emptyLibraryHint.id = 'empty-library-hint';
 emptyLibraryHint.className = 'glass-effect';
-emptyLibraryHint.style.position = 'fixed';
-emptyLibraryHint.style.top = '50%';
-emptyLibraryHint.style.left = '50%';
-emptyLibraryHint.style.transform = 'translate(-50%, -50%)';
-emptyLibraryHint.style.padding = '40px';
-emptyLibraryHint.style.borderRadius = '30px';
-emptyLibraryHint.style.textAlign = 'center';
-emptyLibraryHint.style.fontSize = '18px';
-emptyLibraryHint.style.lineHeight = '1.6';
-emptyLibraryHint.style.maxWidth = '400px';
-emptyLibraryHint.style.zIndex = '50';
-emptyLibraryHint.style.display = 'none'; // Nascosto di default
+Object.assign(emptyLibraryHint.style, {
+    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+    padding: '40px', borderRadius: '30px', textAlign: 'center', fontSize: '18px',
+    lineHeight: '1.6', maxWidth: '440px', width: 'calc(100% - 40px)', boxSizing: 'border-box',
+    zIndex: '50', display: 'none', flexDirection: 'column', gap: '18px'
+});
+
+const emptyMsg = document.createElement('p');
+emptyMsg.style.margin = '0';
+
+const emptyUploadBtn = document.createElement('button');
+emptyUploadBtn.className = 'glass-effect modern-btn';
+emptyUploadBtn.style.cssText = 'padding:12px 20px;font-weight:bold;cursor:pointer;';
+emptyUploadBtn.addEventListener('click', () => fileInput.click());
+
+const emptyDivider = document.createElement('div');
+emptyDivider.style.cssText = 'font-size:14px;opacity:0.7;';
+
+const emptySearchRow = document.createElement('div');
+emptySearchRow.style.cssText = 'display:flex;gap:8px;';
+
+const emptySearchInput = document.createElement('input');
+emptySearchInput.type = 'text';
+emptySearchInput.style.cssText = 'flex:1;min-width:0;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:inherit;font-size:15px;';
+
+const emptySearchBtn = document.createElement('button');
+emptySearchBtn.className = 'glass-effect modern-btn';
+emptySearchBtn.style.cssText = 'padding:10px 16px;font-weight:bold;cursor:pointer;white-space:nowrap;';
+
+async function openAmazonSearch(query) {
+    if (!query) return;
+    try {
+        const res = await fetch(`/api/store/amazon-link?title=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        if (data.success) window.open(data.url, '_blank');
+    } catch (e) {
+        console.error('Errore ricerca Amazon:', e);
+    }
+}
+
+function searchOnAmazon() {
+    const query = emptySearchInput.value.trim();
+    if (!query) return emptySearchInput.focus();
+    openAmazonSearch(query);
+}
+
+emptySearchBtn.addEventListener('click', searchOnAmazon);
+emptySearchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') searchOnAmazon(); });
+
+emptySearchRow.append(emptySearchInput, emptySearchBtn);
+emptyLibraryHint.append(emptyMsg, emptyUploadBtn, emptyDivider, emptySearchRow);
 document.body.appendChild(emptyLibraryHint);
 
 // --- BOTTONE DONAZIONE PAYPAL ---
@@ -1116,6 +1162,64 @@ infoBtn.onclick = () => {
         : '<span class="btn-icon">👁️</span><span class="btn-text">' + t('showSynopsis') + '</span>';
     updateCarousel();
 };
+
+// --- SUGGERIMENTO AMAZON QUANDO LA RICERCA LOCALE NON TROVA NULLA ---
+const amazonSuggest = document.createElement('div');
+amazonSuggest.className = 'glass-effect';
+Object.assign(amazonSuggest.style, {
+    position: 'fixed', display: 'none', zIndex: '1100', padding: '10px 14px',
+    borderRadius: '14px', fontSize: '14px', lineHeight: '1.4', cursor: 'pointer',
+    maxWidth: '320px', boxSizing: 'border-box'
+});
+document.body.appendChild(amazonSuggest);
+
+// Evita che il click sul suggerimento tolga il focus alla barra prima del tempo
+amazonSuggest.addEventListener('mousedown', (e) => e.preventDefault());
+
+let amazonSuggestQuery = '';
+
+function showAmazonSuggest(query) {
+    amazonSuggestQuery = query;
+    const r = searchInput.getBoundingClientRect();
+    amazonSuggest.style.top = `${r.bottom + 8}px`;
+    amazonSuggest.style.left = `${r.left}px`;
+    amazonSuggest.style.minWidth = `${r.width}px`;
+
+    amazonSuggest.innerHTML = '';
+    const note = document.createElement('div');
+    note.style.opacity = '0.7';
+    note.textContent = t('searchNoResults');
+    const link = document.createElement('div');
+    link.style.fontWeight = 'bold';
+    link.textContent = '🔍 ' + t('amazonSuggestion').replace('{q}', query);
+    amazonSuggest.append(note, link);
+
+    amazonSuggest.style.display = 'block';
+}
+
+function hideAmazonSuggest() {
+    amazonSuggest.style.display = 'none';
+    amazonSuggestQuery = '';
+}
+
+amazonSuggest.addEventListener('click', () => {
+    openAmazonSearch(amazonSuggestQuery);
+    hideAmazonSuggest();
+});
+
+searchInput.addEventListener('blur', hideAmazonSuggest);
+window.addEventListener('resize', hideAmazonSuggest);
+
+// Invio: se c'è il suggerimento attivo, apre Amazon
+searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && amazonSuggestQuery) {
+        openAmazonSearch(amazonSuggestQuery);
+        hideAmazonSuggest();
+    } else if (e.key === 'Escape') {
+        hideAmazonSuggest();
+    }
+});
+
 // --- LOGICA DI RICERCA (Connessa al Database e Debounce) ---
 let searchTimeout = null;
 
@@ -1125,7 +1229,7 @@ searchInput.addEventListener('input', (e) => {
     // 1. Annulliamo la ricerca precedente se l'utente sta ancora digitando
     if (searchTimeout) clearTimeout(searchTimeout);
     
-    if (!query) return; // Non facciamo query inutili se l'input è vuoto
+    if (!query) { hideAmazonSuggest(); return; } // Non facciamo query inutili se l'input è vuoto
 
     // 2. Impostiamo un timer di 400ms. Il server verrà interrogato solo 
     // quando l'utente smette di digitare per quasi mezzo secondo.
@@ -1161,6 +1265,8 @@ searchInput.addEventListener('input', (e) => {
                     
                     updateCarousel();
                 }
+            } else {
+                showAmazonSuggest(query);
             }
         } catch (err) {
             console.error("Errore durante la ricerca backend:", err);
@@ -1639,7 +1745,7 @@ async function loadBooks() {
             }
         };
         if (booksArray.length === 0) {
-            emptyLibraryHint.style.display = 'block';
+            emptyLibraryHint.style.display = 'flex';
             uiContainer.style.display = 'none'; // Nasconde i tasti (Elimina, Trama, etc)
             leftArrow.style.display = 'none';
             rightArrow.style.display = 'none';

@@ -1207,6 +1207,29 @@ app.post('/api/books/edit', upload.single('cover'), async (req, res) => {
     }
 });
 
+// --- AMAZON: link di ricerca per marketplace ---
+const AMAZON_DOMAINS = {
+    it: 'amazon.it',
+    en: 'amazon.com',
+    de: 'amazon.de',
+    fr: 'amazon.fr',
+    es: 'amazon.es'
+};
+
+function buildAmazonSearchUrl({ isbn, title, author }) {
+    const domain = AMAZON_DOMAINS[globalServerLang] || AMAZON_DOMAINS.it;
+    const query = isbn || [title, author].filter(Boolean).join(' ');
+    const params = new URLSearchParams({ k: query, i: 'digital-text' });
+    return `https://www.${domain}/s?${params}`;
+}
+
+app.get('/api/store/amazon-link', (req, res) => {
+    const { isbn, title, author } = req.query;
+    if (!isbn && !title) return res.status(400).json({ success: false });
+    res.json({ success: true, url: buildAmazonSearchUrl({ isbn, title, author }) });
+});
+
+
 // --- ROTTA PER SPEGNIMENTO SERVER ---
 app.post('/api/shutdown', (req, res) => {
     console.log(tLog('logShutdownRequest'));
