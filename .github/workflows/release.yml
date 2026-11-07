@@ -126,6 +126,8 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: "17" }
       - uses: android-actions/setup-android@v3
+        # Il vecchio pacchetto "tools" non esiste più negli strumenti SDK recenti
+        with: { packages: "platform-tools" }
       - name: Android NDK
         run: |
           sdkmanager --install "ndk;${NDK_VERSION}"
@@ -188,23 +190,19 @@ jobs:
           npm ci
           npx tauri ios init --ci
           npx tauri icon app-icon.png
-      - name: Compila (senza firma)
-        working-directory: mobile/src-tauri/gen/apple
+      - name: Compila l'.ipa (senza firma)
+        working-directory: mobile
         env: { CARGO_TARGET_DIR: "${{ github.workspace }}/target" }
-        # Senza account Apple l'app non si può firmare: l'.ipa va firmato prima di installarlo
-        # (con il proprio account o con strumenti come Sideloadly / AltStore).
-        run: |
-          PROJECT=$(ls -d *.xcodeproj | head -1)
-          SCHEME=$(xcodebuild -list -json -project "$PROJECT" | python3 -c "import json,sys; print(next(s for s in json.load(sys.stdin)['project']['schemes'] if s.endswith('_iOS')))")
-          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration release -sdk iphoneos \
-            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/KoreShelf.xcarchive" archive \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
-      - name: Crea l'.ipa
+        # Senza account Apple l'app non si può firmare: --no-sign produce un .ipa non firmato,
+        # da firmare prima di installarlo (con il proprio ID Apple tramite Sideloadly o AltStore).
+        run: npx tauri ios build --ci --no-sign --target aarch64
+      - name: Raccogli l'.ipa
         run: |
           VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
-          mkdir -p dist "$RUNNER_TEMP/ipa/Payload"
-          cp -R "$RUNNER_TEMP"/KoreShelf.xcarchive/Products/Applications/*.app "$RUNNER_TEMP/ipa/Payload/"
-          (cd "$RUNNER_TEMP/ipa" && zip -qr "$GITHUB_WORKSPACE/dist/KoreShelf-${VERSION}-ios-unsigned.ipa" Payload)
+          mkdir -p dist
+          IPA=$(find mobile/src-tauri/gen/apple/build -name '*.ipa' | head -1)
+          test -n "$IPA" || { echo ".ipa non trovato" >&2; exit 1; }
+          cp "$IPA" "dist/KoreShelf-${VERSION}-ios-unsigned.ipa"
       - uses: actions/upload-artifact@v4
         with:
           name: KoreShelf-ios
