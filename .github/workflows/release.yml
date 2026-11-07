@@ -159,16 +159,30 @@ jobs:
           KS_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
+          fail() { echo "::error::$*"; exit 1; }
           VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
-          BUILD_TOOLS=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -1)
-          UNSIGNED=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*release*.apk' | head -1)
-          test -n "$UNSIGNED" || { echo "APK release non trovato" >&2; exit 1; }
+          OUT="dist/KoreShelf-${VERSION}-android.apk"
           mkdir -p dist
-          "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "$RUNNER_TEMP/aligned.apk"
 
-          KEYSTORE="$RUNNER_TEMP/koreshelf.jks"
+          echo "==> Strumenti di firma"
+          BUILD_TOOLS=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -1)
+          echo "build-tools: $BUILD_TOOLS"
+          [ -x "$BUILD_TOOLS/apksigner" ] && [ -x "$BUILD_TOOLS/zipalign" ] || fail "apksigner/zipalign non trovati in $BUILD_TOOLS"
+
+          echo "==> APK da firmare"
+          UNSIGNED=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*release*.apk' | head -1)
+          [ -n "$UNSIGNED" ] || fail "APK release non trovato"
+          ls -lh "$UNSIGNED"
+
+          echo "==> Allineamento (zipalign)"
+          "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "$RUNNER_TEMP/aligned.apk" || fail "zipalign non riuscito"
+
+          echo "==> Chiave di firma"
+          KEYSTORE="$RUNNER_TEMP/release-key.jks"
           if [ -n "$KS_BASE64" ]; then
-            echo "$KS_BASE64" | base64 --decode > "$KEYSTORE"
+            echo "$KS_BASE64" | tr -d '\r\n ' | base64 --decode > "$KEYSTORE" \
+              || fail "ANDROID_KEYSTORE_BASE64 non è un Base64 valido: ricopialo dal comando di PowerShell"
+            echo "chiave del progetto ($(stat -c%s "$KEYSTORE") byte)"
           else
             # Nessuna chiave (es. Pull Request da un fork): APK installabile per le prove,
             # ma gli aggiornamenti richiederanno di disinstallare la versione precedente.
@@ -179,10 +193,19 @@ jobs:
               -keyalg RSA -keysize 2048 -validity 30 -dname "CN=KoreShelf (build di prova)" -noprompt
           fi
           export KS_PASSWORD
+          keytool -list -keystore "$KEYSTORE" -storepass:env KS_PASSWORD > /dev/null 2>&1 \
+            || fail "La chiave non si apre: controlla ANDROID_KEYSTORE_PASSWORD (e ANDROID_KEYSTORE_BASE64)"
+          keytool -list -keystore "$KEYSTORE" -storepass:env KS_PASSWORD -alias "$KS_ALIAS" > /dev/null 2>&1 \
+            || fail "Alias non trovato nella chiave: controlla ANDROID_KEY_ALIAS (quello usato con -alias in keytool)"
+          echo "chiave e alias verificati"
+
+          echo "==> Firma (apksigner)"
           "$BUILD_TOOLS/apksigner" sign --ks "$KEYSTORE" --ks-pass env:KS_PASSWORD --ks-key-alias "$KS_ALIAS" \
-            --out "dist/KoreShelf-${VERSION}-android.apk" "$RUNNER_TEMP/aligned.apk"
+            --out "$OUT" "$RUNNER_TEMP/aligned.apk" || fail "Firma non riuscita"
           rm -f "$KEYSTORE" "$RUNNER_TEMP/aligned.apk"
-          "$BUILD_TOOLS/apksigner" verify --print-certs "dist/KoreShelf-${VERSION}-android.apk" | grep -i "signer #1 certificate DN"
+
+          echo "==> Verifica della firma"
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$OUT" || fail "La firma dell'APK non è valida"
           ls -lh dist/
       - uses: actions/upload-artifact@v4
         with:
