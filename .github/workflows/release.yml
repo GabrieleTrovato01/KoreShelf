@@ -1,0 +1,117 @@
+name: Pacchetti KoreShelf (exe, dmg, AppImage)
+
+# - push di un tag "v3.1.0"  -> crea la Release con i tre pacchetti allegati
+# - scheda Actions -> "Run workflow" -> i pacchetti si scaricano dagli Artifacts
+# - ogni push su main -> controllo che tutto compili e i test passino
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Windows (.exe)
+    runs-on: windows-latest
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Interfaccia
+        working-directory: frontend
+        run: npm ci && npm run build
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Test
+        run: cargo test --release --no-default-features
+      - name: Compila
+        run: |
+          cargo build --release
+          VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          mkdir -p dist && cp target/release/koreshelf.exe "dist/KoreShelf-${VERSION}-windows-x64.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KoreShelf-windows
+          path: dist/*.exe
+      - name: Allega alla Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { files: dist/*.exe }
+
+  macos:
+    name: macOS (.dmg universale Intel + Apple Silicon)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Interfaccia
+        working-directory: frontend
+        run: npm ci && npm run build
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: "aarch64-apple-darwin,x86_64-apple-darwin" }
+      - uses: Swatinem/rust-cache@v2
+      - name: Compila (Apple Silicon e Intel)
+        run: |
+          cargo build --release --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+          mkdir -p dist
+          lipo -create -output dist/koreshelf \
+            target/aarch64-apple-darwin/release/koreshelf \
+            target/x86_64-apple-darwin/release/koreshelf
+          dist/koreshelf --version
+      - name: Crea KoreShelf.app e il .dmg (universal)
+        run: |
+          VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          packaging/macos/make-app.sh dist/koreshelf dist
+          packaging/macos/make-dmg.sh dist/KoreShelf.app "dist/KoreShelf-${VERSION}-macos-universal.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KoreShelf-macos
+          path: dist/*.dmg
+      - name: Allega alla Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { files: dist/*.dmg }
+
+  linux:
+    name: Linux (.AppImage)
+    # Ubuntu 22.04: glibc meno recente = l'AppImage funziona su più distribuzioni
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dipendenze di sistema
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libxdo-dev libssl-dev \
+            librsvg2-dev file xvfb
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Interfaccia
+        working-directory: frontend
+        run: npm ci && npm run build
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Compila
+        run: cargo build --release
+      - name: Crea l'AppImage
+        run: packaging/linux/build-appimage.sh target/release/koreshelf dist
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Prova l'AppImage (avvio reale su display virtuale)
+        run: |
+          pip install pyyaml pillow
+          ONLY=appimage python3 tests/packaging/test_packaging.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KoreShelf-linux
+          path: dist/*.AppImage
+      - name: Allega alla Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { files: dist/*.AppImage }

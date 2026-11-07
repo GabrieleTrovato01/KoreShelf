@@ -1,181 +1,136 @@
+# KoreShelf (Rust)
 
-<div align="center">
-   
-   # 📚 KoreShelf
-   
-   [![DevGlobe](https://img.shields.io/badge/Launched%20on-DevGlobe-1e1e24?style=for-the-badge&logo=target&logoColor=4a90e2)](https://devglobe.app/projects/koreshelf)
-   [![Discord](https://img.shields.io/badge/Community-Discord-1e1e24?style=for-the-badge&logo=discord&logoColor=5865F2)](https://discord.gg/S2jqFGK7wJ)
-   [![Reddit](https://img.shields.io/badge/Subreddit-r%2FKoreShelf-1e1e24?style=for-the-badge&logo=reddit&logoColor=FF4500)](https://www.reddit.com/r/KoreShelf/)
-   [![Instagram](https://img.shields.io/badge/Instagram-Follow-1e1e24?style=for-the-badge&logo=instagram&logoColor=E4405F)](https://www.instagram.com/koreshelf/)
-   [![TikTok](https://img.shields.io/badge/TikTok-Follow-1e1e24?style=for-the-badge&logo=tiktok&logoColor=000000)](https://www.tiktok.com/@koreshelf1)
-   
-   🌍 **Read this in:** [🇬🇧 English](README.md) | [🇮🇹 Italiano](docs/README.it.md) | [🇪🇸 Español](docs/README.es.md) | [🇫🇷 Français](docs/README.fr.md) | [🇩🇪 Deutsch](docs/README.de.md)
+La tua libreria 3D di ebook (EPUB e PDF), ora in un **unico file `KoreShelf.exe`**:
+doppio clic e si apre. Niente terminale, niente installazioni, niente Node.js.
 
-   ## Home
-   <img align="center" width="800" height="500" alt="Demo of the app" src="https://github.com/user-attachments/assets/4dc13a62-af86-4b1e-a5ed-9dc64050a282" />
-   
-   
-   ## Reader
-  <img align="center" width="800" height="500" alt="Demo reader" src="https://github.com/user-attachments/assets/b1fabd7e-3587-4c47-ba02-7fec9696eee6" />
+È la versione Rust di [KoreShelf](https://github.com/GabrieleTrovato01/KoreShelf):
+stessa interfaccia, stesse funzioni, stesso database.
 
-</div>
+## Per chi usa l'app
 
+1. Scarica `KoreShelf.exe` (dalla pagina *Releases* o dalla scheda *Actions* del repo).
+2. Fai doppio clic. Fine.
 
-An interactive 3D digital library that allows you to upload, browse, and organize your EPUB and PDF files in an immersive graphical environment.
+- **Prima volta?** Premi *Prova con un libro di esempio*: arriva sullo scaffale un piccolo libro
+  che ti insegna l'app mentre lo leggi.
+- **Leggere**: *Inizia a leggere* (o *Riprendi a leggere*) sotto il libro al centro; le azioni
+  meno frequenti (categoria, modifica, elimina) sono nel menu *Altro*.
+- **Aggiungere libri**: pulsante *Carica Ebook* oppure trascina i file EPUB/PDF
+  direttamente sulla finestra. Ogni libro compare come segnaposto animato e si
+  trasforma nella sua copertina appena è pronto.
+- **Cercare nuovi libri**: se un titolo non è nella tua libreria, la barra di ricerca
+  ti propone di cercarlo su Amazon (nel negozio della lingua scelta).
+- **Per chiudere** basta chiudere la finestra.
+- **Doppio clic di nuovo** mentre è aperto: riporta in primo piano la finestra esistente.
+- **I tuoi libri** sono in `%APPDATA%\KoreShelf` (incolla il percorso nella barra di
+  Esplora file). Restano lì anche se sposti, aggiorni o elimini l'exe.
+- **Versione portatile** (es. chiavetta USB): crea una cartella `KoreShelf_Data`
+  accanto a `KoreShelf.exe` e i dati verranno salvati lì.
+- **Arrivi dalla vecchia versione Node.js?** Metti l'exe nella cartella che contiene
+  `public\koreshelf.db`: al primo avvio la libreria viene importata da sola.
+- **Qualcosa non va?** Guarda `koreshelf.log` nella cartella dei dati.
 
-### ⚙️ System Requirements
+Su Windows 10/11 la finestra usa Microsoft Edge WebView2, già presente nel sistema.
+Se mancasse, KoreShelf si apre nel browser e spiega come installarlo.
 
-To run this project, you do not need to configure servers or install Node.js! The requirements depend entirely on how you choose to run it:
+Windows potrebbe mostrare l'avviso SmartScreen ("app non riconosciuta") perché l'exe
+non è firmato: *Ulteriori informazioni → Esegui comunque*.
 
-- **Portable App (Recommended):** No external software required. Just download, extract, and run.
-- **Docker Version:** You only need one free program: Docker, which will run the web application isolated and securely.
+## Per chi sviluppa
 
-### 🚀 Installation Guide (Step-by-Step)
+### Creare i pacchetti (exe, dmg, AppImage)
 
-You have three ways to run KoreShelf.
+**Modo facile, senza installare nulla:** fai push su GitHub. Il workflow
+`.github/workflows/release.yml` costruisce:
 
-#### Option 1: The Easy Way (Portable Desktop App - Recommended)
+- `KoreShelf-<versione>-windows-x64.exe` (Windows)
+- `KoreShelf-<versione>-macos-universal.dmg` (macOS, Mac Intel e Apple Silicon)
+- `KoreShelf-<versione>-x86_64.AppImage` (Linux, qualsiasi distribuzione recente)
 
-If you want to avoid installing Docker or Node.js, you can use our standalone executable available for Windows, Linux, and macOS (Apple Silicon).
+Li trovi negli *Artifacts* della scheda *Actions* (puoi anche avviarlo a mano con
+*Run workflow*). Se pubblichi un tag `v3.1.0` vengono allegati automaticamente alla Release.
 
-1. Go to the [Releases section](https://github.com/GabrieleTrovato01/KoreShelf/releases) of this repository.
-2. Download the `.zip` file for your Operating System.
-3. Extract the contents to any folder on your PC.
-   - **Windows:** Double-click `koreshelf-win.exe`. [Tutorial]( https://github.com/user-attachments/assets/59e2e58f-88b6-419f-b4af-7fb12be551fa)
-     
+Il `.dmg` non è firmato con un certificato Apple: al primo avvio *tasto destro → Apri*.
 
-   - **Linux:** Open the terminal in the folder and run `./koreshelf-linux`. (Note: you might need to make it executable first by running `chmod +x koreshelf-linux`).
-   - **macOS (Apple Silicon / M1, M2, M3...):** Due to macOS security restrictions (Gatekeeper) on software downloaded via a browser, it is recommended to install KoreShelf directly from the terminal. This procedure prevents automatic system blocks from being applied and ensures a clean startup.
-   Open the Terminal and run the following commands:
-   ```bash
-      # 1. Create a dedicated folder and navigate into it
-      mkdir KoreShelf
-      cd KoreShelf
+**In locale su Windows:** installa [Rust](https://rustup.rs) e, quando richiesto,
+Visual Studio Build Tools con "Sviluppo di applicazioni desktop con C++".
+Poi doppio clic su `build.bat`, oppure `cargo build --release`.
 
-      # 2. Download and extract the latest release
-      curl -L -o KoreShelf-macOS.zip "https://github.com/gabrieletrovato01/koreshelf/releases/download/v3.0.0/KoreShelf-macOS-AppleSilicon.zip" && unzip KoreShelf-macOS.zip
+**In locale su Linux:** installa `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev`, poi
+`cargo build --release && packaging/linux/build-appimage.sh target/release/koreshelf dist`.
 
-      # 3. Remove the compressed archive (optional, for cleanup)
-      rm KoreShelf-macOS.zip
-   ```
-   Once done, simply double-click the file or run `./koreshelf-macos-arm`.
+**In locale su macOS:** `cargo build --release`, poi
+`packaging/macos/make-app.sh target/release/koreshelf dist` e
+`packaging/macos/make-dmg.sh dist/KoreShelf.app dist/KoreShelf.dmg`.
 
-*(Note for Intel Mac users: Pre-built binaries are not available for older Intel Macs. Please use Option 2: Docker, or run the app from source).*
+### Struttura
 
-**Note on Security:** As this is an independent open-source project without a paid digital signature, SmartScreen or Gatekeeper may show a warning at the first launch. Simply choose "More info" and "Run anyway" to get started; the source code is fully transparent and available here.
+```
+frontend/            Interfaccia (Three.js, reader epub.js/pdf.js) compilata con Vite
+  src/               Sorgenti JS originali + traduzioni
+  public/vendor/     epub.js, JSZip, pdf.js inclusi per funzionare offline
+  dist/              Build pronta, incorporata nell'exe al momento della compilazione
+src/
+  main.rs            Avvio, istanza singola, scelta della porta
+  window.rs          Finestra nativa (wry/tao)
+  server.rs          Tutte le API (equivalente di server.js)
+  db.rs              SQLite, stesso schema della versione Node
+  epub.rs, pdf.rs    Lettura metadati, copertina, ISBN, stima pagine
+  online.rs          Google Books (ISBN) e Apple Books (titolo/autore)
+  images.rs          Copertine 512x768 JPEG
+  assets.rs          Serve il frontend incorporato
+  paths.rs           Cartella dati, modalità portatile, import vecchia libreria
 
-#### Option 2: The Advanced Way (Docker - For Developers/Linux/macOS)
-KoreShelf can be installed natively on your smartphone or tablet!
-- 🤖 Android (.apk):
-   1. Go to the Releases page and download KoreShelf.apk.
-   2. Open the .apk file on your Android device and tap Install (allow "Install from unknown sources" in your settings if prompted).
-- 🍎 iOS / iPhone (.ipa):
-   1. Go to the Releases page and download KoreShelf.ipa.
-   2. Install the .ipa file on your iPhone or iPad using your preferred sideloading method such as AltStore, SideStore, Sideloadly, or Scarlet.
+frontend/src/upload-tray.js   Vassoio di caricamento animato (segnaposto a forma di libro)
+frontend/src/dialogs.js       Finestre di conferma nello stile dell'app
+frontend/src/dissolve.js      Il libro eliminato si sgretola e il vento ne porta via i frammenti
+frontend/public/reader-search.js  Ricerca di parole e frasi nel lettore (EPUB e PDF)
+frontend/public/sample/       Libro di esempio (EPUB, it/en), generato da tools/make_sample_book.py
+packaging/                    Script per AppImage (Linux), .app e .dmg (macOS)
+tests/                        Test end-to-end dell'interfaccia e dei pacchetti
+```
 
-#### Option 3: The Advanced Way (Docker - For Developers/Linux/macOS)
+### Sviluppo con ricarica automatica
 
-If you prefer to run the project via Docker or are on a non-Windows OS, follow these steps.
+```
+cargo run                     # backend su http://127.0.0.1:3000
+cd frontend && npm run dev    # frontend Vite con proxy verso il backend
+```
 
-**Step 1: Install Docker**
-- **Windows / macOS:** Download and install [Docker Desktop](https://www.docker.com/products/docker-desktop/). Start it and make sure Docker is running in the background.
-- **Linux:** Open the terminal and install Docker Engine and the Compose plugin (e.g., on Ubuntu: `sudo apt install docker.io docker-compose-v2`).
+Dopo aver modificato il frontend, rigenera la build con `npm run build` (o `build-frontend.sh`)
+prima di compilare l'exe.
 
-**Step 2: Start the 3D Library**
-1. Download this project to your PC (via `git clone` or by downloading the ZIP).
-2. Open the terminal exactly inside the project folder (where the `docker-compose.yml` file is located).
-3. Type this command and press Enter:
-   ```bash
-   docker compose up -d --build
-   ```
+`cargo run --no-default-features` avvia la versione senza finestra, che si apre nel browser.
 
-### 🎮 How to Use the App
+### Test automatici
 
-Once the terminal has finished loading, the library is ready!
+Test unitari del backend:
 
-Open your favorite browser (Chrome, Edge, Safari) and go to the address:
+```
+cargo test --no-default-features
+```
 
-👉 **http://localhost:3000**
+Test end-to-end dell'interfaccia (avviano il vero server su una libreria temporanea
+e usano l'app in Chromium: click su Amazon, volo del libro sullo scaffale, barra in alto,
+banner aggiornamenti, pulsante Spegni, eliminazione con sgretolamento (anche dell'ultimo libro di una mensola), footer con licenza MIT, ricerca nel lettore
+EPUB e PDF, stile dei bottoni del lettore):
 
-### 📖 Integrated EPUB & PDF Reader
+```
+pip install playwright pillow reportlab
+playwright install chromium
+cargo build --no-default-features
+python tests/e2e/test_ui.py
+```
 
-KoreShelf is not just an archive, it's a fully-featured immersive reading environment:
+Con `KEEP_SHOTS=1` salva anche gli screenshot di ogni fase; con `ONLY=amazon` lancia un solo test.
 
-- **Smart Dual-Engine Reader:** Open any EPUB (reflowable) or PDF (fixed-layout) directly in the browser. You can seamlessly switch between Paginated (Horizontal) and Continuous Scroll (Vertical) modes.
-- **PDF Text Selection:** Thanks to the integrated TextLayer, PDF text becomes selectable and highlightable just like EPUBs.
-- **Automatic PDF Covers:** PDFs without embedded covers get their cover automatically generated from the first page, directly in the browser (no external dependencies like ImageMagick needed).
-- **Text Highlighting:** Select any text in your books to underline memorable phrases. Highlights are saved persistently and can be reviewed anytime.
-- **Reader Customization:** Adjust font, text size, line height, and text alignment (left, center, right, justify) through the smart sidebar.
-- **Dark/Light Mode:** Toggle between themes with one click to reduce eye strain.
-- **Reading Progress:** A physical red ribbon bookmark moves along your 3D book on the shelf, showing your exact reading percentage at a glance.
-- **Interactive Reviews:** When you finish a book (100%), a seamless modal prompts you to rate it (1-5 stars) and write your review. Your rating will be stamped in gold on the back cover of the 3D book!
-- **Smart Table of Contents:** Navigate effortlessly through long texts with the new TOC button. It perfectly supports structured EPUBs and PDFs, and provides a smart fallback with a quick page-jump selector for scanned PDFs without internal navigation.
-- **Search within text**: Use the search bar in the top-right corner of the reader to find specific words or phrases. Results will be highlighted directly in the text.
+Test dei pacchetti (workflow, bundle macOS e AppImage avviato davvero su un display virtuale):
 
-### 📌 Highlights Board (Memory Palace)
+```
+pip install pyyaml pillow
+python tests/packaging/test_packaging.py
+```
 
-Your annotations deserve more than a list. KoreShelf features a unique **3D Highlights Board** that appears above your library:
+## Licenza
 
-- **Visual Post-its:** Every book with highlights appears as a post-it note on a virtual wooden board.
-- **Multi-page Navigation:** Browse through all your highlights with left/right arrows, even when you have hundreds of notes.
-- **Real-time Sync:** Highlights added in the reader instantly appear on the board without reloading.
-- **Quick Management:** Click any post-it to view, edit, or delete specific highlights.
-- **Social Quote Sharing:** Share your favorite quotes with a single click! KoreShelf automatically generates an elegant square image (1080x1080) with your quote, the book cover, and metadata, ready to be shared on Instagram, Facebook, X, WhatsApp, or downloaded locally.
-
-### 📁 Data Management (Your Books)
-
-The app is smart and syncs data with your computer. Inside the project folder, you will find these folders in the `public/` directory (created automatically on the first run):
-
-- `ebooks/`: Your books (EPUBs/PDFs) are physically saved here.
-- `covers/`: Extracted covers for 3D visualization are saved here.
-- `koreshelf.db`: This is the robust SQLite database containing your library's metadata, reading progress, tags, and highlights.
-
-**✏️ Custom Metadata (Hot-Swap):**
-You are in full control of your data. Click the "Edit" button on any book to manually modify the title, author, description, or assign a custom category. You can even upload a high-definition custom cover. The SQLite database and the `covers/` folder are updated instantly, and the 3D model reflects the changes in real-time without reloading the page!
-
-### 🛡️ Bulletproof Server
-
-KoreShelf is designed to handle any ebook you throw at it:
-
-- **Large Files Support:** Dynamic timeouts and optimized parsing allow processing of EPUBs and PDFs with tens of thousands of pages without blocking the server.
-- **Crash Protection:** Global error catchers and monkey-patches for external libraries ensure the server stays running even with malformed files.
-- **Smart Metadata Extraction:** Automatic ISBN detection and fallback to Apple Books/Google Books for covers and synopses.
-- **Duplicate Detection:** Prevents uploading the same book twice.
-
-### 📱 Responsive UI
-
-To best manage your workspace, the interface automatically adapts to smaller screens and windows. Button text gracefully collapses into clean icons to prevent overlap, ensuring a seamless experience on any device or window size.
-
-**Note:** These folders are protected and ignored by Git (thanks to `.gitignore`). You can add as many books as you want without risking accidentally uploading them online if you publish the code on GitHub!
-
-### 🌍 Multilingual Support (i18n)
-
-KoreShelf supports internationalization (i18n) using an asynchronous loading system to ensure optimal performance without startup lag. Currently, the application is available in other languages:
-- [Italiano](docs/README.it.md)
-- [Español](docs/README.es.md)
-- [Français](docs/README.fr.md)
-- [Deutsch](docs/README.de.md)
-
-You can switch languages on the fly using the dedicated button in the top navigation bar. Your language preference is automatically saved in your browser via `localStorage`.
-
-**Want to contribute a new language?**
-Adding a new translation is incredibly easy:
-
-1. Navigate to the `src/locales/` folder, duplicate the `en.js` file, and rename it with your language code (e.g., `es.js` for Spanish).
-2. Translate the string values within the exported JavaScript object.
-3. Update the `langBtn` logic in `src/main.js` to include your new language in the toggle cycle.
-
-### 🆘 Troubleshooting
-
-**Red error during installation: `CustomEvent is not defined`**
-You are using an outdated version of Node.js in the Dockerfile. Make sure you are using the updated code, where the `Dockerfile` starts with `FROM node:22-bookworm-slim` to support Vite.
-
-**Terminal error: `port is already allocated`**
-You already have another program running that is using port 3000. Turn it off, or open the `docker-compose.yml` file and change the port from `"3000:3000"` to `"8080:3000"`, then access the app by going to `localhost:8080`.
-
-**PDF covers not appearing?**
-Covers are generated automatically from the first page of the PDF directly in the browser. If a PDF is particularly large or corrupted, the system will fall back to searching for a cover online via Apple Books.
-
-<br>
-<hr>
-<br>
+MIT, © GabrieleTrovato01

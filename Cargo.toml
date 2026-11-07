@@ -1,0 +1,49 @@
+[package]
+name = "koreshelf"
+version = "3.0.0"
+edition = "2021"
+description = "KoreShelf - la tua libreria 3D di ebook (EPUB e PDF)"
+authors = ["GabrieleTrovato01"]
+license = "MIT"
+build = "build.rs"
+
+[features]
+# "window": l'app si apre nella sua finestra nativa (WebView2 su Windows).
+# Senza questa feature si apre nel browser predefinito.
+default = ["window"]
+window = ["dep:wry", "dep:tao"]
+
+[dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "time", "net", "sync"] }
+axum = { version = "0.8", features = ["multipart"] }
+tower-http = { version = "0.6", features = ["fs"] }
+rust-embed = { version = "8", features = ["mime-guess"] }
+mime_guess = "2"
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+roxmltree = "0.20"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp"] }
+lopdf = "0.47"
+regex = "1"
+percent-encoding = "2"
+urlencoding = "2"
+dirs = "5"
+open = "5"
+wry = { version = "0.57", optional = true }
+tao = { version = "0.37", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "Win32_Foundation"] }
+
+[build-dependencies]
+winresource = "0.1"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "unwind"
