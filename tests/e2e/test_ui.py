@@ -705,6 +705,116 @@ async def test_mobile_reader_has_thumb_friendly_controls(p):
         assert not problems, "\n".join(problems)
 
 
+ANDROID_SYSTEM_BARS = {"top": 32, "bottom": 24}   # barra di stato e barra di navigazione
+
+
+async def emulate_system_bars(ctx, page, insets=ANDROID_SYSTEM_BARS):
+    """Come su Android: lo schermo arriva sotto la barra di stato e quella di navigazione
+    (safe-area-inset-top / -bottom)."""
+    cdp = await ctx.new_cdp_session(page)
+    await cdp.send("Emulation.setSafeAreaInsetsOverride", {"insets": {"top": insets["top"], "bottom": insets["bottom"],
+                                                                      "left": 0, "right": 0}})
+    probe = await page.evaluate("""() => { const d = document.createElement('div');
+        d.style.cssText = 'position:fixed;top:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)';
+        document.body.appendChild(d); const cs = getComputedStyle(d);
+        const r = [parseFloat(cs.paddingTop), parseFloat(cs.paddingBottom)]; d.remove(); return r; }""")
+    assert probe == [insets["top"], insets["bottom"]], f"Setup: zone di sistema non simulate ({probe})"
+
+
+async def test_mobile_reader_search_is_aligned_with_back_below_status_bar(p):
+    """Android: 'Cerca' sta alla stessa altezza della freccia indietro, sotto la barra di stato."""
+    with Server() as srv:
+        path = srv.home / "Tipografia.epub"
+        make_epub(path, "Manuale di Tipografia", "Autore Test", (60, 60, 60), chapters=LONG_PARAGRAPHS)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        vw, vh = PHONES["Android"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        await emulate_system_bars(ctx, page)
+        await open_reader(page, book)
+        await shot(page, "android_reader_top")
+        back = await rect(page, "#ks-reader-back")
+        search = await rect(page, "#reader-search-btn")
+        await browser.close()
+        top = ANDROID_SYSTEM_BARS["top"]
+        problems = []
+        if not back or not search:
+            problems.append(f"Freccia indietro o Cerca non visibili: {back} {search}")
+        else:
+            if back["top"] < top or search["top"] < top:
+                problems.append(f"Sotto la barra di stato (alta {top}px): indietro {back['top']:.0f}, cerca {search['top']:.0f}")
+            centre = lambda r: r["top"] + r["height"] / 2
+            if abs(centre(back) - centre(search)) > 2:
+                problems.append(f"Cerca deve stare alla stessa altezza della freccia: {centre(search):.0f} vs {centre(back):.0f}")
+            if search["height"] < 44 or search["right"] > vw:
+                problems.append(f"Cerca troppo piccolo o fuori schermo: {search}")
+        assert not problems, "\n".join(problems)
+
+
+async def test_mobile_reader_scroll_mode_text_never_under_bottom_bar(p):
+    """Android, modalità scorrimento: il testo non finisce mai sotto la barra Indice/Stile/Tema,
+    nemmeno arrivando in fondo al capitolo."""
+    with Server() as srv:
+        path = srv.home / "Tipografia.epub"
+        make_epub(path, "Manuale di Tipografia", "Autore Test", (60, 60, 60), chapters=LONG_PARAGRAPHS)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        vw, vh = PHONES["Android"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        await page.evaluate("localStorage.setItem('readerFlow', 'scrolled-doc')")
+        await emulate_system_bars(ctx, page)
+        await open_reader(page, book)
+        bar = await rect(page, "#ks-reader-bar")
+        geo = await page.evaluate("""() => {
+            const viewer = document.getElementById('viewer');
+            const scroller = [viewer, ...viewer.querySelectorAll('*')]
+                .find(el => el.scrollHeight > el.clientHeight + 20 && /(auto|scroll)/.test(getComputedStyle(el).overflowY));
+            const area = (scroller || viewer).getBoundingClientRect();
+            return { area: area.toJSON(), found: !!scroller };
+        }""")
+        # Fino in fondo: epub.js aggiunge capitoli mentre si scorre, quindi si scorre finché
+        # il contenuto non finisce davvero
+        end = await page.evaluate("""async () => {
+            const scroller = [...document.querySelectorAll('#viewer *')]
+                .find(el => el.scrollHeight > el.clientHeight + 20 && /(auto|scroll)/.test(getComputedStyle(el).overflowY));
+            if (!scroller) return null;
+            // epub.js può star caricando il capitolo successivo: fermi solo dopo 3 controlli uguali
+            let last = -1, still = 0;
+            for (let i = 0; i < 80 && still < 3; i++) {
+                scroller.scrollTop = scroller.scrollHeight;
+                await new Promise(r => setTimeout(r, 300));
+                still = scroller.scrollTop === last ? still + 1 : 0;
+                last = scroller.scrollTop;
+            }
+            return { atEnd: scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 2,
+                     bottom: scroller.getBoundingClientRect().bottom };
+        }""")
+        await page.wait_for_timeout(500)
+        await shot(page, "android_reader_scroll_end")
+        bar_top = (await rect(page, "#ks-reader-bar"))["top"]
+        hits = await page.evaluate("""(y) => {
+            const x = window.innerWidth / 2;
+            const above = document.elementFromPoint(x, y - 6);
+            const inside = document.elementFromPoint(x, y + 12);
+            return { above: above && (above.tagName + (above.closest('#viewer') ? ' in viewer' : '')),
+                     inside: inside && (inside.closest('#ks-reader-bar') ? 'barra' : inside.tagName) };
+        }""", bar_top)
+        await browser.close()
+        problems = []
+        if not bar:
+            problems.append("Barra in basso non visibile")
+        else:
+            if geo["area"]["bottom"] > bar["top"] + 1:
+                problems.append(f"L'area che scorre finisce sotto la barra: {geo['area']['bottom']:.0f} > {bar['top']:.0f}")
+            if not end or not end["atEnd"] or end["bottom"] > bar["top"] + 1:
+                problems.append(f"Arrivati in fondo, l'area del testo deve finire sopra la barra: {end}")
+            if "in viewer" not in str(hits["above"]):
+                problems.append(f"Appena sopra la barra deve vedersi il testo del libro: {hits}")
+            if hits["inside"] != "barra":
+                problems.append(f"Dentro la barra ci sono i suoi pulsanti, non il testo: {hits}")
+            if abs(bar["bottom"] - vh) > 1:
+                problems.append(f"La barra deve arrivare in fondo allo schermo: {bar}")
+        assert not problems, "\n".join(problems)
+
+
 async def test_shutdown_still_available_in_browser_mode(p):
     """Se manca WebView2 l'app si apre nel browser: lì serve ancora il pulsante per chiuderla."""
     with Server() as srv:

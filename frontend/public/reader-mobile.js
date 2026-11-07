@@ -17,10 +17,21 @@
         .ks-phone #prev-page-btn, .ks-phone #next-page-btn, .ks-phone #hamburger-menu-btn,
         .ks-phone #close-reader-btn, .ks-phone #reader-toc-btn, .ks-phone #theme-toggle-btn,
         .ks-phone #reading-progress { display: none !important; }
-        .ks-phone #viewer { top: calc(60px + env(safe-area-inset-top, 0px)) !important; left: 0 !important; right: 0 !important;
-            bottom: calc(118px + env(safe-area-inset-bottom, 0px)) !important; }
+        /* Il testo sta sempre tra la barra in alto e quella in basso, in entrambe le modalità
+           (in "scorrimento" il lettore imposta un'altezza fissa all'88% dello schermo: la annulliamo) */
+        .ks-phone #viewer { position: absolute !important; top: calc(60px + env(safe-area-inset-top, 0px)) !important;
+            left: 0 !important; right: 0 !important;
+            bottom: var(--ks-reader-bar-h, calc(118px + env(safe-area-inset-bottom, 0px))) !important;
+            width: auto !important; max-width: none !important; height: auto !important; margin: 0 !important; }
+        /* "Cerca" alla stessa altezza della freccia indietro, sotto la barra di stato */
+        .ks-phone #reader-top-bar { top: calc(8px + env(safe-area-inset-top, 0px)) !important; right: 8px !important;
+            height: 44px; display: flex; align-items: center; }
+        .ks-phone #reader-search-btn { height: 44px; min-width: 44px; padding: 0 16px !important;
+            display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; }
+        .ks-phone #reader-search-panel { top: calc(60px + env(safe-area-inset-top, 0px)) !important;
+            left: 8px; right: 8px; width: auto; }
         .ks-phone #pdf-container { top: calc(60px + env(safe-area-inset-top, 0px)) !important; left: 0 !important; right: 0 !important;
-            bottom: calc(118px + env(safe-area-inset-bottom, 0px)) !important; }
+            bottom: var(--ks-reader-bar-h, calc(118px + env(safe-area-inset-bottom, 0px))) !important; }
         .ks-phone #ks-reader-back { display: flex; position: absolute; top: calc(8px + env(safe-area-inset-top, 0px)); left: 8px;
             width: 44px; height: 44px; border: none; border-radius: 50%; background: transparent; color: inherit;
             align-items: center; justify-content: center; cursor: pointer; z-index: 1002; }
@@ -95,6 +106,14 @@
         });
         overlay.append(back, bar);
         built = true;
+
+        // Lo spazio sotto il testo è esattamente l'altezza della barra (si aggiorna da solo:
+        // rotazione, lingua, zone di sistema diverse)
+        const reserve = () => {
+            if (bar.offsetHeight) document.documentElement.style.setProperty('--ks-reader-bar-h', `${bar.offsetHeight}px`);
+        };
+        new ResizeObserver(reserve).observe(bar);
+        window.addEventListener('resize', reserve);
 
         const source = $('reading-progress');
         if (source) new MutationObserver(syncProgress).observe(source, { childList: true, characterData: true, subtree: true });

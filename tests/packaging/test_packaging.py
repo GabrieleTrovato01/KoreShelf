@@ -177,6 +177,14 @@ def test_android_release_is_signed_with_the_project_key():
     assert "keytool" in run and "::warning::" in run, "Senza secrets: chiave temporanea e avviso, senza fallire"
     assert "rm -f" in run, "Il file della chiave va cancellato subito dopo l'uso"
     assert "secrets." not in run, "I secrets arrivano come variabili d'ambiente, mai scritti nel comando"
+    # Mai fallimenti silenziosi: ogni fase si annuncia, gli errori della chiave si spiegano
+    assert run.count("==>") >= 5, "Ogni fase della firma deve scrivere cosa sta facendo"
+    assert "-storepass:env KS_PASSWORD" in run, "La chiave va controllata prima di firmare (password da variabile)"
+    assert "ANDROID_KEYSTORE_PASSWORD" in run and "ANDROID_KEY_ALIAS" in run and "::error::" in run, \
+        "Se password o alias sono sbagliati, l'errore deve dire quale secret controllare"
+    verify = [l for l in run.splitlines() if " verify " in l]
+    assert verify and all("| grep" not in l for l in verify), \
+        "La verifica si basa sull'esito di apksigner, non su un grep che può fallire in silenzio"
     gitignore = (ROOT / ".gitignore").read_text()
     assert "*.jks" in gitignore and "*.keystore" in gitignore, "Le chiavi non devono mai finire nel repository"
 

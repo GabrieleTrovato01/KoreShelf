@@ -1677,6 +1677,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // --- 1. BARRA SUPERIORE DESTRA (Tema e Chiudi) ---
         const topBar = document.createElement('div');
+        topBar.id = 'reader-top-bar';
         topBar.style.position = 'absolute';
         topBar.style.top = '10px';
         topBar.style.right = '20px';
