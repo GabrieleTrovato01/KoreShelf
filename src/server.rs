@@ -70,8 +70,21 @@ pub fn router(state: AppState) -> Router {
         .nest_service("/covers", covers)
         .nest_service("/ebooks", ebooks)
         .fallback(crate::assets::serve)
-        .layer(DefaultBodyLimit::max(4 * 1024 * 1024 * 1024)) // ebook fino a 4 GB
+        .layer(DefaultBodyLimit::max(upload_limit())) // ebook fino a 4 GB
         .with_state(state)
+}
+
+/// Dimensione massima di un ebook caricato.
+const MAX_UPLOAD_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+
+/// Il limite, mai oltre il massimo rappresentabile dal sistema: sui telefoni a 32 bit
+/// (Android ARMv7) 4 GB non entrano in un `usize`, quindi si usa il massimo possibile.
+fn upload_limit_for(platform_max: u64) -> u64 {
+    MAX_UPLOAD_BYTES.min(platform_max)
+}
+
+fn upload_limit() -> usize {
+    upload_limit_for(usize::MAX as u64) as usize
 }
 
 pub async fn serve(listener: tokio::net::TcpListener, state: AppState) {
@@ -816,6 +829,17 @@ async fn amazon_link(State(st): State<AppState>, Query(q): Query<HashMap<String,
 #[cfg(test)]
 mod tests {
     use super::amazon_search_url;
+
+    #[test]
+    fn upload_limit_fits_32_and_64_bit_systems() {
+        // 64 bit (PC, telefoni recenti): 4 GB
+        assert_eq!(super::upload_limit_for(u64::MAX), 4 * 1024 * 1024 * 1024);
+        // 32 bit (Android ARMv7): il massimo rappresentabile, senza traboccare
+        assert_eq!(super::upload_limit_for(u32::MAX as u64), u32::MAX as u64);
+        // Il valore usato davvero è sempre valido per il sistema su cui gira
+        assert!(super::upload_limit() as u64 <= usize::MAX as u64);
+        assert!(super::upload_limit() as u64 >= 2 * 1024 * 1024 * 1024 - 1);
+    }
 
     #[test]
     fn amazon_links() {
