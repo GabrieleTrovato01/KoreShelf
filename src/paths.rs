@@ -27,6 +27,11 @@ fn exe_dir() -> Option<PathBuf> {
 }
 
 impl Paths {
+    /// Dati in una cartella precisa (usato dall'app mobile: la cartella la decide il sistema).
+    pub fn at(root: PathBuf) -> std::io::Result<Self> {
+        Self::build(root, false)
+    }
+
     pub fn resolve() -> std::io::Result<Self> {
         let portable_dir = exe_dir().map(|d| d.join(PORTABLE_DIR));
         let (root, portable) = match &portable_dir {
@@ -37,6 +42,10 @@ impl Paths {
             },
         };
 
+        Self::build(root, portable)
+    }
+
+    fn build(root: PathBuf, portable: bool) -> std::io::Result<Self> {
         let paths = Paths {
             db_file: root.join("koreshelf.db"),
             covers: root.join("covers"),

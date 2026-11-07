@@ -1,0 +1,26 @@
+[package]
+name = "koreshelf-mobile"
+version = "3.0.0"
+edition = "2021"
+description = "KoreShelf per Android e iOS (Tauri 2)"
+license = "MIT"
+
+[lib]
+# Android e iOS caricano l'app come libreria nativa
+name = "koreshelf_mobile_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Lo stesso motore della versione desktop, senza la finestra desktop (wry/tao)
+koreshelf = { path = "../..", default-features = false }
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+strip = true

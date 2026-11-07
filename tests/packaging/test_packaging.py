@@ -94,6 +94,64 @@ def test_macos_app_bundle_structure():
         assert Image.open(icns).size[0] >= 256, "Icona troppo piccola"
 
 
+# ------------------------------------------------------------------ mobile
+
+MOBILE = ROOT / "mobile"
+TAURI = MOBILE / "src-tauri"
+
+
+def test_mobile_app_is_a_thin_shell_around_the_library():
+    """L'app Android/iOS (Tauri 2) non duplica la logica: avvia lo stesso server della versione
+    desktop (la libreria `koreshelf`) e mostra la sua interfaccia."""
+    cargo = (TAURI / "Cargo.toml").read_text() if (TAURI / "Cargo.toml").exists() else ""
+    assert cargo, "Manca mobile/src-tauri/Cargo.toml"
+    assert re.search(r'koreshelf\s*=\s*\{[^}]*path\s*=\s*"\.\./\.\."[^}]*default-features\s*=\s*false', cargo), \
+        "L'app mobile deve usare la libreria koreshelf (senza la finestra desktop)"
+    assert re.search(r'^tauri\s*=\s*\{[^}]*version\s*=\s*"2', cargo, re.M) or re.search(r'^tauri\s*=\s*"2', cargo, re.M), "Serve Tauri 2"
+    assert '"staticlib"' in cargo and '"cdylib"' in cargo, "Android e iOS caricano l'app come libreria"
+    lib = (TAURI / "src" / "lib.rs").read_text()
+    assert "mobile_entry_point" in lib and "koreshelf::start_embedded" in lib
+    assert "app_data_dir" in lib, "I dati vanno nella cartella dell'app assegnata dal sistema"
+
+    conf = json.loads((TAURI / "tauri.conf.json").read_text())
+    assert conf["productName"] == "KoreShelf"
+    assert conf["version"] == VERSION, "Stessa versione della versione desktop"
+    assert conf["identifier"] == "io.github.gabrieletrovato01.koreshelf", "Stesso identificativo dell'app macOS"
+    for icon in conf["bundle"]["icon"]:
+        assert (TAURI / icon).exists(), f"Icona mancante: {icon}"
+
+
+def test_mobile_network_rules_allow_only_the_local_server():
+    """Android e iOS bloccano l'HTTP non cifrato: va permesso solo verso il server interno."""
+    plist = plistlib.loads((TAURI / "Info.ios.plist").read_bytes())
+    ats = plist.get("NSAppTransportSecurity", {})
+    assert ats.get("NSAllowsLocalNetworking") is True, "iOS: serve NSAllowsLocalNetworking"
+    assert not ats.get("NSAllowsArbitraryLoads"), "iOS: niente HTTP libero verso internet"
+
+    script = ROOT / "packaging" / "mobile" / "patch-android.sh"
+    assert script.exists() and os.access(script, os.X_OK), "Manca packaging/mobile/patch-android.sh (eseguibile)"
+    netsec = (ROOT / "packaging" / "mobile" / "network_security_config.xml").read_text()
+    assert re.search(r'cleartextTrafficPermitted="true"[^>]*>\s*<domain[^>]*>127\.0\.0\.1</domain>', netsec), \
+        "Android: HTTP permesso solo verso 127.0.0.1"
+    assert re.search(r'<base-config cleartextTrafficPermitted="false"', netsec), "Android: per il resto solo HTTPS"
+
+
+def test_workflow_builds_apk_and_ipa():
+    text = WORKFLOW.read_text()
+    wf = yaml.safe_load(text)
+    jobs = wf["jobs"]
+    assert "android" in jobs and "ios" in jobs, "Servono i job android e ios"
+    assert ".apk" in text and ".ipa" in text
+    android = json.dumps(jobs["android"])
+    assert "ndk" in android.lower(), "Android: serve l'NDK per compilare Rust"
+    assert "patch-android.sh" in android, "Android: vanno applicate le regole di rete"
+    assert "aarch64-linux-android" in android
+    ios = json.dumps(jobs["ios"])
+    assert "macos" in str(jobs["ios"]["runs-on"])
+    assert "aarch64-apple-ios" in ios
+    assert "CODE_SIGNING_ALLOWED=NO" in ios, "Senza account Apple: .ipa non firmato (da firmare per installarlo)"
+
+
 # ------------------------------------------------------------------- Linux
 
 def _wait_ping(port=3000, timeout=60):

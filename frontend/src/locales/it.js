@@ -381,4 +381,16 @@ export default {
     modeScroll: "Scorrimento",
     advancedSettings: "Regolazioni avanzate",
     textSizeShort: "Dimensione",
+
+    // App per telefono (design A)
+    positionOf: "{n} di {m}",
+    swipeToBrowse: "scorri per sfogliare",
+    languageMenu: "Lingua",
+    manageShelves: "Gestisci scaffali",
+    categoryShort: "Categoria",
+    backBtn: "Indietro",
+    styleBtn: "Stile",
+    themeBtn: "Tema",
+    addBooks: "Aggiungi libri",
+    searchBtn: "Cerca",
 };

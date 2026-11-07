@@ -1,8 +1,8 @@
 //! Finestra nativa dell'app (WebView2 su Windows, WebKit su Linux/macOS).
 //! Chiudere la finestra spegne tutto: niente server "fantasma" in background.
 
-use crate::server::{AppControl, AppState, Controller};
-use crate::{dialogs, log_error, log_info};
+use koreshelf::server::{AppControl, AppState, Controller};
+use koreshelf::{dialogs, log_error, log_info};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use tao::dpi::LogicalSize;
@@ -89,7 +89,7 @@ pub fn run(
     });
 
     let state = make_state(control);
-    runtime.spawn(crate::server::serve(listener, state));
+    runtime.spawn(koreshelf::server::serve(listener, state));
 
     let window = WindowBuilder::new()
         .with_title("KoreShelf")

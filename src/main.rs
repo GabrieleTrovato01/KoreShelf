@@ -1,19 +1,7 @@
 // In release su Windows niente finestra nera del terminale.
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
-mod assets;
-mod db;
-mod dialogs;
-mod epub;
-mod i18n;
-mod images;
-mod isbn;
-mod logger;
-mod online;
-mod paths;
-mod pdf;
-mod server;
-mod text;
+use koreshelf::{db, dialogs, i18n, log_error, log_info, logger, online, paths, server};
 #[cfg(feature = "window")]
 mod window;
 

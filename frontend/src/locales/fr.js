@@ -376,4 +376,16 @@ export default {
     modeScroll: "Défilement",
     advancedSettings: "Réglages avancés",
     textSizeShort: "Taille",
+
+    // App per telefono (design A)
+    positionOf: "{n} sur {m}",
+    swipeToBrowse: "glissez pour parcourir",
+    languageMenu: "Langue",
+    manageShelves: "Gérer les étagères",
+    categoryShort: "Catégorie",
+    backBtn: "Retour",
+    styleBtn: "Style",
+    themeBtn: "Thème",
+    addBooks: "Ajouter des livres",
+    searchBtn: "Rechercher",
 };

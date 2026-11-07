@@ -380,4 +380,16 @@ export default {
     modeScroll: "Desplazamiento",
     advancedSettings: "Ajustes avanzados",
     textSizeShort: "Tamaño",
+
+    // App per telefono (design A)
+    positionOf: "{n} de {m}",
+    swipeToBrowse: "desliza para hojear",
+    languageMenu: "Idioma",
+    manageShelves: "Gestionar estanterías",
+    categoryShort: "Categoría",
+    backBtn: "Atrás",
+    styleBtn: "Estilo",
+    themeBtn: "Tema",
+    addBooks: "Añadir libros",
+    searchBtn: "Buscar",
 };

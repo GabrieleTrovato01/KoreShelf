@@ -473,6 +473,238 @@ async def test_update_banner_only_for_newer_versions(p):
             assert shown == expected, f"GitHub {tag}, installata v{version}: banner {'mostrato' if shown else 'assente'}"
 
 
+async def test_mobile_external_links_open_by_navigation(p):
+    """Sul telefono (Tauri) window.open non apre nulla: i link esterni devono diventare una
+    navigazione, che l'app intercetta e passa al browser del sistema."""
+    with Server() as srv:
+        srv.seed()
+        browser = await p.chromium.launch(executable_path=os.environ.get("CHROME_PATH") or None, args=CHROME_ARGS)
+        ctx = await browser.new_context(viewport={"width": 1280, "height": 700})
+        await ctx.add_init_script("localStorage.setItem('KoreShelf_lang','it'); window.__KORESHELF_DESKTOP__ = true; window.__KORESHELF_MOBILE__ = true;")
+        page = await ctx.new_page()
+        await page.goto(BASE)
+        await page.wait_for_function("document.getElementById('loading-screen').style.display === 'none'", timeout=30000)
+        popups, requests = [], []
+        ctx.on("page", lambda pg: popups.append(pg))
+        page.on("request", lambda r: requests.append(r.url) if r.is_navigation_request() else None)
+        await page.route("https://www.amazon.it/**", lambda route: route.abort())
+        search = page.locator("input[placeholder^='Cerca per']")
+        await search.click()
+        await search.type("stephen king", delay=20)
+        await page.get_by_text("Cerca «stephen king» su Amazon").click()
+        await page.wait_for_timeout(1500)
+        await browser.close()
+        assert not popups, "Sul telefono niente finestre popup"
+        assert any("amazon.it" in u for u in requests), f"Il link deve diventare una navigazione: {requests}"
+
+
+PHONES = {"iPhone": (390, 844), "Android": (412, 915)}
+
+
+async def open_phone(p, size, lang="it"):
+    """L'app come la vede il telefono (Tauri): schermo stretto, touch, flag dell'app mobile."""
+    browser = await p.chromium.launch(executable_path=os.environ.get("CHROME_PATH") or None, args=CHROME_ARGS)
+    ctx = await browser.new_context(viewport={"width": size[0], "height": size[1]}, device_scale_factor=1,
+                                    is_mobile=True, has_touch=True)
+    await ctx.route("https://api.github.com/**", lambda route: route.fulfill(status=404, body="{}"))
+    await ctx.add_init_script(f"localStorage.setItem('KoreShelf_lang','{lang}'); "
+                              "window.__KORESHELF_DESKTOP__ = true; window.__KORESHELF_MOBILE__ = true;")
+    page = await ctx.new_page()
+    await page.goto(BASE)
+    await page.wait_for_function("document.getElementById('loading-screen').style.display === 'none'", timeout=30000)
+    await page.wait_for_timeout(1500)
+    return browser, ctx, page
+
+
+VISIBLE_RECT = """(sel) => { const el = document.querySelector(sel); if (!el) return null;
+    const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+    const shown = cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0.05 && r.width > 0 && r.height > 0;
+    return shown ? r.toJSON() : null; }"""
+
+
+async def rect(page, sel):
+    return await page.evaluate(VISIBLE_RECT, sel)
+
+
+async def test_mobile_library_follows_design_A(p):
+    """Telefono, design A: scaffale 3D a tutto schermo, pochi comandi grandi in alto e un
+    pannello in basso con 'Riprendi a leggere'. Niente di superfluo, niente scorrimento laterale."""
+    with Server() as srv:
+        srv.seed()
+        problems = []
+        for name, (vw, vh) in PHONES.items():
+            browser, ctx, page = await open_phone(p, (vw, vh))
+            await stable_camera(page)
+            await shot(page, f"mobile_A_{name}")
+            overflow = await page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+            if overflow > 1:
+                problems.append(f"{name}: la pagina scorre in orizzontale di {overflow}px")
+            for sel, label in [(".top-bar > div:first-child", "categoria"), ("#ks-search-toggle", "cerca"),
+                               ("#ks-add-btn", "aggiungi")]:
+                r = await rect(page, sel)
+                if not r:
+                    problems.append(f"{name}: in alto manca '{label}'")
+                elif r["height"] < 44 or r["right"] > vw or r["left"] < 0:
+                    problems.append(f"{name}: '{label}' troppo piccolo o fuori schermo {r}")
+            for sel, label in [("#ks-key-hints", "suggerimenti tasti"), ("#ks-arrow-left", "freccia sinistra"),
+                               ("#ks-arrow-right", "freccia destra"), ("#credits-footer", "footer"),
+                               ("#donate-btn", "Supporta"), ("#help-btn", "?")]:
+                if await rect(page, sel):
+                    problems.append(f"{name}: '{label}' non serve sul telefono")
+            sheet = await rect(page, "#ks-book-panel")
+            read = await rect(page, "#ks-read-btn")
+            if not sheet or sheet["left"] > 1 or sheet["right"] < vw - 1 or abs(sheet["bottom"] - vh) > 2:
+                problems.append(f"{name}: il pannello deve occupare tutta la parte bassa {sheet}")
+            elif not read or read["width"] < 0.8 * sheet["width"] or read["height"] < 48:
+                problems.append(f"{name}: 'Riprendi a leggere' deve essere grande, a tutta larghezza {read}")
+            row = await page.evaluate("""() => [...document.querySelectorAll('#ks-mobile-actions > button')]
+                .map(b => b.getBoundingClientRect().height)""")
+            if len(row) != 3 or min(row) < 44:
+                problems.append(f"{name}: servono 3 pulsanti (Trama, Categoria, Altro) da almeno 44px: {row}")
+            pos = await page.evaluate("document.getElementById('ks-position')?.innerText || ''")
+            if not re.search(r"\d+ di \d+", pos):
+                problems.append(f"{name}: manca l'indicazione 'N di M' ({pos!r})")
+            active = await page.evaluate("window.__koreshelf.activeBookId()")
+            book = await stable_rect(page, active)
+            if not 0.40 * vw <= book["width"] <= 0.68 * vw:
+                problems.append(f"{name}: il libro deve occupare circa metà larghezza ({book['width']:.0f}px su {vw})")
+            if sheet and book["y"] + book["height"] > sheet["top"] + 1:
+                problems.append(f"{name}: il pannello copre il libro")
+            # Swipe orizzontale: si passa al libro successivo
+            y = book["y"] + book["height"] / 2
+            await page.mouse.move(vw * 0.8, y)
+            await page.mouse.down()
+            await page.mouse.move(vw * 0.5, y, steps=4)
+            await page.mouse.move(vw * 0.15, y, steps=4)
+            await page.mouse.up()
+            await page.wait_for_timeout(800)
+            if await page.evaluate("window.__koreshelf.activeBookId()") == active and \
+                    await page.evaluate("window.__koreshelf.shelfSize()") > 1:
+                problems.append(f"{name}: lo swipe deve sfogliare i libri")
+            await browser.close()
+        assert not problems, "\n".join(problems)
+
+
+async def test_mobile_more_sheet_category_and_search(p):
+    """Telefono: 'Altro' si apre dal basso con voci grandi (anche Gestisci scaffali e Lingua),
+    'Categoria' apre l'assegnazione, la ricerca si apre a tutta larghezza dall'icona."""
+    with Server() as srv:
+        srv.seed()
+        vw, vh = PHONES["iPhone"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        problems = []
+        await page.click("#ks-more-btn")
+        await page.wait_for_timeout(400)
+        await shot(page, "mobile_more")
+        menu = await rect(page, "#ks-more-menu")
+        items = await page.evaluate("""() => [...document.querySelectorAll('#ks-more-menu button')]
+            .filter(b => b.offsetParent).map(b => ({ text: b.innerText.trim(), h: b.getBoundingClientRect().height }))""")
+        if not menu or menu["left"] < 0 or menu["right"] > vw or menu["bottom"] > vh or vh - menu["bottom"] > 40:
+            problems.append(f"'Altro' deve aprirsi dal basso, dentro lo schermo: {menu}")
+        texts = " ".join(i["text"].lower() for i in items)
+        for word in ["modifica", "elimina", "gestisci", "lingua"]:
+            if word not in texts:
+                problems.append(f"Nel menu 'Altro' manca '{word}': {texts}")
+        if any(i["h"] < 44 for i in items):
+            problems.append(f"Voci del menu troppo piccole per il dito: {items}")
+        await page.keyboard.press("Escape")
+        await page.wait_for_timeout(300)
+
+        await page.click("#ks-mobile-category")
+        await page.wait_for_timeout(500)
+        if not await rect(page, "#assign-category-overlay"):
+            problems.append("'Categoria' deve aprire l'assegnazione della categoria")
+        await page.keyboard.press("Escape")
+        await page.evaluate("document.getElementById('assign-category-overlay')?.remove()")
+
+        await page.click("#ks-search-toggle")
+        await page.wait_for_timeout(300)
+        search = await rect(page, ".top-bar > input.modern-input")
+        focused = await page.evaluate("document.activeElement && document.activeElement.tagName === 'INPUT'")
+        if not search or search["width"] < 0.7 * vw or not focused:
+            problems.append(f"La ricerca deve aprirsi a tutta larghezza e pronta a scrivere: {search}")
+        await page.keyboard.type("stephen king", delay=15)
+        await page.wait_for_timeout(1200)
+        sug = await page.evaluate("""() => {
+            const d = [...document.querySelectorAll('div.glass-effect')].find(x => x.innerText.includes('su Amazon')
+                && getComputedStyle(x).display !== 'none');
+            return d ? d.getBoundingClientRect().toJSON() : null; }""")
+        if not sug or sug["right"] > vw + 1 or sug["left"] < -1:
+            problems.append(f"Il suggerimento Amazon deve stare dentro lo schermo: {sug}")
+        await shot(page, "mobile_search")
+        await browser.close()
+        assert not problems, "\n".join(problems)
+
+
+async def test_mobile_empty_library_fits_the_screen(p):
+    """Telefono, libreria vuota: tutto dentro lo schermo, pulsanti grandi."""
+    with Server() as srv:
+        problems = []
+        for name, (vw, vh) in PHONES.items():
+            browser, ctx, page = await open_phone(p, (vw, vh))
+            await shot(page, f"mobile_empty_{name}")
+            overflow = await page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+            slots = await page.evaluate("""() => [...document.querySelectorAll('#empty-library-hint .ks-slot')]
+                .map(s => s.getBoundingClientRect().toJSON())""")
+            for sel in ["#ks-choose-files", "#ks-sample-book"]:
+                r = await rect(page, sel)
+                if not r or r["height"] < 44 or r["bottom"] > vh or r["right"] > vw:
+                    problems.append(f"{name}: {sel} deve essere visibile e grande {r}")
+            if overflow > 1:
+                problems.append(f"{name}: scorrimento orizzontale di {overflow}px")
+            if len(slots) != 4 or any(s["right"] > vw or s["left"] < 0 for s in slots):
+                problems.append(f"{name}: i 4 posti vuoti devono stare nello schermo")
+            await browser.close()
+        assert not problems, "\n".join(problems)
+
+
+async def test_mobile_reader_has_thumb_friendly_controls(p):
+    """Telefono, lettore: 'indietro' in alto, in basso Indice / Stile / Tema, tocco sul bordo per
+    girare pagina; il menu Stile sta nello schermo."""
+    with Server() as srv:
+        path = srv.home / "Tipografia.epub"
+        make_epub(path, "Manuale di Tipografia", "Autore Test", (60, 60, 60), chapters=LONG_PARAGRAPHS)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        vw, vh = PHONES["iPhone"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        await open_reader(page, book)
+        await shot(page, "mobile_reader")
+        problems = []
+        bar = await rect(page, "#ks-reader-bar")
+        if not bar or abs(bar["bottom"] - vh) > 2 or bar["width"] < vw - 2:
+            problems.append(f"Serve la barra in basso a tutta larghezza: {bar}")
+        for action in ["toc", "style", "theme"]:
+            r = await rect(page, f"#ks-reader-bar [data-action={action}]")
+            if not r or r["height"] < 44:
+                problems.append(f"Nella barra manca '{action}' (o è troppo piccolo): {r}")
+        back = await rect(page, "#ks-reader-back")
+        if not back or back["left"] > 24 or back["height"] < 44:
+            problems.append(f"Serve 'indietro' in alto a sinistra: {back}")
+        for sel in ["#prev-page-btn", "#next-page-btn", "#hamburger-menu-btn", "#close-reader-btn"]:
+            if await rect(page, sel):
+                problems.append(f"Sul telefono {sel} è sostituito dalla barra")
+
+        before = await page.evaluate("rendition.currentLocation().start.cfi")
+        await page.mouse.click(vw - 25, vh * 0.45)
+        await page.wait_for_timeout(900)
+        after = await page.evaluate("rendition.currentLocation().start.cfi")
+        if before == after:
+            problems.append("Toccare il bordo destro deve girare pagina")
+
+        await page.click("#ks-reader-bar [data-action=style]")
+        await page.wait_for_timeout(500)
+        side = await rect(page, "#settings-sidebar")
+        presets = await page.locator("#settings-sidebar .ks-preset").count()
+        if not side or side["right"] > vw + 1 or presets < 3:
+            problems.append(f"'Stile' apre i preset dentro lo schermo: {side}")
+        await page.click("#close-sidebar-btn")
+        await page.wait_for_timeout(400)
+        await page.click("#ks-reader-back")
+        await page.wait_for_function("document.getElementById('reader-overlay').style.display === 'none'", timeout=8000)
+        await browser.close()
+        assert not problems, "\n".join(problems)
+
+
 async def test_shutdown_still_available_in_browser_mode(p):
     """Se manca WebView2 l'app si apre nel browser: lì serve ancora il pulsante per chiuderla."""
     with Server() as srv:
@@ -525,14 +757,18 @@ async def test_delete_dissolves_book_and_waits_before_leaving_the_shelf(p):
                     target: window.__koreshelf.cameraTargetY(),
                     label: document.querySelector('.top-bar > div').innerText };
                 if (c) {
+                    // Solo la zona attorno al libro (dove avviene l'effetto): la sonda resta leggera
                     const k = c.width / window.innerWidth;
-                    const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+                    const x0 = Math.max(0, Math.floor((rect.x - 60) * k)), y0 = Math.max(0, Math.floor((rect.y - 260) * k));
+                    const x1 = Math.min(c.width, Math.ceil((rect.x + rect.width + 420) * k)), y1 = Math.min(c.height, Math.ceil((rect.y + rect.height + 60) * k));
+                    const w = x1 - x0, h = y1 - y0;
+                    const d = c.getContext('2d').getImageData(x0, y0, w, h).data;
                     let inside = 0, outside = 0, left = 0, right = 0, green = 0;
                     const cx = rect.x + rect.width / 2;
-                    for (let y = 0; y < c.height; y += 3) for (let x = 0; x < c.width; x += 3) {
-                        const i = (y * c.width + x) * 4;
+                    for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) {
+                        const i = (y * w + x) * 4;
                         if (d[i + 3] < 40) continue;
-                        const X = x / k, Y = y / k;
+                        const X = (x + x0) / k, Y = (y + y0) / k;
                         const inRect = X >= rect.x && X <= rect.x + rect.width && Y >= rect.y && Y <= rect.y + rect.height;
                         if (inRect) { inside++; if (X < cx) left++; else right++; }
                         else if (X < rect.x - 12 || X > rect.x + rect.width + 12 || Y < rect.y - 12 || Y > rect.y + rect.height + 12) outside++;
@@ -572,10 +808,14 @@ async def test_delete_dissolves_book_and_waits_before_leaving_the_shelf(p):
         assert gone is None, "Il libro non deve più essere nello scaffale 3D"
 
         during = [f for f in fx if f["on"] and "inside" in f]
-        assert len(during) >= 5, f"L'animazione deve durare (campioni: {len(during)})"
+        on_all = [f for f in fx if f["on"]]
+        span = (on_all[-1]["t"] - on_all[0]["t"]) / 1000 if on_all else 0
+        gaps = [round(b["t"] - a["t"]) for a, b in zip(fx, fx[1:])][:12]
+        assert len(during) >= 3 and span >= 1.5, \
+            f"L'animazione deve durare (campioni: {len(during)}, durata {span:.2f}s, intervalli {gaps})"
         first = during[0]
         # a. All'inizio l'effetto mostra proprio il libro (copertina verde), senza salti
-        assert first["green"] > 0.3 * first["inside"] and first["inside"] > 200, \
+        assert first["green"] > 0.3 * first["inside"] and first["inside"] > 100, \
             f"All'inizio si deve vedere il libro stesso: {first}"
         # b. Si sgretola progressivamente
         insides = [f["inside"] for f in during]

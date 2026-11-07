@@ -4,6 +4,16 @@ import { t, initI18n, setLanguage } from './i18n.js';
 import { UploadTray, uploadWithProgress } from './upload-tray.js';
 import { confirmDialog } from './dialogs.js';
 import { dissolveBook } from './dissolve.js';
+
+// Sul telefono (app Tauri) window.open e i link target="_blank" non aprono nulla:
+// diventano una navigazione, che l'app intercetta e passa al browser del sistema.
+if (window.__KORESHELF_MOBILE__) {
+    window.open = (url) => { if (url) window.location.href = String(url); return null; };
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest && e.target.closest('a[target="_blank"]');
+        if (link && link.href) { e.preventDefault(); window.location.href = link.href; }
+    }, true);
+}
 import {openHelpModal} from './help-modal.js';
 import {openMetadataManager} from './metadata-manager.js';
 import './style.css';
@@ -138,6 +148,30 @@ let booksArray = [];
 let currentIndex = 0;
 let isShowingBack = false;
 let targetCameraY = 1.5; // Altezza bersaglio della telecamera
+
+// --- TELEFONO: app mobile o schermo stretto ---
+function isPhone() {
+    // Schermo stretto, oppure app mobile su un telefono (i tablet usano il layout normale)
+    const smallScreen = Math.min(window.screen.width, window.screen.height) < 700;
+    return window.matchMedia('(max-width: 700px)').matches || (!!window.__KORESHELF_MOBILE__ && smallScreen);
+}
+// Inquadratura: sul telefono verticale la telecamera si allontana (libro ≈ metà larghezza)
+// e si abbassa, così il libro sta nello spazio libero tra la barra in alto e il pannello.
+let cameraFit = { z: 3.5, dy: 0 };
+function updateCameraFit() {
+    document.documentElement.classList.toggle('ks-phone', isPhone());
+    if (typeof placeMoreButton === 'function') placeMoreButton();
+    const aspect = window.innerWidth / window.innerHeight;
+    if (!isPhone() || aspect >= 1) { cameraFit = { z: 3.5, dy: 0 }; return; }
+    const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const dist = 1 / (0.54 * tanHalf * aspect);          // il libro attivo (largo 2) ≈ 54% dello schermo
+    const top = (document.querySelector('.top-bar')?.getBoundingClientRect().bottom || 70) + 12;
+    const panel = document.getElementById('ks-book-panel');
+    const bottom = panel && panel.offsetParent ? panel.getBoundingClientRect().top - 12 : window.innerHeight * 0.65;
+    const freeCenter = (top + bottom) / 2 / window.innerHeight;   // centro dello spazio libero (0..1)
+    const visibleHeight = 2 * dist * tanHalf;
+    cameraFit = { z: 0.5 + dist, dy: -(0.5 - freeCenter) * visibleHeight };
+}
 let isViewingBoard= false; // Stato della bacheca dei post-it
 
 // --- 2. STILI CSS MODERNI E UI (Menu + Bottone Inferiore) ---
@@ -354,6 +388,17 @@ shutdownBtn.onclick = async () => {
 // Aggiungiamo il bottone alla barra in alto, subito dopo la lingua
 if (!window.__KORESHELF_DESKTOP__) topBar.appendChild(shutdownBtn);
 
+// Telefono: due pulsanti rotondi accanto alla categoria (la ricerca si apre a tutta larghezza)
+const searchToggle = document.createElement('button');
+searchToggle.id = 'ks-search-toggle';
+searchToggle.className = 'ks-round-btn';
+searchToggle.innerHTML = KS_ICON('search', 18);
+const addBtn = document.createElement('button');
+addBtn.id = 'ks-add-btn';
+addBtn.className = 'ks-round-btn';
+addBtn.innerHTML = KS_ICON('plus', 18);
+addBtn.addEventListener('click', () => fileInput.click());
+
 // --- PULSANTE CAMBIO LINGUA ---
 // --- PULSANTE CAMBIO LINGUA CON MENU A TENDINA ---
 const savedLang = localStorage.getItem('KoreShelf_lang') || 'it';
@@ -424,6 +469,7 @@ Object.entries(availableLangs).forEach(([code, data]) => {
     };
 
     // Logica di cambio lingua
+    optionBtn.dataset.lang = code;
     optionBtn.onclick = async () => {
         localStorage.setItem('KoreShelf_lang', code);
         try {
@@ -521,6 +567,66 @@ ksUiStyle.textContent = `
         box-sizing: border-box; border-radius: 7px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.12);
         font-size: 12px; font-weight: 700; }
     @media (max-width: 950px) { #ks-key-hints { display: none; } }
+
+    /* ===================== TELEFONO (design A: scaffale 3D a tutto schermo) ===================== */
+    #ks-search-toggle, #ks-add-btn, #ks-position, #ks-mobile-actions, .ks-phone-only { display: none; }
+    .ks-phone .top-bar { top: calc(10px + env(safe-area-inset-top, 0px)) !important; left: 12px !important; right: 12px !important;
+        width: auto !important; max-width: none !important; transform: none !important; gap: 8px !important;
+        flex-wrap: nowrap !important; justify-content: flex-start !important; }
+    .ks-phone .top-bar > * { display: none !important; }
+    .ks-phone .top-bar > div:first-child:not([style*="display: none"]) { display: flex !important; flex: 1 1 auto; min-width: 0; width: auto !important;
+        height: 44px; align-items: center; gap: 6px; padding: 0 16px !important; font-size: 13px; }
+    .ks-phone .top-bar #ks-search-toggle, .ks-phone .top-bar #ks-add-btn { display: flex !important; }
+    .ks-phone .top-bar.ks-search-open > div:first-child, .ks-phone .top-bar.ks-search-open #ks-search-toggle { display: none !important; }
+    .ks-phone .top-bar.ks-search-open > .modern-input { display: block !important; flex: 1 1 auto; min-width: 0; height: 44px; font-size: 16px; }
+    .ks-round-btn { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%; align-items: center; justify-content: center;
+        cursor: pointer; padding: 0; }
+    #ks-search-toggle { border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.10); color: #fff; }
+    #ks-add-btn { border: none; background: #fff; color: #1e2d3b; }
+
+    .ks-phone #ks-arrow-left, .ks-phone #ks-arrow-right, .ks-phone #credits-footer, .ks-phone #donate-btn,
+    .ks-phone #help-btn, .ks-phone #ks-key-hints { display: none !important; }
+
+    .ks-phone #ks-book-panel { position: fixed; left: 0; right: 0; bottom: 0; width: 100%; box-sizing: border-box;
+        padding: 12px 20px calc(22px + env(safe-area-inset-bottom, 0px)); gap: 12px !important; align-items: stretch !important;
+        border-radius: 26px 26px 0 0; background: rgba(30,45,59,0.97); box-shadow: 0 -10px 30px rgba(0,0,0,0.3); }
+    .ks-phone #ks-position { display: block; margin: 0; text-align: center; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.72); }
+    .ks-phone #ks-active-book { align-items: stretch; text-shadow: none; }
+    .ks-phone #ks-active-book .ks-book-title { font-size: 19px; max-width: none; white-space: normal; }
+    .ks-phone #ks-active-book .ks-book-title span { display: block; font-size: 14px; color: rgba(255,255,255,0.78); margin-top: 4px; }
+    .ks-phone #ks-active-book .ks-progress { width: 100%; }
+    .ks-phone #ks-active-book .ks-bar { flex: 1; width: auto; }
+    .ks-phone .ks-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+    .ks-phone #ks-read-btn { width: 100%; height: 54px; justify-content: center; font-size: 16px; }
+    .ks-phone #ks-info-btn { display: none !important; }
+    .ks-phone .ks-more { position: static; }
+    .ks-phone #ks-mobile-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .ks-phone #ks-mobile-actions > button { height: 48px; padding: 0 6px !important; border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; font-family: inherit;
+        font-size: 13px; font-weight: 600; letter-spacing: 0; text-transform: none; cursor: pointer; box-shadow: none; }
+    .ks-phone #ks-more-menu { position: fixed; left: 0; right: 0; bottom: 0; top: auto; transform: none; min-width: 0;
+        border-radius: 22px 22px 0 0; padding: 10px 12px calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 60; }
+    .ks-phone #ks-more-menu .ks-menu-item { height: 52px; font-size: 16px; }
+    .ks-phone #ks-more-menu .ks-phone-only { display: block; }
+    #ks-more-menu .ks-menu-sep { height: 1px; margin: 6px 4px; background: rgba(255,255,255,0.12); }
+    #ks-lang-list { display: none; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 4px; }
+    #ks-lang-list.open { display: grid; }
+    #ks-lang-list button { height: 44px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06);
+        color: #fff; font-family: inherit; font-weight: 700; cursor: pointer; }
+
+    .ks-phone #empty-library-hint { top: calc(70px + env(safe-area-inset-top, 0px)); bottom: 0; gap: 14px; padding: 0 14px 14px; justify-content: flex-start; }
+    .ks-phone #empty-library-hint h1 { font-size: 26px; }
+    .ks-phone #empty-library-hint .ks-empty-sub { font-size: 14px; }
+    .ks-phone .ks-dropzone { padding: 14px 10px 0; border-radius: 20px; }
+    .ks-phone .ks-slots { gap: 8px; flex-wrap: nowrap; }
+    .ks-phone .ks-slot-wrap { width: 74px; gap: 6px; }
+    .ks-phone .ks-slot-caption { font-size: 10.5px; min-height: 44px; }
+    .ks-phone .ks-slot { width: 62px; height: 92px; }
+    .ks-phone .ks-slot svg { width: 22px; height: 22px; }
+    .ks-phone .ks-plank { margin: 0 -10px; }
+    .ks-phone .ks-empty-actions { flex-direction: column; padding: 16px 4px 16px; }
+    .ks-phone .ks-empty-actions button { width: 100%; justify-content: center; }
+    .ks-phone .ks-tray { left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: none; }
 `;
 document.head.appendChild(ksUiStyle);
 
@@ -578,6 +684,7 @@ async function openAmazonSearch(query) {
 
 // --- BOTTONE DONAZIONE PAYPAL ---
 const donateBtn = document.createElement('a');
+donateBtn.id = 'donate-btn';
 
 donateBtn.href = 'https://paypal.me/GabrieleTrovato1?locale.x=en_US&country.x=IT'; 
 donateBtn.target = '_blank'; 
@@ -661,6 +768,16 @@ rightUiGroup.style.pointerEvents = 'auto'; // Riabilita i click per questo blocc
 uiContainer.appendChild(rightUiGroup);
 if (helpBtn) rightUiGroup.appendChild(helpBtn);
 
+// Ricerca a tutta larghezza sul telefono
+searchToggle.addEventListener('click', () => {
+    document.querySelector('.top-bar').classList.add('ks-search-open');
+    searchInput.focus();
+});
+searchInput.addEventListener('blur', () => {
+    setTimeout(() => { if (!searchInput.value.trim()) document.querySelector('.top-bar').classList.remove('ks-search-open'); }, 150);
+});
+document.querySelector('.top-bar').append(searchToggle, addBtn);
+
 // --- PANNELLO DEL LIBRO ATTIVO (design C): un'azione principale chiara ---
 centerUiGroup.id = 'ks-book-panel';
 centerUiGroup.style.flexDirection = 'column';
@@ -669,6 +786,10 @@ centerUiGroup.style.gap = '12px';
 const keyHints = document.createElement('div');
 keyHints.id = 'ks-key-hints';
 centerUiGroup.appendChild(keyHints);
+
+const positionInfo = document.createElement('p');
+positionInfo.id = 'ks-position';
+centerUiGroup.appendChild(positionInfo);
 
 const activeBookInfo = document.createElement('div');
 activeBookInfo.id = 'ks-active-book';
@@ -686,6 +807,7 @@ readBtn.addEventListener('click', () => openActiveBook());
 actionsRow.appendChild(readBtn);
 
 const infoBtn = document.createElement('button');
+infoBtn.id = 'ks-info-btn';
 infoBtn.innerText = t('showSynopsis');
 infoBtn.className = 'glass-effect modern-btn';
 actionsRow.appendChild(infoBtn);
@@ -714,6 +836,42 @@ deleteBookBtn.className = 'ks-menu-item danger';
 deleteBookBtn.dataset.action = 'delete';
 [assignCatBtn, editMetadataBtn, deleteBookBtn].forEach(b => { b.setAttribute('role', 'menuitem'); moreMenu.appendChild(b); });
 
+// Telefono: nel menu anche "Gestisci scaffali" e "Lingua" (la barra in alto ha solo 3 comandi)
+const menuSep = document.createElement('div');
+menuSep.className = 'ks-menu-sep ks-phone-only';
+const manageItem = document.createElement('button');
+manageItem.className = 'ks-menu-item ks-phone-only';
+manageItem.addEventListener('click', () => manageCatBtn.click());
+const langItem = document.createElement('button');
+langItem.className = 'ks-menu-item ks-phone-only';
+const langList = document.createElement('div');
+langList.id = 'ks-lang-list';
+langItem.addEventListener('click', (e) => { e.stopPropagation(); langList.classList.toggle('open'); });
+['it', 'en', 'es', 'fr', 'de'].forEach(code => {
+    const b = document.createElement('button');
+    b.textContent = code.toUpperCase();
+    b.addEventListener('click', () => document.querySelector(`[data-lang="${code}"]`)?.click());
+    langList.appendChild(b);
+});
+moreMenu.append(menuSep, manageItem, langItem, langList);
+
+// Telefono: riga Trama / Categoria / Altro sotto "Riprendi a leggere"
+const mobileActions = document.createElement('div');
+mobileActions.id = 'ks-mobile-actions';
+const mobilePlot = document.createElement('button');
+mobilePlot.addEventListener('click', () => infoBtn.click());
+const mobileCategory = document.createElement('button');
+mobileCategory.id = 'ks-mobile-category';
+mobileCategory.addEventListener('click', () => assignCatBtn.click());
+mobileActions.append(mobilePlot, mobileCategory);
+actionsRow.appendChild(mobileActions);
+
+// Su telefono "Altro" si sposta nella riga; il suo menu si apre dal basso
+function placeMoreButton() {
+    if (isPhone()) { if (moreBtn.parentElement !== mobileActions) mobileActions.appendChild(moreBtn); }
+    else if (moreBtn.parentElement !== moreWrap) moreWrap.insertBefore(moreBtn, moreMenu);
+}
+
 const setMoreMenu = (open) => {
     moreMenu.classList.toggle('open', open);
     moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -725,7 +883,13 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && moreMenu
 
 function updateActiveBookPanel() {
     // Testi (cambiano con la lingua)
-    moreBtn.textContent = (t('moreActions') || 'Altro') + ' ▾';
+    moreBtn.textContent = isPhone() ? (t('moreActions') || 'Altro') : (t('moreActions') || 'Altro') + ' ▾';
+    mobilePlot.textContent = isShowingBack ? (t('hideSynopsisShort') || 'Copertina') : (t('synopsisShort') || 'Trama');
+    mobileCategory.textContent = t('categoryShort') || 'Categoria';
+    manageItem.textContent = t('manageShelves') || 'Gestisci scaffali';
+    langItem.textContent = (t('languageMenu') || 'Lingua') + ' · ' + (localStorage.getItem('KoreShelf_lang') || 'it').toUpperCase();
+    searchToggle.setAttribute('aria-label', t('searchBtn') || 'Cerca');
+    addBtn.setAttribute('aria-label', t('addBooks') || 'Aggiungi libri');
     assignCatBtn.innerHTML = t('assignCategory');
     editMetadataBtn.innerHTML = t('editMetadata');
     if (!deleteBookBtn.disabled) deleteBookBtn.innerHTML = t('deleteBook');
@@ -737,11 +901,14 @@ function updateActiveBookPanel() {
     const book = booksArray[currentIndex];
     if (!book) return;
     const d = book.userData;
+    const shelf = booksArray.filter(b => b.userData.category === d.category);
+    positionInfo.textContent = (t('positionOf') || '{n} di {m}').replace('{n}', shelf.indexOf(book) + 1).replace('{m}', shelf.length)
+        + (shelf.length > 1 ? ' · ' + (t('swipeToBrowse') || 'scorri per sfogliare') : '');
     const title = activeBookInfo.querySelector('.ks-book-title');
     title.textContent = d.title || '';
     if (d.author) {
         const author = document.createElement('span');
-        author.textContent = ` · ${d.author}`;
+        author.textContent = isPhone() ? d.author : ` · ${d.author}`;   // sul telefono va a capo
         title.appendChild(author);
     }
     const pct = Math.round(Math.max(0, Math.min(1, Number(d.progress) || 0)) * 100);
@@ -1050,6 +1217,7 @@ manageCatBtn.onclick = () => {
 // --- COSTRUZIONE FRECCE LATERALI ---
 const leftArrow = document.createElement('button');
 leftArrow.innerHTML = KS_ICON('chevronLeft', 26);
+leftArrow.id = 'ks-arrow-left';
 leftArrow.className = 'glass-effect modern-btn';
 leftArrow.style.position = 'absolute';
 leftArrow.style.left = '20px';
@@ -1062,6 +1230,7 @@ document.body.appendChild(leftArrow);
 
 const rightArrow = document.createElement('button');
 rightArrow.innerHTML = KS_ICON('chevronRight', 26);
+rightArrow.id = 'ks-arrow-right';
 rightArrow.className = 'glass-effect modern-btn';
 rightArrow.style.position = 'absolute';
 rightArrow.style.right = '20px';
@@ -1895,6 +2064,7 @@ async function loadBooks(prefetchedBooks = null) {
 
 function updateCarousel() {
     updateActiveBookPanel();
+    updateCameraFit();
     if (booksArray.length === 0) return;
     
     const activeBook = booksArray[currentIndex];
@@ -2290,7 +2460,8 @@ function animate() {
     requestAnimationFrame(animate);
     
     // Movimento fluido della telecamera in verticale verso la mensola attiva
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCameraY, 0.05);
+    camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCameraY + cameraFit.dy, 0.05);
+    camera.position.z = THREE.MathUtils.lerp(camera.position.z, cameraFit.z, 0.08);
     // Spostiamo anche la luce per mantenere le ombre perfette!
     directionalLight.position.y = camera.position.y + 10;
     
@@ -2311,6 +2482,7 @@ function animate() {
 
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
+    updateCameraFit();
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
@@ -2672,6 +2844,7 @@ window.__koreshelf = {
     visibleBookIds: () => booksArray.filter(b => b.visible).map(b => b.userData.id),
     cameraY: () => camera.position.y,
     cameraTargetY: () => targetCameraY,   // altezza della mensola verso cui si muove la telecamera
+    shelfSize: () => { const b = booksArray[currentIndex]; return b ? booksArray.filter(x => x.userData.category === b.userData.category).length : 0; },
 };
 
 // --- AVVIO DELL'APPLICAZIONE ---
@@ -2731,6 +2904,7 @@ async function startApp() {
     }
 }
 
+updateCameraFit();
 startApp();
 
 // --- ASCOLTO EVENTI SOTTOLINEATURE IN TEMPO REALE ---

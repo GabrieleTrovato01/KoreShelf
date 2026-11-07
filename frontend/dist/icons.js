@@ -29,6 +29,7 @@
         file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
         skip: '<path d="M5 5l9 7-9 7z"/><path d="M18 5v14"/>',
         settings: '<path d="M4 6h10"/><path d="M18 6h2"/><circle cx="16" cy="6" r="2"/><path d="M4 12h4"/><path d="M12 12h8"/><circle cx="10" cy="12" r="2"/><path d="M4 18h12"/><path d="M20 18h0"/><circle cx="18" cy="18" r="2"/>',
+        plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
         chevronLeft: '<path d="M15 5l-7 7 7 7"/>',
         chevronRight: '<path d="M9 5l7 7-7 7"/>',
         star: '<path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1.1 6.2L12 17.4 6.4 20.3l1.1-6.2L3 9.7l6.2-.9z"/>',

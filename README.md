@@ -36,6 +36,19 @@ Se mancasse, KoreShelf si apre nel browser e spiega come installarlo.
 Windows potrebbe mostrare l'avviso SmartScreen ("app non riconosciuta") perché l'exe
 non è firmato: *Ulteriori informazioni → Esegui comunque*.
 
+## Android e iOS
+
+L'app per telefono (cartella `mobile/`, Tauri 2) usa lo stesso motore della versione desktop:
+avvia il server interno sul telefono e ne mostra l'interfaccia, con un layout pensato per il
+pollice (scaffale 3D a tutto schermo, pannello in basso, lettore con comandi in basso).
+
+- **Android**: il workflow produce `KoreShelf-<versione>-android.apk`, firmato con la chiave di
+  debug: si installa abilitando "Installa app sconosciute". Per il Play Store servirà una chiave
+  di firma dedicata.
+- **iOS**: senza un account Apple Developer il workflow produce un `.ipa` **non firmato**, che va
+  firmato prima dell'installazione (con il proprio account Apple tramite strumenti come
+  Sideloadly o AltStore). Con l'account si potrà firmare direttamente nel workflow.
+
 ## Per chi sviluppa
 
 ### Creare i pacchetti (exe, dmg, AppImage)
@@ -86,7 +99,9 @@ frontend/src/dialogs.js       Finestre di conferma nello stile dell'app
 frontend/src/dissolve.js      Il libro eliminato si sgretola e il vento ne porta via i frammenti
 frontend/public/reader-search.js  Ricerca di parole e frasi nel lettore (EPUB e PDF)
 frontend/public/sample/       Libro di esempio (EPUB, it/en), generato da tools/make_sample_book.py
-packaging/                    Script per AppImage (Linux), .app e .dmg (macOS)
+packaging/                    Script per AppImage (Linux), .app e .dmg (macOS), regole di rete Android
+mobile/                       App Android/iOS (Tauri 2), guscio attorno alla libreria koreshelf
+src/lib.rs                    Il motore come libreria (start_embedded), usato da desktop e mobile
 tests/                        Test end-to-end dell'interfaccia e dei pacchetti
 ```
 

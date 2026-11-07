@@ -3,3 +3,7 @@
 /KoreShelf_Data
 frontend/node_modules
 # frontend/dist resta nel repo: cosi' si compila anche senza Node.js
+# App mobile (Tauri): file generati
+mobile/node_modules
+mobile/src-tauri/gen
+mobile/src-tauri/target

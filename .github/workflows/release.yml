@@ -1,4 +1,4 @@
-name: Pacchetti KoreShelf (exe, dmg, AppImage)
+name: Pacchetti KoreShelf (exe, dmg, AppImage, apk, ipa)
 
 # - push di un tag "v3.1.0"  -> crea la Release con i tre pacchetti allegati
 # - scheda Actions -> "Run workflow" -> i pacchetti si scaricano dagli Artifacts
@@ -115,3 +115,101 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with: { files: dist/*.AppImage }
+
+  android:
+    name: Android (.apk)
+    runs-on: ubuntu-latest
+    env:
+      NDK_VERSION: "27.2.12479018"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "17" }
+      - uses: android-actions/setup-android@v3
+      - name: Android NDK
+        run: |
+          sdkmanager --install "ndk;${NDK_VERSION}"
+          echo "NDK_HOME=$ANDROID_SDK_ROOT/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Interfaccia
+        working-directory: frontend
+        run: npm ci && npm run build
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: "aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android" }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: "mobile/src-tauri -> ../../target" }
+      - name: Progetto Android
+        working-directory: mobile
+        run: |
+          npm ci
+          npx tauri android init --ci
+          npx tauri icon app-icon.png
+          ../packaging/mobile/patch-android.sh src-tauri/gen/android
+      - name: Compila l'APK
+        working-directory: mobile
+        env: { CARGO_TARGET_DIR: "${{ github.workspace }}/target" }
+        # --debug: APK firmato con la chiave di debug, installabile subito sul telefono.
+        # Per il Play Store servirà una chiave di firma (vedi README).
+        run: npx tauri android build --apk --debug --target aarch64 --target armv7
+      - name: Raccogli l'APK
+        run: |
+          VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          mkdir -p dist
+          APK=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | head -1)
+          test -n "$APK" || { echo "APK non trovato" >&2; exit 1; }
+          cp "$APK" "dist/KoreShelf-${VERSION}-android.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KoreShelf-android
+          path: dist/*.apk
+      - name: Allega alla Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { files: dist/*.apk }
+
+  ios:
+    name: iOS (.ipa non firmato)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Interfaccia
+        working-directory: frontend
+        run: npm ci && npm run build
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: "aarch64-apple-ios" }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: "mobile/src-tauri -> ../../target" }
+      - name: Progetto Xcode
+        working-directory: mobile
+        run: |
+          npm ci
+          npx tauri ios init --ci
+          npx tauri icon app-icon.png
+      - name: Compila (senza firma)
+        working-directory: mobile/src-tauri/gen/apple
+        env: { CARGO_TARGET_DIR: "${{ github.workspace }}/target" }
+        # Senza account Apple l'app non si può firmare: l'.ipa va firmato prima di installarlo
+        # (con il proprio account o con strumenti come Sideloadly / AltStore).
+        run: |
+          PROJECT=$(ls -d *.xcodeproj | head -1)
+          SCHEME=$(xcodebuild -list -json -project "$PROJECT" | python3 -c "import json,sys; print(next(s for s in json.load(sys.stdin)['project']['schemes'] if s.endswith('_iOS')))")
+          xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration release -sdk iphoneos \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/KoreShelf.xcarchive" archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Crea l'.ipa
+        run: |
+          VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          mkdir -p dist "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP"/KoreShelf.xcarchive/Products/Applications/*.app "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qr "$GITHUB_WORKSPACE/dist/KoreShelf-${VERSION}-ios-unsigned.ipa" Payload)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KoreShelf-ios
+          path: dist/*.ipa
+      - name: Allega alla Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with: { files: dist/*.ipa }

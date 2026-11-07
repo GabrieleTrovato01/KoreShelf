@@ -379,4 +379,16 @@ export default {
     modeScroll: "Scroll",
     advancedSettings: "Advanced settings",
     textSizeShort: "Size",
+
+    // App per telefono (design A)
+    positionOf: "{n} of {m}",
+    swipeToBrowse: "swipe to browse",
+    languageMenu: "Language",
+    manageShelves: "Manage shelves",
+    categoryShort: "Category",
+    backBtn: "Back",
+    styleBtn: "Style",
+    themeBtn: "Theme",
+    addBooks: "Add books",
+    searchBtn: "Search",
 };
