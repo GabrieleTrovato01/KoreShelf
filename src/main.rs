@@ -124,6 +124,9 @@ fn main() {
             AppControl::Focus => {
                 let _ = open::that_detached(&browser_url);
             }
+            AppControl::OpenUrl(url) => {
+                let _ = open::that_detached(url);
+            }
         });
         let state = make_state(control);
         runtime.block_on(async move {

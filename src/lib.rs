@@ -23,6 +23,16 @@ use std::sync::{mpsc, Arc, RwLock};
 /// l'indirizzo dell'interfaccia (es. `http://127.0.0.1:47123/`).
 /// `port = 0` sceglie una porta libera; con una porta fissa, se è occupata se ne usa un'altra.
 pub fn start_embedded(data_dir: PathBuf, port: u16) -> Result<String, String> {
+    start_embedded_with(data_dir, port, Arc::new(|_url: String| {}))
+}
+
+/// Come [`start_embedded`], ma i link esterni (Amazon, GitHub...) chiesti dall'interfaccia
+/// vengono passati a `open_url`, che li apre nel browser del sistema.
+pub fn start_embedded_with(
+    data_dir: PathBuf,
+    port: u16,
+    open_url: Arc<dyn Fn(String) + Send + Sync>,
+) -> Result<String, String> {
     let paths = paths::Paths::at(data_dir).map_err(|e| format!("cartella dati: {e}"))?;
     logger::init(&paths.log_file);
     log_info!("Avvio KoreShelf {} (incorporato) — dati in {}", env!("CARGO_PKG_VERSION"), paths.root.display());
@@ -59,7 +69,11 @@ pub fn start_embedded(data_dir: PathBuf, port: u16) -> Result<String, String> {
                     }
                 };
                 // Sui dispositivi mobili l'app si chiude dal sistema: niente "spegni" né "porta in primo piano"
-                let control: Controller = Arc::new(|_action: AppControl| {});
+                let control: Controller = Arc::new(move |action: AppControl| {
+                    if let AppControl::OpenUrl(url) = action {
+                        open_url(url);
+                    }
+                });
                 let state = AppState {
                     db,
                     paths,

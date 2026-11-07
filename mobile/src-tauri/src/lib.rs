@@ -17,7 +17,15 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            let url = koreshelf::start_embedded(data_dir, PORT)?;
+            // I link esterni chiesti dall'interfaccia si aprono nel browser del sistema, su un
+            // thread a parte: mai dentro le callback della WebView (su Android bloccherebbe l'app)
+            let opener_handle = app.handle().clone();
+            let url = koreshelf::start_embedded_with(data_dir, PORT, std::sync::Arc::new(move |link: String| {
+                let h = opener_handle.clone();
+                std::thread::spawn(move || {
+                    let _ = h.opener().open_url(link, None::<&str>);
+                });
+            }))?;
             let origin = url.trim_end_matches('/').to_string();
             let handle = app.handle().clone();
 
@@ -31,7 +39,11 @@ pub fn run() {
                         || target.starts_with("blob:")
                         || target.starts_with("data:");
                     if !internal && (target.starts_with("https://") || target.starts_with("http://") || target.starts_with("mailto:")) {
-                        let _ = handle.opener().open_url(target, None::<&str>);
+                        // Rete di sicurezza: anche qui niente lavoro dentro la callback della WebView
+                        let (h, link) = (handle.clone(), target.to_string());
+                        std::thread::spawn(move || {
+                            let _ = h.opener().open_url(link, None::<&str>);
+                        });
                     }
                     internal
                 });

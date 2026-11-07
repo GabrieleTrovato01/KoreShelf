@@ -22,10 +22,12 @@ use tokio::io::AsyncWriteExt;
 use tower_http::services::ServeDir;
 
 /// Cosa il server può chiedere all'applicazione (finestra) che lo contiene.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum AppControl {
     Shutdown,
     Focus,
+    /// Apri un link esterno nel browser del sistema (lo fa l'app, non la WebView)
+    OpenUrl(String),
 }
 
 pub type Controller = Arc<dyn Fn(AppControl) + Send + Sync>;
@@ -67,6 +69,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/books/{id}/highlights", post(add_highlight).delete(remove_highlight))
         .route("/api/store/amazon-link", get(amazon_link))
         .route("/api/shutdown", post(shutdown))
+        .route("/api/open-external", post(open_external))
         .nest_service("/covers", covers)
         .nest_service("/ebooks", ebooks)
         .fallback(crate::assets::serve)
@@ -853,6 +856,24 @@ mod tests {
         );
         assert!(amazon_search_url("en", None, Some("  "), None).is_none());
     }
+}
+
+// --- Link esterni ------------------------------------------------------------
+
+/// Sul telefono la WebView non deve navigare fuori dall'app: l'interfaccia chiede al server di
+/// aprire il link e il server lo passa all'app. Solo link web/email, solo dall'interfaccia stessa
+/// (l'intestazione X-KoreShelf non può essere inviata da altri siti senza un permesso CORS).
+async fn open_external(State(st): State<AppState>, headers: axum::http::HeaderMap, Json(body): Json<Value>) -> Response {
+    if headers.get("x-koreshelf").and_then(|v| v.to_str().ok()) != Some("1") {
+        return reply(StatusCode::FORBIDDEN, false, "forbidden");
+    }
+    let url = body.get("url").and_then(Value::as_str).unwrap_or("").trim().to_string();
+    let allowed = url.starts_with("https://") || url.starts_with("http://") || url.starts_with("mailto:");
+    if !allowed || url.len() > 4096 {
+        return reply(StatusCode::BAD_REQUEST, false, "link non valido");
+    }
+    (st.control)(AppControl::OpenUrl(url));
+    Json(json!({ "success": true })).into_response()
 }
 
 // --- Spegnimento ------------------------------------------------------------

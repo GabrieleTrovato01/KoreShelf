@@ -46,6 +46,12 @@
             background: rgba(128,128,128,.08); color: inherit; font-family: inherit; font-size: 13px; font-weight: 600;
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; }
         #ks-reader-bar .ks-aa-mini { font-family: Georgia, serif; font-size: 17px; line-height: 18px; }
+        /* In orizzontale lo spazio verticale è poco: barra su una sola riga */
+        .ks-phone.ks-landscape #ks-reader-bar { flex-direction: row; align-items: center; gap: 16px;
+            padding-top: 6px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+        .ks-phone.ks-landscape #ks-reader-bar .ks-rb-progress { flex: 1; }
+        .ks-phone.ks-landscape #ks-reader-bar .ks-rb-buttons { flex: 0 0 auto; width: 330px; }
+        .ks-phone.ks-landscape #ks-reader-bar .ks-rb-buttons button { height: 44px; flex-direction: row; gap: 6px; }
     `;
     document.head.appendChild(style);
 

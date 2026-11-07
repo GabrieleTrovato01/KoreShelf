@@ -53,3 +53,40 @@ fn two_embedded_servers_can_coexist() {
     assert!(http_get(&a, "/api/ping").contains("KoreShelf"));
     assert!(http_get(&b, "/api/ping").contains("KoreShelf"));
 }
+
+fn http_post_json(url: &str, path: &str, body: &str, with_app_header: bool) -> String {
+    let addr = url.trim_start_matches("http://").trim_end_matches('/');
+    let mut stream = TcpStream::connect(addr).expect("connessione al server");
+    stream.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+    let header = if with_app_header { "X-KoreShelf: 1\r\n" } else { "" };
+    write!(stream, "POST {path} HTTP/1.1\r\nHost: {addr}\r\nContent-Type: application/json\r\n{header}Content-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len()).unwrap();
+    let mut response = String::new();
+    stream.read_to_string(&mut response).unwrap();
+    response
+}
+
+/// Sul telefono i link esterni (Amazon, GitHub) li apre l'app, non la WebView: l'interfaccia
+/// chiede al server interno, che passa il link all'app. Solo link web, solo dall'interfaccia.
+#[test]
+fn external_links_are_handed_to_the_app() {
+    use std::sync::{Arc, Mutex};
+    let opened: Arc<Mutex<Vec<String>>> = Arc::default();
+    let sink = opened.clone();
+    let url = koreshelf::start_embedded_with(temp_dir("links"), 0, Arc::new(move |link: String| {
+        sink.lock().unwrap().push(link);
+    }))
+    .unwrap();
+
+    let ok = http_post_json(&url, "/api/open-external", r#"{"url":"https://www.amazon.it/s?k=dune"}"#, true);
+    assert!(ok.starts_with("HTTP/1.1 200"), "{ok}");
+
+    for bad in [r#"{"url":"javascript:alert(1)"}"#, r#"{"url":"file:///etc/passwd"}"#, r#"{"url":""}"#] {
+        let r = http_post_json(&url, "/api/open-external", bad, true);
+        assert!(r.starts_with("HTTP/1.1 400"), "schema non permesso: {bad} → {r}");
+    }
+    let foreign = http_post_json(&url, "/api/open-external", r#"{"url":"https://example.com"}"#, false);
+    assert!(foreign.starts_with("HTTP/1.1 403"), "senza l'intestazione dell'app: {foreign}");
+
+    std::thread::sleep(Duration::from_millis(200));
+    assert_eq!(*opened.lock().unwrap(), vec!["https://www.amazon.it/s?k=dune".to_string()]);
+}

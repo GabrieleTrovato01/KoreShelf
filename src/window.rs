@@ -82,6 +82,10 @@ pub fn run(
         let event = match action {
             AppControl::Shutdown => UserEvent::Quit,
             AppControl::Focus => UserEvent::Focus,
+            AppControl::OpenUrl(url) => {
+                open_external(&url);
+                return;
+            }
         };
         if let Ok(p) = proxy.lock() {
             let _ = p.send_event(event);

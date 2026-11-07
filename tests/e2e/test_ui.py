@@ -473,29 +473,28 @@ async def test_update_banner_only_for_newer_versions(p):
             assert shown == expected, f"GitHub {tag}, installata v{version}: banner {'mostrato' if shown else 'assente'}"
 
 
-async def test_mobile_external_links_open_by_navigation(p):
-    """Sul telefono (Tauri) window.open non apre nulla: i link esterni devono diventare una
-    navigazione, che l'app intercetta e passa al browser del sistema."""
+async def test_mobile_external_links_are_opened_by_the_app(p):
+    """Sul telefono i link esterni non fanno navigare la WebView (su Android faceva chiudere
+    l'app): l'interfaccia chiede al server interno di aprirli nel browser del sistema."""
     with Server() as srv:
         srv.seed()
-        browser = await p.chromium.launch(executable_path=os.environ.get("CHROME_PATH") or None, args=CHROME_ARGS)
-        ctx = await browser.new_context(viewport={"width": 1280, "height": 700})
-        await ctx.add_init_script("localStorage.setItem('KoreShelf_lang','it'); window.__KORESHELF_DESKTOP__ = true; window.__KORESHELF_MOBILE__ = true;")
-        page = await ctx.new_page()
-        await page.goto(BASE)
-        await page.wait_for_function("document.getElementById('loading-screen').style.display === 'none'", timeout=30000)
-        popups, requests = [], []
-        ctx.on("page", lambda pg: popups.append(pg))
-        page.on("request", lambda r: requests.append(r.url) if r.is_navigation_request() else None)
+        browser, ctx, page = await open_phone(p, PHONES["Android"])
+        requests, navigations = [], []
+        page.on("request", lambda r: requests.append((r.method, r.url, r.post_data, r.headers.get("x-koreshelf")))
+                if "/api/open-external" in r.url else None)
+        page.on("request", lambda r: navigations.append(r.url) if r.is_navigation_request() else None)
         await page.route("https://www.amazon.it/**", lambda route: route.abort())
-        search = page.locator("input[placeholder^='Cerca per']")
-        await search.click()
-        await search.type("stephen king", delay=20)
+        start_url = page.url
+        await page.click("#ks-search-toggle")
+        await page.keyboard.type("stephen king", delay=15)
         await page.get_by_text("Cerca «stephen king» su Amazon").click()
         await page.wait_for_timeout(1500)
+        still_here = page.url == start_url and await page.evaluate("!!window.__koreshelf")
         await browser.close()
-        assert not popups, "Sul telefono niente finestre popup"
-        assert any("amazon.it" in u for u in requests), f"Il link deve diventare una navigazione: {requests}"
+        assert not navigations, f"La pagina non deve navigare verso il link: {navigations}"
+        assert still_here, "L'app deve restare dov'era"
+        assert requests and requests[0][0] == "POST" and "amazon.it" in (requests[0][2] or "") and requests[0][3] == "1", \
+            f"Il link va chiesto all'app tramite /api/open-external: {requests}"
 
 
 PHONES = {"iPhone": (390, 844), "Android": (412, 915)}
@@ -812,6 +811,79 @@ async def test_mobile_reader_scroll_mode_text_never_under_bottom_bar(p):
                 problems.append(f"Dentro la barra ci sono i suoi pulsanti, non il testo: {hits}")
             if abs(bar["bottom"] - vh) > 1:
                 problems.append(f"La barra deve arrivare in fondo allo schermo: {bar}")
+        assert not problems, "\n".join(problems)
+
+
+def overlaps(a, b):
+    return a and b and a["left"] < b["right"] - 1 and b["left"] < a["right"] - 1 and a["top"] < b["bottom"] - 1 and b["top"] < a["bottom"] - 1
+
+
+async def check_library_layout(page, vw, vh, label):
+    problems = []
+    scale = await page.evaluate("[window.visualViewport.scale, document.documentElement.clientWidth, window.innerWidth]")
+    if abs(scale[0] - 1) > 0.01 or abs(scale[1] - vw) > 1 or abs(scale[2] - vw) > 1:
+        problems.append(f"{label}: la pagina non è più in scala 1:1 (scala, larghezza, finestra = {scale}, attesa {vw})")
+    overflow = await page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+    if overflow > 1:
+        problems.append(f"{label}: scorrimento orizzontale di {overflow}px")
+    active = await page.evaluate("window.__koreshelf.activeBookId()")
+    book = await stable_rect(page, active)
+    panel = await rect(page, "#ks-book-panel")
+    top = await rect(page, ".top-bar > div:first-child")
+    read = await rect(page, "#ks-read-btn")
+    if not (book["x"] >= 0 and book["y"] >= 0 and book["x"] + book["width"] <= vw and book["y"] + book["height"] <= vh):
+        problems.append(f"{label}: il libro esce dallo schermo {book}")
+    as_rect = {"left": book["x"], "top": book["y"], "right": book["x"] + book["width"], "bottom": book["y"] + book["height"]}
+    if overlaps(as_rect, panel):
+        problems.append(f"{label}: il pannello copre il libro")
+    if overlaps(as_rect, top):
+        problems.append(f"{label}: la barra in alto copre il libro")
+    if book["height"] < 0.35 * vh:
+        problems.append(f"{label}: il libro è troppo piccolo ({book['height']:.0f}px su {vh})")
+    if not read or read["height"] < 44 or read["bottom"] > vh + 1 or read["right"] > vw + 1:
+        problems.append(f"{label}: 'Inizia a leggere' non è raggiungibile {read}")
+    return problems
+
+
+async def test_mobile_rotation_keeps_the_app_usable(p):
+    """Android: ruotando lo schermo (verticale → orizzontale → verticale) l'app resta usabile:
+    scala 1:1, libro visibile e non coperto, comandi raggiungibili; nel lettore idem."""
+    with Server() as srv:
+        path = srv.home / "Tipografia.epub"
+        make_epub(path, "Manuale di Tipografia", "Autore Test", (60, 160, 80), chapters=LONG_PARAGRAPHS)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        portrait, landscape = PHONES["Android"], PHONES["Android"][::-1]
+        browser, ctx, page = await open_phone(p, portrait)
+        problems = []
+        for label, (vw, vh) in [("verticale", portrait), ("orizzontale", landscape), ("di nuovo verticale", portrait)]:
+            await page.set_viewport_size({"width": vw, "height": vh})
+            await page.wait_for_timeout(1200)
+            await stable_camera(page)
+            await shot(page, f"rotation_{label.replace(' ', '_')}")
+            problems += await check_library_layout(page, vw, vh, label)
+
+        await page.set_viewport_size({"width": portrait[0], "height": portrait[1]})
+        await open_reader(page, book)
+        for label, (vw, vh) in [("lettore orizzontale", landscape), ("lettore verticale", portrait)]:
+            await page.set_viewport_size({"width": vw, "height": vh})
+            await page.wait_for_timeout(1500)
+            await shot(page, f"rotation_{label.replace(' ', '_')}")
+            bar = await rect(page, "#ks-reader-bar")
+            back = await rect(page, "#ks-reader-back")
+            geo = await page.evaluate("""() => ({ viewer: document.getElementById('viewer').getBoundingClientRect().toJSON(),
+                frame: (document.querySelector('#viewer iframe') || document.getElementById('viewer')).getBoundingClientRect().toJSON(),
+                scale: window.visualViewport.scale })""")
+            if abs(geo["scale"] - 1) > 0.01:
+                problems.append(f"{label}: scala {geo['scale']}")
+            if not bar or abs(bar["bottom"] - vh) > 1 or bar["width"] < vw - 2:
+                problems.append(f"{label}: la barra deve restare in basso a tutta larghezza {bar}")
+            elif geo["viewer"]["bottom"] > bar["top"] + 1:
+                problems.append(f"{label}: il testo finisce sotto la barra")
+            if not back or back["top"] < 0:
+                problems.append(f"{label}: manca la freccia indietro")
+            if geo["viewer"]["width"] > vw + 1 or geo["viewer"]["width"] < vw - 2:
+                problems.append(f"{label}: l'area del testo non segue la nuova larghezza ({geo['viewer']['width']:.0f} su {vw})")
+        await browser.close()
         assert not problems, "\n".join(problems)
 
 

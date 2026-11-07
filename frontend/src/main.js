@@ -5,13 +5,21 @@ import { UploadTray, uploadWithProgress } from './upload-tray.js';
 import { confirmDialog } from './dialogs.js';
 import { dissolveBook } from './dissolve.js';
 
-// Sul telefono (app Tauri) window.open e i link target="_blank" non aprono nulla:
-// diventano una navigazione, che l'app intercetta e passa al browser del sistema.
+// Sul telefono (app Tauri) i link esterni non devono far navigare la WebView (su Android
+// faceva chiudere l'app): si chiede al server interno, e l'app li apre nel browser del sistema.
+function openExternal(url) {
+    if (!url) return;
+    fetch('/api/open-external', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-KoreShelf': '1' },
+        body: JSON.stringify({ url: String(url) }),
+    }).catch(err => console.warn('Link esterno non aperto:', err));
+}
 if (window.__KORESHELF_MOBILE__) {
-    window.open = (url) => { if (url) window.location.href = String(url); return null; };
+    window.open = (url) => { openExternal(url); return null; };
     document.addEventListener('click', (e) => {
         const link = e.target.closest && e.target.closest('a[target="_blank"]');
-        if (link && link.href) { e.preventDefault(); window.location.href = link.href; }
+        if (link && link.href) { e.preventDefault(); openExternal(link.href); }
     }, true);
 }
 import {openHelpModal} from './help-modal.js';
@@ -85,7 +93,11 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 camera.position.set(0, 1.5, 3.5); 
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+// Il canvas occupa sempre lo schermo con dimensioni relative: se avesse una larghezza fissa
+// in pixel, dopo una rotazione allargherebbe la pagina e la WebView la rimpicciolirebbe.
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.domElement.id = 'ks-scene';
+renderer.domElement.style.cssText = 'position: fixed; inset: 0; width: 100%; height: 100%; display: block;';
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap; 
 document.body.appendChild(renderer.domElement);
@@ -157,20 +169,39 @@ function isPhone() {
 }
 // Inquadratura: sul telefono verticale la telecamera si allontana (libro ≈ metà larghezza)
 // e si abbassa, così il libro sta nello spazio libero tra la barra in alto e il pannello.
-let cameraFit = { z: 3.5, dy: 0 };
+let cameraFit = { z: 3.5, dx: 0, dy: 0 };
 function updateCameraFit() {
+    const vw = window.innerWidth, vh = window.innerHeight;
     document.documentElement.classList.toggle('ks-phone', isPhone());
+    document.documentElement.classList.toggle('ks-landscape', isPhone() && vw > vh);
     if (typeof placeMoreButton === 'function') placeMoreButton();
-    const aspect = window.innerWidth / window.innerHeight;
-    if (!isPhone() || aspect >= 1) { cameraFit = { z: 3.5, dy: 0 }; return; }
-    const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    const dist = 1 / (0.54 * tanHalf * aspect);          // il libro attivo (largo 2) ≈ 54% dello schermo
+    if (!isPhone()) { cameraFit = { z: 3.5, dx: 0, dy: 0 }; return; }
+
+    // Spazio davvero libero per il libro: sotto la barra in alto e fuori dal pannello
+    // (pannello in basso in verticale, a destra in orizzontale)
     const top = (document.querySelector('.top-bar')?.getBoundingClientRect().bottom || 70) + 12;
     const panel = document.getElementById('ks-book-panel');
-    const bottom = panel && panel.offsetParent ? panel.getBoundingClientRect().top - 12 : window.innerHeight * 0.65;
-    const freeCenter = (top + bottom) / 2 / window.innerHeight;   // centro dello spazio libero (0..1)
-    const visibleHeight = 2 * dist * tanHalf;
-    cameraFit = { z: 0.5 + dist, dy: -(0.5 - freeCenter) * visibleHeight };
+    // (il pannello è "fixed": offsetParent è sempre null, quindi si controlla lo stile)
+    const pr = panel && getComputedStyle(panel).display !== 'none' ? panel.getBoundingClientRect() : null;
+    const p = pr && pr.width > 0 && pr.height > 0 ? pr : null;
+    const landscape = vw > vh;
+    const free = {
+        left: 12,
+        right: landscape && p ? p.left - 12 : vw - 12,
+        top,
+        bottom: !landscape && p ? p.top - 12 : vh - 12,
+    };
+    const freeW = Math.max(60, free.right - free.left), freeH = Math.max(60, free.bottom - free.top);
+
+    // Altezza del libro (alto 3, largo 2) sullo schermo: circa metà larghezza in verticale,
+    // quasi tutto lo spazio in orizzontale; mai più grande dello spazio libero
+    const target = landscape ? Math.min(freeH * 0.82, freeW * 0.8 * 1.5) : Math.min(0.81 * vw, freeH * 0.85, freeW * 0.8 * 1.5);
+    const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const dist = (3 * vh) / (2 * tanHalf * target);
+    const pxPerUnit = vh / (2 * dist * tanHalf);
+    const offX = (free.left + free.right) / 2 - vw / 2;
+    const offY = (free.top + free.bottom) / 2 - vh / 2;
+    cameraFit = { z: 0.5 + dist, dx: -offX / pxPerUnit, dy: offY / pxPerUnit };
 }
 let isViewingBoard= false; // Stato della bacheca dei post-it
 
@@ -626,6 +657,12 @@ ksUiStyle.textContent = `
     .ks-phone .ks-plank { margin: 0 -10px; }
     .ks-phone .ks-empty-actions { flex-direction: column; padding: 16px 4px 16px; }
     .ks-phone .ks-empty-actions button { width: 100%; justify-content: center; }
+    /* Telefono in orizzontale: pannello a destra, a tutta altezza; il libro sta a sinistra */
+    .ks-phone.ks-landscape #ks-book-panel { left: auto; right: 0; top: calc(64px + env(safe-area-inset-top, 0px)); bottom: 0;
+        width: min(46vw, 380px); border-radius: 22px 0 0 0; justify-content: flex-end; overflow-y: auto;
+        padding: 12px 18px calc(14px + env(safe-area-inset-bottom, 0px)) 18px; }
+    .ks-phone.ks-landscape #empty-library-hint { overflow-y: auto; }
+    .ks-phone.ks-landscape .ks-empty-actions { flex-direction: row; }
     .ks-phone .ks-tray { left: 12px; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: none; }
 `;
 document.head.appendChild(ksUiStyle);
@@ -2460,6 +2497,7 @@ function animate() {
     requestAnimationFrame(animate);
     
     // Movimento fluido della telecamera in verticale verso la mensola attiva
+    camera.position.x = THREE.MathUtils.lerp(camera.position.x, cameraFit.dx, 0.08);
     camera.position.y = THREE.MathUtils.lerp(camera.position.y, targetCameraY + cameraFit.dy, 0.05);
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, cameraFit.z, 0.08);
     // Spostiamo anche la luce per mantenere le ombre perfette!
@@ -2484,7 +2522,7 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     updateCameraFit();
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
 });
 
 // --- 7. CONTROLLO AGGIORNAMENTI GITHUB ---
@@ -2844,6 +2882,7 @@ window.__koreshelf = {
     visibleBookIds: () => booksArray.filter(b => b.visible).map(b => b.userData.id),
     cameraY: () => camera.position.y,
     cameraTargetY: () => targetCameraY,   // altezza della mensola verso cui si muove la telecamera
+    cameraState: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, fit: { ...cameraFit } }),
     shelfSize: () => { const b = booksArray[currentIndex]; return b ? booksArray.filter(x => x.userData.category === b.userData.category).length : 0; },
 };
 
