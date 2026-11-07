@@ -5,7 +5,7 @@ name: Pacchetti KoreShelf (exe, dmg, AppImage)
 # - ogni push su main -> controllo che tutto compili e i test passino
 on:
   push:
-    branches: [main]
+    branches: [main, rust_version]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
