@@ -7,3 +7,8 @@ frontend/node_modules
 mobile/node_modules
 mobile/src-tauri/gen
 mobile/src-tauri/target
+
+# Chiavi di firma: non vanno MAI nel repository
+*.jks
+*.keystore
+*.p12

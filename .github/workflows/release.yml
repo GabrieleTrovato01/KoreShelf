@@ -127,7 +127,7 @@ jobs:
         with: { distribution: temurin, java-version: "17" }
       - uses: android-actions/setup-android@v3
         # Il vecchio pacchetto "tools" non esiste più negli strumenti SDK recenti
-        with: { packages: "platform-tools" }
+        with: { packages: "platform-tools build-tools;35.0.0" }
       - name: Android NDK
         run: |
           sdkmanager --install "ndk;${NDK_VERSION}"
@@ -148,19 +148,42 @@ jobs:
           npx tauri android init --ci
           npx tauri icon app-icon.png
           ../packaging/mobile/patch-android.sh src-tauri/gen/android
-      - name: Compila l'APK
+      - name: Compila l'APK (release)
         working-directory: mobile
         env: { CARGO_TARGET_DIR: "${{ github.workspace }}/target" }
-        # --debug: APK firmato con la chiave di debug, installabile subito sul telefono.
-        # Per il Play Store servirà una chiave di firma (vedi README).
-        run: npx tauri android build --apk --debug --target aarch64 --target armv7
-      - name: Raccogli l'APK
+        run: npx tauri android build --apk --target aarch64 --target armv7
+      - name: Firma l'APK
+        env:
+          # I secrets arrivano come variabili d'ambiente: non compaiono mai nei comandi né nei log
+          KS_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           VERSION=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          BUILD_TOOLS=$(ls -d "$ANDROID_SDK_ROOT"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*release*.apk' | head -1)
+          test -n "$UNSIGNED" || { echo "APK release non trovato" >&2; exit 1; }
           mkdir -p dist
-          APK=$(find mobile/src-tauri/gen/android/app/build/outputs/apk -name '*.apk' | head -1)
-          test -n "$APK" || { echo "APK non trovato" >&2; exit 1; }
-          cp "$APK" "dist/KoreShelf-${VERSION}-android.apk"
+          "$BUILD_TOOLS/zipalign" -f -p 4 "$UNSIGNED" "$RUNNER_TEMP/aligned.apk"
+
+          KEYSTORE="$RUNNER_TEMP/koreshelf.jks"
+          if [ -n "$KS_BASE64" ]; then
+            echo "$KS_BASE64" | base64 --decode > "$KEYSTORE"
+          else
+            # Nessuna chiave (es. Pull Request da un fork): APK installabile per le prove,
+            # ma gli aggiornamenti richiederanno di disinstallare la versione precedente.
+            echo "::warning::Secrets di firma assenti: APK firmato con una chiave temporanea"
+            KS_PASSWORD="temporary-$RANDOM$RANDOM"
+            KS_ALIAS="temporary"
+            keytool -genkeypair -keystore "$KEYSTORE" -storepass "$KS_PASSWORD" -alias "$KS_ALIAS" \
+              -keyalg RSA -keysize 2048 -validity 30 -dname "CN=KoreShelf (build di prova)" -noprompt
+          fi
+          export KS_PASSWORD
+          "$BUILD_TOOLS/apksigner" sign --ks "$KEYSTORE" --ks-pass env:KS_PASSWORD --ks-key-alias "$KS_ALIAS" \
+            --out "dist/KoreShelf-${VERSION}-android.apk" "$RUNNER_TEMP/aligned.apk"
+          rm -f "$KEYSTORE" "$RUNNER_TEMP/aligned.apk"
+          "$BUILD_TOOLS/apksigner" verify --print-certs "dist/KoreShelf-${VERSION}-android.apk" | grep -i "signer #1 certificate DN"
+          ls -lh dist/
       - uses: actions/upload-artifact@v4
         with:
           name: KoreShelf-android

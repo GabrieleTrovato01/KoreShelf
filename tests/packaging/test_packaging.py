@@ -149,7 +149,36 @@ def test_workflow_builds_apk_and_ipa():
     ios = json.dumps(jobs["ios"])
     assert "macos" in str(jobs["ios"]["runs-on"])
     assert "aarch64-apple-ios" in ios
-    assert "CODE_SIGNING_ALLOWED=NO" in ios, "Senza account Apple: .ipa non firmato (da firmare per installarlo)"
+    # Senza account Apple: .ipa non firmato, prodotto dalla CLI di Tauri (lo script Rust dentro il
+    # progetto Xcode funziona solo mentre è in esecuzione `tauri ios build`)
+    assert "tauri ios build" in ios and "--no-sign" in ios, "iOS: usare `tauri ios build --no-sign`"
+    assert "xcodebuild" not in ios, "iOS: niente xcodebuild diretto"
+    setup = [s for s in jobs["android"]["steps"] if "setup-android" in str(s.get("uses", ""))]
+    packages = " ".join(str(s.get("with", {}).get("packages", "tools platform-tools")) for s in setup).split()
+    assert "tools" not in packages, "Android: il pacchetto SDK 'tools' non esiste più (solo platform-tools)"
+
+
+def test_android_release_is_signed_with_the_project_key():
+    """Android: APK release (leggero, ottimizzato) firmato con la chiave del progetto, presa dai
+    secrets di GitHub. Senza secrets (es. PR da un fork) si firma con una chiave temporanea."""
+    wf = yaml.safe_load(WORKFLOW.read_text())
+    job = wf["jobs"]["android"]
+    text = json.dumps(job)
+    build = next(s for s in job["steps"] if "tauri android build" in str(s.get("run", "")))
+    assert "--debug" not in build["run"], "Android in release: --debug produce un APK enorme (simboli di debug)"
+    for name in ["ANDROID_KEYSTORE_BASE64", "ANDROID_KEYSTORE_PASSWORD", "ANDROID_KEY_ALIAS"]:
+        assert f"secrets.{name}" in text, f"Manca il secret {name}"
+    sign = next((s for s in job["steps"] if "apksigner" in str(s.get("run", ""))), None)
+    assert sign, "L'APK va firmato con apksigner"
+    run = sign["run"]
+    assert "zipalign" in run and "sign --ks" in run and run.index("zipalign") < run.index("sign --ks"), \
+        "Prima zipalign, poi la firma"
+    assert " verify " in run, "La firma va verificata"
+    assert "keytool" in run and "::warning::" in run, "Senza secrets: chiave temporanea e avviso, senza fallire"
+    assert "rm -f" in run, "Il file della chiave va cancellato subito dopo l'uso"
+    assert "secrets." not in run, "I secrets arrivano come variabili d'ambiente, mai scritti nel comando"
+    gitignore = (ROOT / ".gitignore").read_text()
+    assert "*.jks" in gitignore and "*.keystore" in gitignore, "Le chiavi non devono mai finire nel repository"
 
 
 # ------------------------------------------------------------------- Linux
