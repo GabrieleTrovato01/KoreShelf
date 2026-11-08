@@ -189,6 +189,35 @@ def test_android_release_is_signed_with_the_project_key():
     assert "*.jks" in gitignore and "*.keystore" in gitignore, "Le chiavi non devono mai finire nel repository"
 
 
+def test_all_version_numbers_agree():
+    """Cargo.toml decide la versione (es. 4.0.0): il server la mostra in /api/ping, il banner degli
+    aggiornamenti la confronta con l'ultima release e Android ne ricava il versionCode. Ogni altro
+    punto che la dichiara (app mobile, frontend, file di lock) deve dire la stessa cosa."""
+    def toml_package(path, name):
+        text = (ROOT / path).read_text()
+        m = re.search(r'\[\[package\]\]\nname = "' + re.escape(name) + r'"\nversion = "([^"]+)"', text)
+        return m.group(1) if m else None
+    def json_versions(path):
+        data = json.loads((ROOT / path).read_text())
+        found = [("version", data.get("version"))]
+        if "packages" in data:
+            found.append(('packages[""].version', data["packages"].get("", {}).get("version")))
+        return found
+    declared = {
+        "mobile/src-tauri/Cargo.toml": re.search(r'^version\s*=\s*"([^"]+)"',
+                                                 (ROOT / "mobile/src-tauri/Cargo.toml").read_text(), re.M).group(1),
+        "Cargo.lock (koreshelf)": toml_package("Cargo.lock", "koreshelf"),
+        "mobile/src-tauri/Cargo.lock (koreshelf)": toml_package("mobile/src-tauri/Cargo.lock", "koreshelf"),
+        "mobile/src-tauri/Cargo.lock (koreshelf-mobile)": toml_package("mobile/src-tauri/Cargo.lock", "koreshelf-mobile"),
+        "mobile/src-tauri/tauri.conf.json": json.loads((ROOT / "mobile/src-tauri/tauri.conf.json").read_text())["version"],
+    }
+    for path in ("frontend/package.json", "frontend/package-lock.json", "mobile/package.json", "mobile/package-lock.json"):
+        for key, value in json_versions(path):
+            declared[f"{path} ({key})"] = value
+    wrong = {k: v for k, v in declared.items() if v != VERSION}
+    assert not wrong, f"Cargo.toml dice {VERSION}, ma: " + ", ".join(f"{k} = {v}" for k, v in wrong.items())
+
+
 def test_downloads_survive_flaky_servers():
     """I server di download (GitHub release, Gradle) a volte rispondono 504: i download devono
     dire cosa scaricano, ritentare a lungo, non lasciare file a metà, e restare in cache."""

@@ -64,7 +64,7 @@ pollice (scaffale 3D a tutto schermo, pannello in basso, lettore con comandi in 
 - `KoreShelf-<versione>-x86_64.AppImage` (Linux, qualsiasi distribuzione recente)
 
 Li trovi negli *Artifacts* della scheda *Actions* (puoi anche avviarlo a mano con
-*Run workflow*). Se pubblichi un tag `v3.1.0` vengono allegati automaticamente alla Release.
+*Run workflow*). Se pubblichi un tag `v4.0.0` vengono allegati automaticamente alla Release.
 
 Il `.dmg` non è firmato con un certificato Apple: al primo avvio *tasto destro → Apri*.
 

@@ -1,6 +1,6 @@
 name: Pacchetti KoreShelf (exe, dmg, AppImage, apk, ipa)
 
-# - push di un tag "v3.1.0"  -> crea la Release con i tre pacchetti allegati
+# - push di un tag "v4.0.0"  -> crea la Release con i tre pacchetti allegati
 # - scheda Actions -> "Run workflow" -> i pacchetti si scaricano dagli Artifacts
 # - ogni push su main -> controllo che tutto compili e i test passino
 on:

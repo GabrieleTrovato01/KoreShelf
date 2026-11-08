@@ -1191,11 +1191,13 @@ async def test_reader_highlights_a_whole_phrase(p):
         assert not problems, "\n".join(problems)
 
 
-async def test_reader_selection_across_pages_keeps_pages_aligned(p):
-    """Modalità pagine: quando una selezione arriva al bordo il browser fa scorrere il testo di una
-    quantità qualsiasi, lasciando due pagine tagliate a metà. La vista deve tornare sempre allineata
-    a una pagina intera: avanti se lo scorrimento va avanti (la selezione continua lì), indietro se va
-    indietro. Girare pagina normalmente deve funzionare come prima."""
+async def test_reader_selection_never_turns_the_page_by_itself(p):
+    """Modalità pagine: mentre si seleziona, il browser può far scorrere il testo di una quantità
+    qualsiasi (pochi pixel o mezza pagina). La pagina la gira solo chi legge (swipe, frecce, tastiera,
+    indice): la vista torna sempre alla pagina intera in cui si era, mai a quella prima o dopo.
+    Girare pagina normalmente deve funzionare come prima.
+    (Sostituisce il vecchio test che chiedeva di girare pagina nella direzione dello scorrimento:
+    era proprio quella regola a trasformare un piccolo movimento del dito in un cambio di pagina.)"""
     with Server() as srv:
         path = srv.home / "Tipografia.epub"
         make_epub(path, "Manuale di Tipografia", "Autore Test", (60, 160, 80), chapters=LONG_PARAGRAPHS)
@@ -1214,31 +1216,23 @@ async def test_reader_selection_across_pages_keeps_pages_aligned(p):
         if not aligned(start):
             problems.append(f"Setup: la pagina di partenza non è allineata {start}")
 
-        # Selezione in corso + scorrimento automatico del browser verso la pagina dopo
+        # Selezione in corso + scorrimenti del browser di varie ampiezze, nei due versi
         await page.evaluate("""() => { const d = document.querySelector('#viewer iframe').contentDocument;
             const p = [...d.querySelectorAll('p')].find(e => e.textContent.length > 300);
             const r = d.createRange(); r.setStart(p.firstChild, 0); r.setEnd(p.firstChild, 40);
             d.getSelection().removeAllRanges(); d.getSelection().addRange(r); }""")
-        await page.evaluate(f"rendition.manager.container.scrollLeft = {start['left']} + Math.round({start['delta']} * 0.37)")
-        await page.wait_for_timeout(1200)
-        fwd = await page.evaluate(geo)
-        await shot(page, "selection_scroll_forward")
-        if not aligned(fwd):
-            problems.append(f"Avanti: la vista è rimasta tagliata tra due pagine ({fwd['left']} con pagine da {fwd['delta']})")
-        elif round(fwd["left"]) != round(start["left"] + start["delta"]):
-            problems.append(f"Avanti: doveva arrivare alla pagina successiva ({start['left'] + start['delta']}), è a {fwd['left']}")
+        for share in (0.02, 0.37, -0.41, -0.02):
+            await page.evaluate(f"rendition.manager.container.scrollLeft = {start['left']} + Math.round({start['delta']} * {share})")
+            await page.wait_for_timeout(1000)
+            now = await page.evaluate(geo)
+            if round(now["left"]) != round(start["left"]):
+                problems.append(f"Scorrimento del browser di {share:+.0%} di pagina: la vista doveva restare sulla "
+                                f"stessa pagina ({start['left']}), è a {now['left']} (allineata: {aligned(now)})")
+        await shot(page, "selection_scroll_stays")
+        if not await page.evaluate("String(document.querySelector('#viewer iframe').contentDocument.getSelection())"):
+            problems.append("La selezione non deve sparire")
 
-        # E all'indietro
-        await page.wait_for_timeout(800)
-        await page.evaluate(f"rendition.manager.container.scrollLeft = {fwd['left']} - Math.round({fwd['delta']} * 0.41)")
-        await page.wait_for_timeout(1200)
-        back = await page.evaluate(geo)
-        if not aligned(back):
-            problems.append(f"Indietro: la vista è rimasta tagliata ({back['left']})")
-        elif round(back["left"]) != round(fwd["left"] - fwd["delta"]):
-            problems.append(f"Indietro: doveva tornare alla pagina precedente, è a {back['left']}")
-
-        # Dopo aver tolto la selezione si gira pagina normalmente
+        # Dopo aver tolto la selezione si gira pagina normalmente, avanti e indietro
         await page.evaluate("document.querySelector('#viewer iframe').contentDocument.getSelection().removeAllRanges()")
         await page.wait_for_timeout(500)
         before = await page.evaluate(geo)
@@ -1246,7 +1240,94 @@ async def test_reader_selection_across_pages_keeps_pages_aligned(p):
         await page.wait_for_timeout(1000)
         after = await page.evaluate(geo)
         if not aligned(after) or round(after["left"]) != round(before["left"] + before["delta"]):
-            problems.append(f"Girare pagina deve funzionare come prima: {before['left']} → {after['left']}")
+            problems.append(f"Girare pagina avanti deve funzionare come prima: {before['left']} → {after['left']}")
+        await page.evaluate("document.getElementById('prev-page-btn').click()")
+        await page.wait_for_timeout(1000)
+        back = await page.evaluate(geo)
+        if round(back["left"]) != round(before["left"]):
+            problems.append(f"Girare pagina indietro deve funzionare come prima: {after['left']} → {back['left']}")
+        await browser.close()
+        assert not problems, "\n".join(problems)
+
+
+NUMBERED_WORDS = [" ".join(f"w{i:04d}" for i in range(4000))]   # ogni parola dice dove si trova
+
+# Pagina visibile, parola sotto un punto dello schermo, selezione attuale (nell'iframe visibile)
+READER_PROBE = """() => {
+    const c = rendition.manager.container, cr = c.getBoundingClientRect();
+    const ifr = [...document.querySelectorAll('#viewer iframe')]
+        .find(f => { const r = f.getBoundingClientRect(); return r.left < cr.right && r.right > cr.left; });
+    const d = ifr.contentDocument, at = (x, y) => { const ir = ifr.getBoundingClientRect();   // misurato ogni volta
+        return d.caretRangeFromPoint(x - ir.left, y - ir.top); };
+    window.__ksProbe = {
+        doc: d,
+        caret: at,
+        word: (x, y) => { const r = at(x, y); const n = r.startContainer, t = n.data;
+            const s = t.lastIndexOf(' ', r.startOffset - 1) + 1, e = t.indexOf(' ', r.startOffset);
+            const w = d.createRange(); w.setStart(n, s); w.setEnd(n, e < 0 ? t.length : e); return w; },
+    };
+    return { left: c.scrollLeft, delta: rendition.manager.layout.delta, cfi: rendition.currentLocation().start.cfi,
+             selection: String(d.getSelection()), page: [cr.left, cr.top, cr.right, cr.bottom] };
+}"""
+
+
+async def test_reader_selection_small_finger_move_keeps_the_page(p):
+    """Il video del 8/11: sul telefono si tiene premuta una parola ('sua', riga 2) e si sposta di
+    pochissimo la maniglia. Il browser fa scorrere il testo di pochi pixel e la pagina NON deve
+    cambiare: niente salto alla pagina prima/dopo, la selezione resta sulla pagina che si vede.
+    (La maniglia nativa di Android non esiste in Chromium headless: lo scorrimento di pochi pixel che
+    il browser del telefono fa durante il trascinamento qui viene riprodotto direttamente.)"""
+    with Server() as srv:
+        path = srv.home / "Numeri.epub"
+        make_epub(path, "Parole numerate", "Autore Test", (60, 160, 80), chapters=NUMBERED_WORDS)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        vw, vh = PHONES["Android"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        await open_reader(page, book)
+        for _ in range(3):                                   # una pagina in mezzo al capitolo
+            await page.evaluate("document.getElementById('next-page-btn').click()")
+            await page.wait_for_timeout(700)
+        problems = []
+        for direction, nudge in (("indietro", -6), ("avanti", 6)):
+            start = await page.evaluate(READER_PROBE)
+            first, last = await page.evaluate("""([l, t, r, b]) => { const p = window.__ksProbe;
+                return [String(p.word(l + 20, t + 40)), String(p.word(r - 20, b - 20))]; }""", start["page"])
+            # 1. Pressione prolungata su una parola della seconda riga (come 'sua' nel video)
+            finger = {"x": vw / 2, "y": start["page"][1] + 40 + 24}
+            word = await page.evaluate("""(f) => { const w = window.__ksProbe.word(f.x, f.y);
+                const s = window.__ksProbe.doc.getSelection(); s.removeAllRanges(); s.addRange(w); return String(w); }""", finger)
+            await page.wait_for_timeout(700)
+            # 2. Il dito si muove di pochissimo: il browser sposta il testo di qualche pixel...
+            await page.evaluate(f"rendition.manager.container.scrollLeft += {nudge}")
+            await page.wait_for_timeout(1200)
+            # 3. ...e la maniglia segue il dito, che è ancora lì (3 px più su)
+            await page.evaluate("""(f) => { const s = window.__ksProbe.doc.getSelection();
+                const c = window.__ksProbe.caret(f.x, f.y - 3); const a = s.getRangeAt(0);
+                s.setBaseAndExtent(a.endContainer, a.endOffset, c.startContainer, c.startOffset); }""", finger)
+            await page.wait_for_timeout(500)
+            after = await page.evaluate("""() => { const c = rendition.manager.container;
+                return { left: c.scrollLeft, cfi: rendition.currentLocation().start.cfi,
+                         selection: String(window.__ksProbe.doc.getSelection()) }; }""")
+            await shot(page, f"selection_small_move_{direction}")
+            if round(after["left"]) != round(start["left"]):
+                pages = (after["left"] - start["left"]) / start["delta"]
+                problems.append(f"{direction}: la pagina è cambiata da sola ({pages:+.2f} pagine, "
+                                f"scrollLeft {start['left']} → {after['left']})")
+            elif after["cfi"] != start["cfi"]:
+                problems.append(f"{direction}: la posizione di lettura è cambiata ({start['cfi']} → {after['cfi']})")
+            visible = await page.evaluate("""([l, t, r, b]) => { const p = window.__ksProbe;
+                return [String(p.word(l + 20, t + 40)), String(p.word(r - 20, b - 20))]; }""", start["page"])
+            if visible != [first, last]:
+                problems.append(f"{direction}: si vede un'altra pagina ({first}–{last} → {visible[0]}–{visible[1]})")
+            words = after["selection"].split()
+            outside = [w for w in words if not first <= w <= last]
+            if outside:
+                problems.append(f"{direction}: la selezione contiene parole di un'altra pagina "
+                                f"({outside[0]}…, pagina visibile {first}–{last}; selezione di {len(words)} parole)")
+            elif word not in words:
+                problems.append(f"{direction}: la parola tenuta premuta ({word}) non è più selezionata: {after['selection']!r}")
+            await page.evaluate("window.__ksProbe.doc.getSelection().removeAllRanges()")
+            await page.wait_for_timeout(400)
         await browser.close()
         assert not problems, "\n".join(problems)
 

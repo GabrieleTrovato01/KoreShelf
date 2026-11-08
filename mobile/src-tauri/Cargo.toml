@@ -1,6 +1,6 @@
 [package]
 name = "koreshelf-mobile"
-version = "3.0.0"
+version = "4.0.0"
 edition = "2021"
 description = "KoreShelf per Android e iOS (Tauri 2)"
 license = "MIT"

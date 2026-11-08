@@ -217,33 +217,26 @@
     };
     watchPdf();
 
-    // --- Modalità pagine: la vista resta sempre allineata a una pagina intera -------------
-    // Quando una selezione arriva al bordo, il browser fa scorrere il testo di una quantità qualsiasi
-    // e lascia due pagine tagliate a metà. Lo riportiamo a una pagina intera: avanti se lo
-    // scorrimento va avanti (così la selezione continua sulla pagina dopo), indietro se va indietro.
+    // --- Modalità pagine: la pagina la gira solo chi legge ------------------------------
+    // Mentre si trascina una maniglia di selezione, il browser del telefono può far scorrere il
+    // testo di qualche pixel. Quello scorrimento non deve mai diventare un cambio di pagina: la vista
+    // torna subito alla pagina intera in cui si era. Le pagine girate davvero (swipe, frecce,
+    // tastiera, indice) passano da epub.js, che scorre sempre di pagine intere, e restano valide.
     let alignWatched = null;
     setInterval(() => {
         if (typeof rendition === 'undefined' || !rendition || rendition === alignWatched) return;
         const m = rendition.manager;
         if (!m || !m.container) return;
         alignWatched = rendition;
-        let settled = m.container.scrollLeft;   // ultima posizione allineata
-        let calmUntil = 0;                      // pausa tra due giri di pagina "automatici"
+        let settled = m.container.scrollLeft;   // ultima pagina intera mostrata
         m.container.addEventListener('scroll', () => {
             const delta = m.layout && m.layout.delta;
             const left = m.container.scrollLeft;
             if (!paginated() || !delta) { settled = left; return; }
             const pages = left / delta;
-            if (Math.abs(pages - Math.round(pages)) < 0.01) { settled = left; return; }   // già allineata
-            let target = settled;
-            if (performance.now() >= calmUntil) {
-                target = left > settled ? settled + delta : settled - delta;
-                calmUntil = performance.now() + 700;
-            }
+            if (Math.abs(pages - Math.round(pages)) < 0.01) { settled = left; return; }   // pagina intera
             const max = m.container.scrollWidth - m.container.clientWidth;
-            if (target < 0 || target > max + 1) target = settled;
-            m.container.scrollLeft = target;
-            settled = target;
+            m.container.scrollLeft = Math.max(0, Math.min(settled, max));             // si torna lì
         });
     }, 300);
 
