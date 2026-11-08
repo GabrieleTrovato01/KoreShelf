@@ -143,6 +143,10 @@ jobs:
         with: { distribution: temurin, java-version: "17" }
       # Gradle in cache (anche la sua distribuzione: niente download da services.gradle.org ogni volta)
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Di default la cache si salva solo sul ramo principale: la salviamo su ogni push
+          # (anche su rust_version), mai dalle Pull Request
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
       - uses: android-actions/setup-android@v3
         # Il vecchio pacchetto "tools" non esiste più negli strumenti SDK recenti
         with: { packages: "platform-tools build-tools;35.0.0" }
