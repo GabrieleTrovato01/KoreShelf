@@ -630,7 +630,8 @@ struct BulkBody {
 
 async fn bulk_tags(State(st): State<AppState>, Json(body): Json<BulkBody>) -> Response {
     let lang = st.lang();
-    let Some(new_tag) = body.new_tag.map(|t| t.trim().to_string()).filter(|t| !t.is_empty()) else {
+    // newTag assente = errore; newTag vuoto = "Senza categoria" (si toglie lo scaffale)
+    let Some(new_tag) = body.new_tag.map(|t| t.trim().to_string()) else {
         return reply(StatusCode::BAD_REQUEST, false, t(&lang, "errInvalidTag"));
     };
     let ids: Vec<String> = body
@@ -647,8 +648,12 @@ async fn bulk_tags(State(st): State<AppState>, Json(body): Json<BulkBody>) -> Re
         .into_iter()
         .filter(|b| ids.contains(&b.id))
         .map(|mut b| {
-            b.tags.retain(|t| t.to_lowercase() != lower);
-            b.tags.insert(0, new_tag.clone());
+            if new_tag.is_empty() {
+                b.tags.clear();
+            } else {
+                b.tags.retain(|t| t.to_lowercase() != lower);
+                b.tags.insert(0, new_tag.clone());
+            }
             b
         })
         .collect();

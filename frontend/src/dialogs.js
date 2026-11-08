@@ -8,6 +8,9 @@ const STYLE = `
     opacity: 0; transition: opacity .25s ease;
 }
 .ks-dialog-backdrop.open { opacity: 1; }
+/* Sopra un pannello già sfocato (es. Gestisci) niente seconda sfocatura: due backdrop-filter
+   sovrapposti sono pesantissimi da disegnare e rallentano l'apertura sui telefoni */
+#ks-manager ~ .ks-dialog-backdrop { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(10, 18, 28, 0.45); }
 .ks-dialog {
     width: min(440px, calc(100vw - 40px)); padding: 30px 30px 24px; border-radius: 26px; box-sizing: border-box;
     text-align: center; transform: translateY(18px) scale(.96); transition: transform .3s cubic-bezier(.2,.9,.25,1.2);
@@ -78,5 +81,61 @@ export function confirmDialog({ icon = '', title = '', message = '', confirmText
         document.body.appendChild(backdrop);
         requestAnimationFrame(() => backdrop.classList.add('open'));
         cancelBtn.focus();
+    });
+}
+
+/**
+ * Chiede un testo all'utente (es. il nome di un nuovo scaffale). Promise<string|null>.
+ * Invio = conferma, Esc / Annulla = null. Il pulsante di conferma resta spento finché il campo è vuoto.
+ */
+export function promptDialog({ title = '', message = '', placeholder = '', value = '', confirmText = 'OK', cancelText = 'Annulla' } = {}) {
+    injectStyle();
+    return new Promise(resolve => {
+        const backdrop = document.createElement('div');
+        backdrop.className = 'ks-dialog-backdrop';
+        backdrop.id = 'ks-prompt';
+        backdrop.innerHTML = `
+            <div class="ks-dialog glass-effect" role="dialog" aria-modal="true">
+                <h2 class="ks-dialog-title"></h2>
+                <p class="ks-dialog-message"></p>
+                <input type="text" class="modern-input" style="width: 100%; box-sizing: border-box; height: 48px; margin: 0 0 20px; font-size: 16px;">
+                <div class="ks-dialog-actions">
+                    <button class="glass-effect modern-btn" data-action="cancel"></button>
+                    <button class="glass-effect modern-btn" data-action="confirm"></button>
+                </div>
+            </div>`;
+        backdrop.querySelector('.ks-dialog-title').textContent = title;
+        const msg = backdrop.querySelector('.ks-dialog-message');
+        msg.textContent = message;
+        if (!message) msg.style.display = 'none';
+        const input = backdrop.querySelector('input');
+        input.placeholder = placeholder;
+        input.value = value;
+        input.setAttribute('aria-label', title);
+        const cancelBtn = backdrop.querySelector('[data-action=cancel]');
+        const confirmBtn = backdrop.querySelector('[data-action=confirm]');
+        cancelBtn.textContent = cancelText;
+        confirmBtn.textContent = confirmText;
+        const sync = () => { confirmBtn.disabled = !input.value.trim(); confirmBtn.style.opacity = confirmBtn.disabled ? '0.5' : '1'; };
+        sync();
+
+        const close = (result) => {
+            document.removeEventListener('keydown', onKey, true);
+            backdrop.classList.remove('open');
+            setTimeout(() => backdrop.remove(), 250);
+            resolve(result);
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(null); }
+            if (e.key === 'Enter' && input.value.trim()) { e.preventDefault(); e.stopPropagation(); close(input.value.trim()); }
+        };
+        input.addEventListener('input', sync);
+        cancelBtn.addEventListener('click', () => close(null));
+        confirmBtn.addEventListener('click', () => { if (input.value.trim()) close(input.value.trim()); });
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(null); });
+        document.addEventListener('keydown', onKey, true);
+        document.body.appendChild(backdrop);
+        requestAnimationFrame(() => backdrop.classList.add('open'));
+        input.focus();
     });
 }

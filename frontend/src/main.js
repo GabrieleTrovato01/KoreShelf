@@ -1,4 +1,4 @@
-import { openCategoryManager } from './category-manager.js';
+import { openLibraryManager } from './library-manager.js';
 import { LibraryLoader } from './loader-optimizer.js';
 import { t, initI18n, setLanguage } from './i18n.js';
 import { UploadTray, uploadWithProgress } from './upload-tray.js';
@@ -1248,7 +1248,8 @@ manageCatBtn.onclick = () => {
     if (booksArray.length === 0) return;
     const activeCategory = booksArray[currentIndex].userData.category;
     
-    openCategoryManager(activeCategory, booksArray);
+    // Gestisci: schede Scaffali e Libri; a ogni modifica la libreria 3D si aggiorna senza ricaricare
+    openLibraryManager({ onChanged: (focusBookId) => reloadLibrary(focusBookId ? { focusBookId } : {}) });
 };
 
 // --- COSTRUZIONE FRECCE LATERALI ---
@@ -2260,7 +2261,7 @@ let isDragging = false;
 window.addEventListener('pointerdown', (event) => {
     const readerOverlay = document.getElementById('reader-overlay');
     if (readerOverlay && readerOverlay.style.display !== 'none') return;
-    if (document.getElementById('category-manager-overlay')) return;
+    if (document.getElementById('ks-manager')) return;
     if (document.getElementById('assign-category-overlay')) return;
     if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT' || event.target.tagName === 'LABEL') return;
     if (document.getElementById('help-modal-overlay')) return;
@@ -2332,7 +2333,7 @@ function openActiveBook() {
 window.addEventListener('pointerup', (event) => {
     const readerOverlay = document.getElementById('reader-overlay');
     if (readerOverlay && readerOverlay.style.display !== 'none') return;
-    if (document.getElementById('category-manager-overlay')) return;
+    if (document.getElementById('ks-manager')) return;
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
@@ -2398,7 +2399,7 @@ window.addEventListener('pointerup', (event) => {
 // Aggiungiamo il supporto alla ROTELLINA DEL MOUSE e al TRACKPAD
 let scrollTimeout = null; 
 window.addEventListener('wheel', (event) => {
-    if (document.getElementById('category-manager-overlay')) return;
+    if (document.getElementById('ks-manager')) return;
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
@@ -2423,7 +2424,7 @@ window.addEventListener('keydown', (event) => {
     const readerOverlay = document.getElementById('reader-overlay');
     if (readerOverlay && readerOverlay.style.display === 'block') return;
 
-    if (document.getElementById('category-manager-overlay')) return;
+    if (document.getElementById('ks-manager')) return;
     if (document.getElementById('assign-category-overlay')) return;
     if (document.getElementById('help-modal-overlay')) return;
     if (document.getElementById('metadata-manager-overlay')) return;
@@ -2515,7 +2516,9 @@ function animate() {
         }
     });
 
-    renderer.render(scene, camera);
+    // Con "Gestisci" aperto la scena è coperta e sfocata: non la ridisegniamo (risparmia batteria
+    // e rende fluide le finestre sopra il pannello). Riparte da sola alla chiusura.
+    if (!document.getElementById('ks-manager')) renderer.render(scene, camera);
 }
 
 window.addEventListener('resize', () => {

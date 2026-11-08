@@ -258,7 +258,7 @@ window.addEventListener('pointerdown', (e) => {
 
 window.addEventListener('pointerup', (e) => {
     if (Math.abs(e.clientX - pointerStartX) > 10 || Math.abs(e.clientY - pointerStartY) > 10) return;
-    if (document.getElementById('category-manager-overlay') || 
+    if (document.getElementById('ks-manager') || 
         document.getElementById('assign-category-overlay') || 
         document.getElementById('metadata-manager-overlay') ||
         document.getElementById('help-modal-overlay') ||

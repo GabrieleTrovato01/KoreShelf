@@ -15,6 +15,9 @@ stessa interfaccia, stesse funzioni, stesso database.
   che ti insegna l'app mentre lo leggi.
 - **Leggere**: *Inizia a leggere* (o *Riprendi a leggere*) sotto il libro al centro; le azioni
   meno frequenti (categoria, modifica, elimina) sono nel menu *Altro*.
+- **Organizzare**: *Gestisci* (sul telefono: *Altro → Gestisci scaffali*) ha due schede.
+  *Scaffali*: rinomina, elimina (i libri restano, in *Senza categoria*) o crea uno scaffale.
+  *Libri*: cerca, filtra, spunta più libri e spostali o eliminali insieme.
 - **Aggiungere libri**: pulsante *Carica Ebook* oppure trascina i file EPUB/PDF
   direttamente sulla finestra. Ogni libro compare come segnaposto animato e si
   trasforma nella sua copertina appena è pronto.
@@ -95,7 +98,8 @@ src/
   paths.rs           Cartella dati, modalità portatile, import vecchia libreria
 
 frontend/src/upload-tray.js   Vassoio di caricamento animato (segnaposto a forma di libro)
-frontend/src/dialogs.js       Finestre di conferma nello stile dell'app
+frontend/src/dialogs.js       Finestre di conferma e di inserimento testo nello stile dell'app
+frontend/src/library-manager.js  Pannello Gestisci: schede Scaffali e Libri, selezione multipla
 frontend/src/dissolve.js      Il libro eliminato si sgretola e il vento ne porta via i frammenti
 frontend/public/reader-search.js  Ricerca di parole e frasi nel lettore (EPUB e PDF)
 frontend/public/sample/       Libro di esempio (EPUB, it/en), generato da tools/make_sample_book.py

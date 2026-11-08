@@ -887,6 +887,165 @@ async def test_mobile_rotation_keeps_the_app_usable(p):
         assert not problems, "\n".join(problems)
 
 
+def watch_native_dialogs(page):
+    seen = []
+    page.on("dialog", lambda d: (seen.append(d.message), asyncio.ensure_future(d.dismiss())))
+    return seen
+
+
+async def open_manager(page, tab):
+    await page.locator(".top-bar button", has_text="Gestisci").first.click()
+    await page.wait_for_selector("#ks-manager", state="visible", timeout=5000)
+    await page.click(f"#ks-manager [role=tab][data-tab={tab}]")
+    await page.wait_for_timeout(300)
+
+
+async def visible_rows(page):
+    return await page.evaluate("""() => [...document.querySelectorAll('#ks-manager .ks-mgr-book')]
+        .filter(r => getComputedStyle(r).display !== 'none').map(r => r.dataset.id)""")
+
+
+async def test_manager_books_tab_search_move_and_delete_many(p):
+    """Gestisci (C), scheda Libri: tutti i libri, ricerca e filtri, selezione multipla,
+    'Sposta in…' e 'Elimina N libri' con conferma nell'app e senza ricaricare la pagina."""
+    with Server() as srv:
+        ids, _ = srv.seed()
+        browser, ctx, page = await open_app(p)
+        native = watch_native_dialogs(page)
+        await page.evaluate("window.__noReload = true")
+        await open_manager(page, "books")
+        await shot(page, "manager_books")
+        tabs = await page.locator("#ks-manager [role=tab]").all_inner_texts()
+        assert any("Scaffali" in t and "(2)" in t for t in tabs) and any("Libri" in t and "(3)" in t for t in tabs), tabs
+        assert len(await visible_rows(page)) == 3, "La scheda Libri mostra tutti i libri"
+
+        await page.fill("#ks-mgr-search", "alpha")
+        await page.wait_for_timeout(300)
+        assert await visible_rows(page) == [ids["Alpha Saggio"]], "La ricerca restringe l'elenco"
+        await page.fill("#ks-mgr-search", "")
+        await page.click("#ks-manager .ks-mgr-chip[data-shelf='Saggi']")
+        await page.wait_for_timeout(300)
+        assert set(await visible_rows(page)) == {ids["Alpha Saggio"], ids["Beta Saggio"]}, "Il filtro mostra solo lo scaffale"
+        await page.click("#ks-manager .ks-mgr-chip[data-shelf='']")
+
+        # Selezione multipla e spostamento
+        for title in ["Alpha Saggio", "Gamma Romanzo"]:
+            await page.check(f"#ks-manager .ks-mgr-book[data-id='{ids[title]}'] input[type=checkbox]")
+        bar = await page.locator("#ks-mgr-bar").inner_text()
+        assert "2" in bar and await page.locator("#ks-mgr-bar [data-action=delete]").inner_text() == "Elimina 2 libri", bar
+        await page.click("#ks-mgr-bar [data-action=move]")
+        await page.click("#ks-mgr-move-menu [data-shelf='Saggi']")
+        await page.wait_for_timeout(800)
+        gamma = next(b for b in api("GET", "/api/books") if b["id"] == ids["Gamma Romanzo"])
+        assert gamma["tags"][:1] == ["Saggi"], f"Gamma doveva finire in Saggi: {gamma['tags']}"
+        assert not await page.locator("#ks-manager .ks-mgr-book input:checked").count(), "Dopo lo spostamento la selezione si azzera"
+
+        # Eliminazione multipla
+        for title in ["Alpha Saggio", "Beta Saggio"]:
+            await page.check(f"#ks-manager .ks-mgr-book[data-id='{ids[title]}'] input[type=checkbox]")
+        await page.click("#ks-mgr-bar [data-action=delete]")
+        confirm = page.locator("#ks-confirm")
+        await confirm.wait_for(state="visible", timeout=3000)
+        text = await confirm.inner_text()
+        assert "Alpha Saggio" in text and "Beta Saggio" in text, f"La conferma elenca i libri: {text}"
+        blur = await page.evaluate("getComputedStyle(document.getElementById('ks-confirm')).backdropFilter")
+        assert blur == "none", f"Sopra il pannello niente seconda sfocatura (pesantissima, rallenta la conferma): {blur}"
+        await shot(page, "manager_delete_confirm")
+        await confirm.locator("[data-action=confirm]").click()
+        await page.wait_for_function(f"!document.querySelector(\"#ks-manager .ks-mgr-book[data-id='{ids['Alpha Saggio']}']\")", timeout=10000)
+        await page.wait_for_timeout(1500)
+        books = api("GET", "/api/books")
+        visible3d = await page.evaluate("window.__koreshelf.visibleBookIds()")
+        no_reload = await page.evaluate("window.__noReload === true")
+        await browser.close()
+        assert [b["id"] for b in books] == [ids["Gamma Romanzo"]], "Restano solo i libri non selezionati"
+        assert visible3d == [ids["Gamma Romanzo"]], f"Anche nella libreria 3D: {visible3d}"
+        assert no_reload and not native, f"Niente ricarica, niente popup di sistema: {native}"
+
+
+async def test_manager_shelves_tab_rename_delete_and_new(p):
+    """Gestisci (C), scheda Scaffali: rinomina nella riga, elimina spiegando che i libri restano,
+    nuovo scaffale con scelta dei libri; 'Senza categoria' non si tocca."""
+    with Server() as srv:
+        ids, _ = srv.seed()
+        browser, ctx, page = await open_app(p)
+        native = watch_native_dialogs(page)
+        await open_manager(page, "shelves")
+        await shot(page, "manager_shelves")
+        default_row = page.locator("#ks-manager .ks-mgr-shelf[data-shelf='']")
+        assert await default_row.count() == 1
+        assert await default_row.locator("[data-action=rename], [data-action=delete-shelf]").count() == 0, \
+            "'Senza categoria' non si rinomina né si elimina"
+
+        # Rinomina
+        row = page.locator("#ks-manager .ks-mgr-shelf[data-shelf='Saggi']")
+        await row.locator("[data-action=rename]").click()
+        await row.locator(".ks-mgr-rename-input").fill("Studio")
+        await row.locator(".ks-mgr-rename-input").press("Enter")
+        await page.wait_for_selector("#ks-manager .ks-mgr-shelf[data-shelf='Studio']", timeout=5000)
+        assert all(b["tags"][:1] == ["Studio"] for b in api("GET", "/api/books") if b["id"] != ids["Gamma Romanzo"])
+
+        # Elimina scaffale: i libri restano
+        await page.locator("#ks-manager .ks-mgr-shelf[data-shelf='Studio'] [data-action=delete-shelf]").click()
+        confirm = page.locator("#ks-confirm")
+        await confirm.wait_for(state="visible", timeout=3000)
+        text = (await confirm.inner_text()).lower()
+        assert "non" in text and "senza categoria" in text, f"La conferma spiega che i libri restano: {text}"
+        await confirm.locator("[data-action=confirm]").click()
+        await page.wait_for_selector("#ks-manager .ks-mgr-shelf[data-shelf='Studio']", state="detached", timeout=5000)
+        books = api("GET", "/api/books")
+        assert len(books) == 3 and all(not b["tags"] for b in books), "Nessun libro eliminato, tutti in Senza categoria"
+
+        # Nuovo scaffale con scelta dei libri
+        await page.click("#ks-mgr-new-shelf")
+        await page.fill("#ks-prompt input", "Viaggi")
+        await page.click("#ks-prompt [data-action=confirm]")
+        await page.wait_for_selector("#ks-mgr-target", state="visible", timeout=3000)
+        assert "Viaggi" in await page.locator("#ks-mgr-target").inner_text()
+        await page.check(f"#ks-manager .ks-mgr-book[data-id='{ids['Beta Saggio']}'] input[type=checkbox]")
+        await page.click("#ks-mgr-bar [data-action=put-into]")
+        await page.wait_for_timeout(800)
+        await shot(page, "manager_new_shelf")
+        beta = next(b for b in api("GET", "/api/books") if b["id"] == ids["Beta Saggio"])
+        await page.click("#ks-manager [role=tab][data-tab=shelves]")
+        has_viaggi = await page.locator("#ks-manager .ks-mgr-shelf[data-shelf='Viaggi']").count()
+        await browser.close()
+        assert beta["tags"][:1] == ["Viaggi"], beta["tags"]
+        assert has_viaggi == 1, "Il nuovo scaffale compare nell'elenco"
+        assert not native, f"Niente popup di sistema: {native}"
+
+
+async def test_manager_on_phone_is_full_screen_and_thumb_friendly(p):
+    """Telefono: Gestisci si apre da 'Altro', occupa lo schermo, voci grandi, barra sempre visibile."""
+    with Server() as srv:
+        ids, _ = srv.seed()
+        vw, vh = PHONES["Android"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        await page.click("#ks-more-btn")
+        await page.locator("#ks-more-menu button", has_text="Gestisci").click()
+        await page.wait_for_selector("#ks-manager", state="visible", timeout=5000)
+        await page.click("#ks-manager [role=tab][data-tab=books]")
+        await page.check(f"#ks-manager .ks-mgr-book[data-id='{ids['Alpha Saggio']}'] input[type=checkbox]")
+        await page.wait_for_timeout(300)
+        await shot(page, "manager_phone")
+        panel = await rect(page, "#ks-manager .ks-mgr-panel")
+        bar = await rect(page, "#ks-mgr-bar")
+        rows = await page.evaluate("() => [...document.querySelectorAll('#ks-manager .ks-mgr-book')].map(r => r.getBoundingClientRect().height)")
+        buttons = await page.evaluate("() => [...document.querySelectorAll('#ks-mgr-bar button')].map(b => b.getBoundingClientRect().height)")
+        overflow = await page.evaluate("document.documentElement.scrollWidth - window.innerWidth")
+        await browser.close()
+        problems = []
+        if not panel or panel["width"] < vw - 1 or panel["height"] < vh - 1:
+            problems.append(f"Sul telefono il pannello occupa tutto lo schermo: {panel}")
+        if not bar or bar["bottom"] > vh + 1:
+            problems.append(f"La barra delle azioni deve restare visibile: {bar}")
+        if not rows or min(rows) < 44 or not buttons or min(buttons) < 44:
+            problems.append(f"Righe e pulsanti da almeno 44px: {rows} {buttons}")
+        if overflow > 1:
+            problems.append(f"Scorrimento orizzontale di {overflow}px")
+        assert not problems, "\n".join(problems)
+
+
 async def test_shutdown_still_available_in_browser_mode(p):
     """Se manca WebView2 l'app si apre nel browser: lì serve ancora il pulsante per chiuderla."""
     with Server() as srv:
@@ -1003,7 +1162,8 @@ async def test_delete_dissolves_book_and_waits_before_leaving_the_shelf(p):
         insides = [f["inside"] for f in during]
         assert insides[-1] < 0.25 * insides[0], f"Il libro deve sgretolarsi del tutto: {insides}"
         # c. A partire da un lato
-        mid = [f for f in during if 0.25 * first["inside"] < f["inside"] < 0.75 * first["inside"]]
+        # Finestra ampia (10–90%): sotto carico i campioni sono radi e la fase centrale può cadere tra due
+        mid = [f for f in during if 0.10 * first["inside"] < f["inside"] < 0.90 * first["inside"]]
         assert mid and any(abs(f["left"] - f["right"]) > 0.3 * (f["left"] + f["right"]) for f in mid), \
             f"Lo sgretolamento deve procedere da un lato all'altro: {[(f['left'], f['right']) for f in mid]}"
         # d. I frammenti volano via fuori dal libro
