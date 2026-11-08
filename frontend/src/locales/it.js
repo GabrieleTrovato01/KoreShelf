@@ -428,4 +428,5 @@ export default {
     mgrNoResults: "Nessun libro trovato",
     mgrDefaultShelfNote: "Qui finiscono i libri senza scaffale",
     mgrCancel: "Annulla",
+    highlightAction: "Sottolinea",
 };

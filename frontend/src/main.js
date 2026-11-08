@@ -97,7 +97,9 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 // in pixel, dopo una rotazione allargherebbe la pagina e la WebView la rimpicciolirebbe.
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.domElement.id = 'ks-scene';
-renderer.domElement.style.cssText = 'position: fixed; inset: 0; width: 100%; height: 100%; display: block;';
+renderer.domElement.style.cssText = 'position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none;';
+// touch-action: none → il browser non "ruba" lo swipe per scorrere la pagina (niente pointercancel):
+// swipe verticale = cambia scaffale, orizzontale = cambia libro
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap; 
 document.body.appendChild(renderer.domElement);
@@ -2329,6 +2331,9 @@ function openActiveBook() {
         }
     }, 400);
 }
+
+// Un gesto annullato dal sistema non deve lasciare lo scaffale "agganciato" al dito
+window.addEventListener('pointercancel', () => { isDragging = false; });
 
 window.addEventListener('pointerup', (event) => {
     const readerOverlay = document.getElementById('reader-overlay');

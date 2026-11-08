@@ -169,6 +169,87 @@
         return r;
     };
 
+    // --- Swipe orizzontale per girare pagina (modalità pagine) ------------------------
+    const paginated = () => localStorage.getItem('readerFlow') !== 'scrolled-doc';
+    let swipe = null;
+    function swipeStart(x, y) { swipe = { x, y, t: performance.now() }; }
+    function swipeEnd(x, y, selectionText) {
+        if (!swipe) return;
+        const dx = x - swipe.x, dy = y - swipe.y;
+        swipe = null;
+        if (!paginated() || (selectionText && selectionText.trim())) return;
+        // Nessun limite di tempo: anche un trascinamento lento è uno swipe, purché lungo e orizzontale
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        $(dx < 0 ? 'next-page-btn' : 'prev-page-btn')?.click();
+        swipe = { consumed: performance.now() };
+    }
+
+    let swipeWatched = null;
+    setInterval(() => {
+        if (typeof rendition === 'undefined' || !rendition || rendition === swipeWatched) return;
+        swipeWatched = rendition;
+        rendition.on('touchstart', (e) => { const t = e.changedTouches[0]; swipeStart(t.clientX, t.clientY); });
+        rendition.on('touchend', (e) => {
+            const t = e.changedTouches[0];
+            swipeEnd(t.clientX, t.clientY, e.view && e.view.getSelection && String(e.view.getSelection()));
+        });
+        // Nel testo il browser gestisce solo lo scorrimento verticale: lo swipe orizzontale è nostro
+        rendition.hooks.content.register((contents) => {
+            const st = contents.document.createElement('style');
+            st.textContent = 'html, body { touch-action: pan-y pinch-zoom; }';
+            contents.document.head.appendChild(st);
+            contents.document.addEventListener('selectionchange', () => {
+                if (!String(contents.window.getSelection()).trim()) setTimeout(() => {
+                    if (!String(contents.window.getSelection()).trim()) hideHighlightButton();
+                }, 300);
+            });
+        });
+        rendition.on('relocated', () => hideHighlightButton());
+    }, 300);
+
+    // PDF: il contenitore esiste solo a pagina pronta, quindi ci si aggancia quando appare
+    const watchPdf = () => {
+        const pdfBox = $('pdf-container');
+        if (!pdfBox) return setTimeout(watchPdf, 200);
+        pdfBox.style.touchAction = 'pan-y pinch-zoom';
+        pdfBox.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; swipeStart(t.clientX, t.clientY); }, { passive: true });
+        pdfBox.addEventListener('touchend', (e) => { const t = e.changedTouches[0]; swipeEnd(t.clientX, t.clientY, String(window.getSelection())); }, { passive: true });
+    };
+    watchPdf();
+
+    // --- Pulsante "Sottolinea" ---------------------------------------------------------
+    let highlightAction = null;
+    const highlightStyle = document.createElement('style');
+    highlightStyle.textContent = `
+        #ks-highlight-btn { position: fixed; left: 50%; transform: translateX(-50%); bottom: 90px; z-index: 1003;
+            height: 48px; padding: 0 22px; border-radius: 50px; border: none; background: #1e2d3b; color: #fff;
+            font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif; font-size: 15px; font-weight: 700;
+            display: none; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.3); }
+        #ks-highlight-btn.show { display: flex; }
+        .ks-phone #ks-highlight-btn { bottom: calc(var(--ks-reader-bar-h, 118px) + 14px); }
+    `;
+    document.head.appendChild(highlightStyle);
+    const highlightBtn = document.createElement('button');
+    highlightBtn.id = 'ks-highlight-btn';
+    // pointerdown: evita che il tocco sul pulsante cancelli prima la selezione
+    highlightBtn.addEventListener('pointerdown', (e) => e.preventDefault());
+    highlightBtn.addEventListener('click', () => {
+        const action = highlightAction;
+        hideHighlightButton();
+        if (action) action();
+    });
+    function hideHighlightButton() {
+        highlightAction = null;
+        highlightBtn.classList.remove('show');
+    }
+    window.showHighlightButton = (action) => {
+        highlightAction = action;
+        highlightBtn.innerHTML = KS_ICON('pencil', 18) + `<span>${tr('highlightAction', 'Sottolinea')}</span>`;
+        if (!highlightBtn.isConnected) ($('reader-overlay') || document.body).appendChild(highlightBtn);
+        highlightBtn.classList.add('show');
+    };
+    window.addEventListener('readerClosed', hideHighlightButton);
+
     const tryBuild = () => { if (!build()) setTimeout(tryBuild, 200); };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(tryBuild, 0));
     else tryBuild();

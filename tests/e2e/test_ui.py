@@ -1046,6 +1046,151 @@ async def test_manager_on_phone_is_full_screen_and_thumb_friendly(p):
         assert not problems, "\n".join(problems)
 
 
+async def finger_swipe(ctx, page, x0, y0, x1, y1, steps=8, duration_ms=250):
+    """Un dito vero: eventi touch reali (non mouse), come su un telefono."""
+    cdp = await ctx.new_cdp_session(page)
+    await cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": x0, "y": y0}]})
+    for i in range(1, steps + 1):
+        await page.wait_for_timeout(duration_ms // steps)
+        x = x0 + (x1 - x0) * i / steps
+        y = y0 + (y1 - y0) * i / steps
+        await cdp.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x, "y": y}]})
+    await cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+    await cdp.detach()
+
+
+async def test_mobile_library_swipes_between_shelves_and_books(p):
+    """Telefono, verticale e orizzontale: swipe verticale = cambia scaffale,
+    swipe orizzontale = cambia libro (con il dito, non con il mouse)."""
+    with Server() as srv:
+        ids, _ = srv.seed()
+        problems = []
+        portrait = PHONES["Android"]
+        browser, ctx, page = await open_phone(p, portrait)
+        for label, (vw, vh) in [("verticale", portrait), ("orizzontale", portrait[::-1])]:
+            await page.set_viewport_size({"width": vw, "height": vh})
+            await page.wait_for_timeout(800)
+            await stable_camera(page)
+            book = await stable_rect(page, await page.evaluate("window.__koreshelf.activeBookId()"))
+            cx, cy = book["x"] + book["width"] / 2, book["y"] + book["height"] / 2
+
+            async def vertical_swipe():
+                book = await stable_rect(page, await page.evaluate("window.__koreshelf.activeBookId()"))
+                cx, cy = book["x"] + book["width"] / 2, book["y"] + book["height"] / 2
+                before = await page.locator(".top-bar > div:first-child").inner_text()
+                target_before = await page.evaluate("window.__koreshelf.cameraTargetY()")
+                dy = book["height"] * 0.45
+                direction = 1 if "SENZA" in before.upper() else -1   # giù = scaffale sopra
+                await finger_swipe(ctx, page, cx, cy - direction * dy / 2, cx, cy + direction * dy / 2)
+                await page.wait_for_timeout(1200)
+                after = await page.locator(".top-bar > div:first-child").inner_text()
+                if await page.evaluate("window.__koreshelf.cameraTargetY()") == target_before or after == before:
+                    problems.append(f"{label}: lo swipe verticale deve cambiare scaffale ({before} → {after})")
+                await stable_camera(page)
+                return after
+
+            # Si arriva sullo scaffale Saggi (2 libri) con uno swipe verticale se serve
+            shelf = await page.locator(".top-bar > div:first-child").inner_text()
+            if "SAGGI" not in shelf.upper():
+                shelf = await vertical_swipe()
+            # Swipe orizzontale: si passa all'altro libro
+            active = await page.evaluate("window.__koreshelf.activeBookId()")
+            book = await stable_rect(page, active)
+            cx, cy = book["x"] + book["width"] / 2, book["y"] + book["height"] / 2
+            towards = -1 if active == ids["Alpha Saggio"] else 1   # verso sinistra = libro successivo
+            await finger_swipe(ctx, page, cx - towards * 90, cy, cx + towards * 90, cy)
+            await page.wait_for_timeout(1000)
+            if await page.evaluate("window.__koreshelf.activeBookId()") == active:
+                problems.append(f"{label}: lo swipe orizzontale deve cambiare libro")
+            # E di nuovo uno swipe verticale per tornare all'altro scaffale
+            await vertical_swipe()
+            await shot(page, f"swipe_library_{label}")
+        await browser.close()
+        assert not problems, "\n".join(problems)
+
+
+async def test_mobile_reader_swipes_pages(p):
+    """Telefono, lettore in modalità pagine: swipe a sinistra = pagina dopo, a destra = pagina prima
+    (EPUB e PDF)."""
+    with Server() as srv:
+        epub_path = srv.home / "Tipografia.epub"
+        make_epub(epub_path, "Manuale di Tipografia", "Autore Test", (60, 160, 80), chapters=LONG_PARAGRAPHS)
+        epub = api("POST", "/api/upload", files={"ebook": epub_path})["book"]
+        pdf_path = srv.home / "Pagine.pdf"
+        make_pdf(pdf_path, {2: "Seconda pagina."})
+        pdf = api("POST", "/api/upload", files={"ebook": pdf_path})["book"]
+        vw, vh = PHONES["Android"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        problems = []
+
+        await open_reader(page, epub)
+        start = await page.evaluate("rendition.currentLocation().start.cfi")
+        await finger_swipe(ctx, page, vw * 0.75, vh * 0.45, vw * 0.25, vh * 0.45)
+        await page.wait_for_timeout(1000)
+        after = await page.evaluate("rendition.currentLocation().start.cfi")
+        if after == start:
+            problems.append("EPUB: lo swipe a sinistra deve andare alla pagina dopo")
+        await finger_swipe(ctx, page, vw * 0.25, vh * 0.45, vw * 0.75, vh * 0.45)
+        await page.wait_for_timeout(1000)
+        if await page.evaluate("rendition.currentLocation().start.cfi") != start:
+            problems.append("EPUB: lo swipe a destra deve tornare alla pagina prima")
+        await page.click("#ks-reader-back")
+        await page.wait_for_function("document.getElementById('reader-overlay').style.display === 'none'", timeout=8000)
+
+        await open_reader(page, pdf)
+        await finger_swipe(ctx, page, vw * 0.75, vh * 0.45, vw * 0.25, vh * 0.45)
+        await page.wait_for_timeout(1200)
+        if await page.evaluate("pageNum") != 2:
+            problems.append(f"PDF: lo swipe a sinistra deve andare a pagina 2 (pagina {await page.evaluate('pageNum')})")
+        await browser.close()
+        assert not problems, "\n".join(problems)
+
+
+async def test_reader_highlights_a_whole_phrase(p):
+    """Sottolineare più parole: la selezione non viene salvata (né cancellata) mentre la si allunga;
+    si salva con il pulsante 'Sottolinea', che registra tutta la frase."""
+    with Server() as srv:
+        path = srv.home / "Tipografia.epub"
+        make_epub(path, "Manuale di Tipografia", "Autore Test", (60, 160, 80), chapters=LONG_PARAGRAPHS)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        browser, ctx, page = await open_phone(p, PHONES["Android"])
+        await open_reader(page, book)
+        select = """(n) => { const doc = document.querySelector('#viewer iframe').contentDocument;
+            const p = [...doc.querySelectorAll('p')].find(e => e.textContent.length > 300);
+            const r = doc.createRange(); r.setStart(p.firstChild, 0); r.setEnd(p.firstChild, n);
+            const sel = doc.getSelection(); sel.removeAllRanges(); sel.addRange(r); return String(sel); }"""
+        saved = lambda: next(b for b in api("GET", "/api/books") if b["id"] == book["id"])["highlights"]
+
+        # 1. Una prima selezione (come la pressione prolungata su una parola)
+        await page.evaluate(select, 10)
+        await page.wait_for_timeout(900)
+        still_selected = await page.evaluate("String(document.querySelector('#viewer iframe').contentDocument.getSelection())")
+        problems = []
+        if saved():
+            problems.append("La selezione non deve essere salvata da sola")
+        if not still_selected:
+            problems.append("La selezione non deve essere cancellata: va potuta allungare")
+        # 2. La si allunga a più parole, poi si tocca 'Sottolinea'
+        phrase = await page.evaluate(select, 90)
+        await page.wait_for_timeout(900)
+        btn = await rect(page, "#ks-highlight-btn")
+        await shot(page, "highlight_button")
+        if not btn or btn["height"] < 44:
+            problems.append(f"Serve un pulsante 'Sottolinea' ben visibile: {btn}")
+        else:
+            await page.click("#ks-highlight-btn")
+            await page.wait_for_timeout(1200)
+            hl = saved()
+            if len(hl) != 1 or hl[0]["text"].strip() != phrase.strip():
+                problems.append(f"Va salvata tutta la frase selezionata: {hl} invece di {phrase!r}")
+            elif hl[0]["text"].count(" ") < 8:
+                problems.append("La sottolineatura deve contenere più parole")
+            if await rect(page, "#ks-highlight-btn"):
+                problems.append("Dopo il salvataggio il pulsante sparisce")
+        await browser.close()
+        assert not problems, "\n".join(problems)
+
+
 async def test_shutdown_still_available_in_browser_mode(p):
     """Se manca WebView2 l'app si apre nel browser: lì serve ancora il pulsante per chiuderla."""
     with Server() as srv:

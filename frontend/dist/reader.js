@@ -227,7 +227,12 @@ window.openReader = function(epubUrl, bookId) {
 
     // 2. ASCOLTA LA SELEZIONE DEL TESTO (Nuovi highlight)
     rendition.on("selected", function(cfiRange, contents) {
-        
+        // La selezione NON viene salvata subito: sul telefono la pressione prolungata seleziona una
+        // sola parola e va potuta allungare. Compare il pulsante "Sottolinea", che la salva.
+        if (window.showHighlightButton) window.showHighlightButton(() => saveSelectionAsHighlight(cfiRange, contents));
+    });
+
+    function saveSelectionAsHighlight(cfiRange, contents) {
         // Applica l'evidenziazione visiva nel frontend in tempo reale
         rendition.annotations.highlight(cfiRange, {}, (e) => {
             handleHighlightClick(e, cfiRange); 
@@ -257,7 +262,7 @@ window.openReader = function(epubUrl, bookId) {
 
         // Deseleziona il testo nativo del browser
         contents.window.getSelection().removeAllRanges();
-    });
+    }
 
     rendition.hooks.content.register((contents) => {
         const style = contents.document.createElement("style");

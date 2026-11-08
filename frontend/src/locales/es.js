@@ -427,4 +427,5 @@ export default {
     mgrNoResults: "No se encontraron libros",
     mgrDefaultShelfNote: "Aquí van los libros sin estantería",
     mgrCancel: "Cancelar",
+    highlightAction: "Subrayar",
 };

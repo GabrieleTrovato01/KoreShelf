@@ -426,4 +426,5 @@ export default {
     mgrNoResults: "No books found",
     mgrDefaultShelfNote: "Books without a shelf end up here",
     mgrCancel: "Cancel",
+    highlightAction: "Highlight",
 };

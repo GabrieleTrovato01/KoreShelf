@@ -423,4 +423,5 @@ export default {
     mgrNoResults: "Aucun livre trouvé",
     mgrDefaultShelfNote: "Les livres sans étagère arrivent ici",
     mgrCancel: "Annuler",
+    highlightAction: "Surligner",
 };
