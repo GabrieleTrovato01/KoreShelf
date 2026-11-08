@@ -223,7 +223,12 @@ def test_downloads_survive_flaky_servers():
     assert saves and all("always()" in str(s.get("if", "")) for s in saves), \
         "La cache si salva anche se il job fallisce (un download riuscito non va perso)"
     android = wf["jobs"]["android"]
-    assert any("setup-gradle" in str(s.get("uses", "")) for s in android["steps"]), "Android: Gradle in cache"
+    gradle = next((s for s in android["steps"] if "setup-gradle" in str(s.get("uses", ""))), None)
+    assert gradle, "Android: Gradle in cache"
+    # Di default setup-gradle SALVA la cache solo sul ramo principale: sugli altri rami (rust_version)
+    # la cache non servirebbe mai. Si salva sempre, tranne nelle Pull Request (che arrivano anche da fork).
+    read_only = str(gradle.get("with", {}).get("cache-read-only", ""))
+    assert "pull_request" in read_only, f"Android: la cache di Gradle va salvata anche fuori da main ({read_only!r})"
     build = next(s for s in android["steps"] if "tauri android build" in str(s.get("run", "")))
     assert re.search(r"for\s+\w+\s+in\s+1\s+2\s+3", build["run"]), "Android: l'assemblaggio si ritenta (problemi di rete)"
 

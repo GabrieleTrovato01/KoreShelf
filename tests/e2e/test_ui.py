@@ -1191,6 +1191,114 @@ async def test_reader_highlights_a_whole_phrase(p):
         assert not problems, "\n".join(problems)
 
 
+async def test_reader_selection_across_pages_keeps_pages_aligned(p):
+    """Modalità pagine: quando una selezione arriva al bordo il browser fa scorrere il testo di una
+    quantità qualsiasi, lasciando due pagine tagliate a metà. La vista deve tornare sempre allineata
+    a una pagina intera: avanti se lo scorrimento va avanti (la selezione continua lì), indietro se va
+    indietro. Girare pagina normalmente deve funzionare come prima."""
+    with Server() as srv:
+        path = srv.home / "Tipografia.epub"
+        make_epub(path, "Manuale di Tipografia", "Autore Test", (60, 160, 80), chapters=LONG_PARAGRAPHS)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        vw, vh = PHONES["Android"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        await open_reader(page, book)
+        geo = "() => { const m = rendition.manager; return { left: m.container.scrollLeft, delta: m.layout.delta }; }"
+        aligned = lambda g: abs(g["left"] / g["delta"] - round(g["left"] / g["delta"])) < 0.01
+        problems = []
+
+        # Pagina 2, per poter provare entrambe le direzioni
+        await page.evaluate("document.getElementById('next-page-btn').click()")
+        await page.wait_for_timeout(900)
+        start = await page.evaluate(geo)
+        if not aligned(start):
+            problems.append(f"Setup: la pagina di partenza non è allineata {start}")
+
+        # Selezione in corso + scorrimento automatico del browser verso la pagina dopo
+        await page.evaluate("""() => { const d = document.querySelector('#viewer iframe').contentDocument;
+            const p = [...d.querySelectorAll('p')].find(e => e.textContent.length > 300);
+            const r = d.createRange(); r.setStart(p.firstChild, 0); r.setEnd(p.firstChild, 40);
+            d.getSelection().removeAllRanges(); d.getSelection().addRange(r); }""")
+        await page.evaluate(f"rendition.manager.container.scrollLeft = {start['left']} + Math.round({start['delta']} * 0.37)")
+        await page.wait_for_timeout(1200)
+        fwd = await page.evaluate(geo)
+        await shot(page, "selection_scroll_forward")
+        if not aligned(fwd):
+            problems.append(f"Avanti: la vista è rimasta tagliata tra due pagine ({fwd['left']} con pagine da {fwd['delta']})")
+        elif round(fwd["left"]) != round(start["left"] + start["delta"]):
+            problems.append(f"Avanti: doveva arrivare alla pagina successiva ({start['left'] + start['delta']}), è a {fwd['left']}")
+
+        # E all'indietro
+        await page.wait_for_timeout(800)
+        await page.evaluate(f"rendition.manager.container.scrollLeft = {fwd['left']} - Math.round({fwd['delta']} * 0.41)")
+        await page.wait_for_timeout(1200)
+        back = await page.evaluate(geo)
+        if not aligned(back):
+            problems.append(f"Indietro: la vista è rimasta tagliata ({back['left']})")
+        elif round(back["left"]) != round(fwd["left"] - fwd["delta"]):
+            problems.append(f"Indietro: doveva tornare alla pagina precedente, è a {back['left']}")
+
+        # Dopo aver tolto la selezione si gira pagina normalmente
+        await page.evaluate("document.querySelector('#viewer iframe').contentDocument.getSelection().removeAllRanges()")
+        await page.wait_for_timeout(500)
+        before = await page.evaluate(geo)
+        await page.evaluate("document.getElementById('next-page-btn').click()")
+        await page.wait_for_timeout(1000)
+        after = await page.evaluate(geo)
+        if not aligned(after) or round(after["left"]) != round(before["left"] + before["delta"]):
+            problems.append(f"Girare pagina deve funzionare come prima: {before['left']} → {after['left']}")
+        await browser.close()
+        assert not problems, "\n".join(problems)
+
+
+async def test_mobile_swipes_work_after_closing_a_post_it(p):
+    """Telefono: sulla bacheca si apre un post-it e lo si chiude; gli swipe verticali devono
+    continuare a funzionare (si torna agli scaffali)."""
+    with Server() as srv:
+        ids, _ = srv.seed()
+        api("POST", f"/api/books/{ids['Alpha Saggio']}/highlights", {"cfi": "epubcfi(/6/2!/4/2/1:0)", "text": "Una frase sottolineata"})
+        vw, vh = PHONES["Android"]
+        browser, ctx, page = await open_phone(p, (vw, vh))
+        label = lambda: page.locator(".top-bar > div:first-child").inner_text()
+
+        async def swipe_down_to_upper_shelf():
+            await stable_camera(page)
+            await finger_swipe(ctx, page, vw / 2, vh * 0.30, vw / 2, vh * 0.55)
+            await page.wait_for_timeout(1200)
+
+        # Senza categoria → Saggi → bacheca dei post-it
+        await swipe_down_to_upper_shelf()
+        await swipe_down_to_upper_shelf()
+        await stable_camera(page)
+        assert await page.evaluate("window.__koreshelf.viewingBoard()"), "Setup: la bacheca deve essere in vista"
+        board_label = (await label()).upper()
+        assert "BACHECA" in board_label or "SOTTOLINEATURE" in board_label, \
+            f"Sulla bacheca l'etichetta in alto deve dirlo: {board_label!r}"
+        notes = await page.evaluate("window.__koreshelfBoard ? window.__koreshelfBoard.noteRects() : []")
+        assert notes, "Setup: sulla bacheca deve esserci il post-it"
+        await shot(page, "board_before")
+        n = notes[0]
+        await page.touchscreen.tap(n["x"] + n["width"] / 2, n["y"] + n["height"] / 2)
+        await page.wait_for_selector("#highlights-manager-overlay", state="visible", timeout=5000)
+        await page.click("#close-hl-modal")
+        await page.wait_for_selector("#highlights-manager-overlay", state="detached", timeout=5000)
+        await page.wait_for_timeout(500)
+
+        # Swipe verso l'alto (dito in su) nella parte bassa, dove sta il pollice: si torna agli scaffali.
+        # (L'etichetta in alto non basta: sulla bacheca può restare quella dello scaffale.)
+        on_board = await page.evaluate("window.__koreshelf.viewingBoard()")
+        await stable_camera(page)
+        await finger_swipe(ctx, page, vw / 2, vh * 0.85, vw / 2, vh * 0.60)
+        await page.wait_for_timeout(1200)
+        still_on_board = await page.evaluate("window.__koreshelf.viewingBoard()")
+        shelf_label = (await label()).upper()
+        await shot(page, "board_after")
+        await browser.close()
+        assert on_board, "Setup: dopo due swipe si doveva essere sulla bacheca"
+        assert not still_on_board, "Dopo aver chiuso il post-it, lo swipe (nella zona del pollice) deve riportare agli scaffali"
+        assert "SAGGI" in shelf_label, f"Tornati agli scaffali l'etichetta torna al nome dello scaffale: {shelf_label!r}"
+
+
 async def test_shutdown_still_available_in_browser_mode(p):
     """Se manca WebView2 l'app si apre nel browser: lì serve ancora il pulsante per chiuderla."""
     with Server() as srv:

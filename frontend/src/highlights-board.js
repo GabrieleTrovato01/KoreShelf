@@ -246,6 +246,27 @@ function createPostItTexture(book) {
     return new THREE.CanvasTexture(canvas);
 }
 
+// Per i test automatici: posizione sullo schermo di ogni post-it visibile
+window.__koreshelfBoard = {
+    noteRects: () => {
+        if (!localCamera || !boardGroup) return [];
+        const out = [];
+        boardGroup.updateMatrixWorld(true);
+        boardGroup.traverse(obj => {
+            if (obj.name !== 'postit_note' || !obj.visible) return;
+            const box = new THREE.Box3().setFromObject(obj);
+            const pts = [];
+            for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) {
+                const v = new THREE.Vector3(x, y, box.max.z).project(localCamera);
+                pts.push({ x: (v.x + 1) / 2 * window.innerWidth, y: (1 - v.y) / 2 * window.innerHeight });
+            }
+            const xs = pts.map(q => q.x), ys = pts.map(q => q.y);
+            out.push({ x: Math.min(...xs), y: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) });
+        });
+        return out;
+    },
+};
+
 // Interazione via Raycasting
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();

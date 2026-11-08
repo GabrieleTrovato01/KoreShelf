@@ -207,6 +207,17 @@ function updateCameraFit() {
 }
 let isViewingBoard= false; // Stato della bacheca dei post-it
 
+// Entrare/uscire dalla bacheca passa sempre da qui. Sulla bacheca il pannello del libro va tolto
+// di mezzo davvero (non solo reso trasparente): da invisibile intercettava i tocchi, e uno swipe
+// nella zona del pollice finiva su di lui invece che sulla scena (si restava bloccati sulla bacheca).
+function setViewingBoard(value) {
+    isViewingBoard = value;
+    if (typeof uiContainer !== 'undefined') {
+        uiContainer.style.visibility = value ? 'hidden' : '';
+        uiContainer.style.pointerEvents = value ? 'none' : '';
+    }
+}
+
 // --- 2. STILI CSS MODERNI E UI (Menu + Bottone Inferiore) ---
 const styleStyle = document.createElement('style');
 styleStyle.innerHTML = `
@@ -340,6 +351,7 @@ document.body.appendChild(topBar);
 
 // 1. Etichetta Categoria Attuale
 const categoryLabel = document.createElement('div');
+categoryLabel.id = 'category-label'; // la bacheca dei post-it ci scrive il proprio titolo
 categoryLabel.className = 'glass-effect tb-btn';
 categoryLabel.style.display = 'none';
 topBar.appendChild(categoryLabel);
@@ -1323,7 +1335,7 @@ function changeShelf(direction) {
         if (targetIndex === -1) {
             const hasHighlights = booksArray.some(b => b.userData.highlights && b.userData.highlights.length > 0);
             if (hasHighlights) {
-                isViewingBoard = true;
+                setViewingBoard(true);
                 targetCameraY = booksArray[booksArray.length - 1].userData.baseShelfY + 4.5;
                 
                 // Aggiorniamo l'interfaccia 2D
@@ -1343,7 +1355,7 @@ function changeShelf(direction) {
     } else { 
         if (isViewingBoard) {
             // SCENDIAMO DALLA BACHECA ALLA MENSOLA PIU' ALTA
-            isViewingBoard = false;
+            setViewingBoard(false);
             uiContainer.style.opacity = '1';
             leftArrow.style.opacity = '1';
             rightArrow.style.opacity = '1';
@@ -1482,7 +1494,7 @@ searchInput.addEventListener('input', (e) => {
                     isShowingBack = false;
 
                     if (isViewingBoard) { 
-                        isViewingBoard = false;
+                        setViewingBoard(false);
                         uiContainer.style.opacity = '1';
                         leftArrow.style.opacity = '1';
                         rightArrow.style.opacity = '1';
@@ -2819,7 +2831,7 @@ async function landNewBook(item, book) {
     // Il libro 3D resta nascosto finché quello "volante" non lo raggiunge
     mesh.visible = false;
     if (isViewingBoard) {
-        isViewingBoard = false;
+        setViewingBoard(false);
         uiContainer.style.opacity = '1';
         leftArrow.style.opacity = '1';
         rightArrow.style.opacity = '1';
@@ -2891,6 +2903,7 @@ window.__koreshelf = {
     cameraY: () => camera.position.y,
     cameraTargetY: () => targetCameraY,   // altezza della mensola verso cui si muove la telecamera
     cameraState: () => ({ x: camera.position.x, y: camera.position.y, z: camera.position.z, fit: { ...cameraFit } }),
+    viewingBoard: () => isViewingBoard,   // la bacheca dei post-it è in vista?
     shelfSize: () => { const b = booksArray[currentIndex]; return b ? booksArray.filter(x => x.userData.category === b.userData.category).length : 0; },
 };
 
