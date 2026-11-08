@@ -189,6 +189,32 @@ def test_android_release_is_signed_with_the_project_key():
     assert "*.jks" in gitignore and "*.keystore" in gitignore, "Le chiavi non devono mai finire nel repository"
 
 
+def test_downloads_survive_flaky_servers():
+    """I server di download (GitHub release, Gradle) a volte rispondono 504: i download devono
+    dire cosa scaricano, ritentare a lungo, non lasciare file a metà, e restare in cache."""
+    script = (ROOT / "packaging" / "linux" / "build-appimage.sh").read_text()
+    fetch = re.search(r"fetch\(\)\s*\{(.*?)\n\}", script, re.S)
+    assert fetch, "Serve una funzione fetch() per i download"
+    body = fetch.group(1)
+    retries = re.search(r"--retry\s+(\d+)", body)
+    assert retries and int(retries.group(1)) >= 5, "Almeno 5 nuovi tentativi"
+    assert "--retry-all-errors" in body, "Ritentare anche sugli errori 5xx (504)"
+    assert "--retry-delay" in body or "--retry-max-time" in body, "Pause tra un tentativo e l'altro"
+    assert "echo" in body, "Il log deve dire quale file sta scaricando"
+    assert re.search(r"\.part|mktemp|\.tmp", body) and "mv " in body, "Download su file temporaneo, poi rinomina"
+    assert "type2-runtime" in script and "--runtime-file" in script, \
+        "Il runtime dell'AppImage va scaricato dallo script (con tentativi) e passato ad appimagetool"
+    assert "--output appimage" not in script, "Il plugin appimage scarica il runtime da sé, senza tentativi"
+
+    wf = yaml.safe_load(WORKFLOW.read_text())
+    linux = json.dumps(wf["jobs"]["linux"])
+    assert "actions/cache" in linux and "appimage-tools" in linux, "Linux: strumenti AppImage in cache"
+    android = wf["jobs"]["android"]
+    assert any("setup-gradle" in str(s.get("uses", "")) for s in android["steps"]), "Android: Gradle in cache"
+    build = next(s for s in android["steps"] if "tauri android build" in str(s.get("run", "")))
+    assert re.search(r"for\s+\w+\s+in\s+1\s+2\s+3", build["run"]), "Android: l'assemblaggio si ritenta (problemi di rete)"
+
+
 # ------------------------------------------------------------------- Linux
 
 def _wait_ping(port=3000, timeout=60):

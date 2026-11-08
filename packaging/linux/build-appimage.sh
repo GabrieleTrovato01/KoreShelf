@@ -18,10 +18,26 @@ trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$OUT" "$TOOLS"
 
 # --- Strumenti: linuxdeploy (+ plugin GTK) ---------------------------------
-fetch() { [ -s "$2" ] || curl -fsSL --retry 3 -o "$2" "$1"; chmod +x "$2"; }
+# I server dei download (GitHub release) a volte rispondono 504 per qualche minuto:
+# si ritenta a lungo, con pause crescenti, e si salva su un file temporaneo così un
+# download interrotto non viene mai scambiato per un file completo (gli strumenti sono in cache).
+fetch() {
+    local url="$1" dest="$2"
+    if [ -s "$dest" ]; then
+        echo "In cache: $(basename "$dest")"
+    else
+        echo "Scarico $(basename "$dest") da $url"
+        curl -fsSL --connect-timeout 30 --retry 8 --retry-all-errors --retry-max-time 600 -o "$dest.part" "$url"
+        mv "$dest.part" "$dest"
+    fi
+    chmod +x "$dest"
+}
 fetch "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage" "$TOOLS/linuxdeploy"
-fetch "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-${ARCH}.AppImage" "$TOOLS/linuxdeploy-plugin-appimage"
 fetch "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh" "$TOOLS/linuxdeploy-plugin-gtk.sh"
+fetch "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${ARCH}.AppImage" "$TOOLS/appimagetool"
+# Il "runtime" che rende l'AppImage eseguibile: lo scarichiamo noi (con i tentativi) e lo passiamo
+# ad appimagetool, che altrimenti lo scaricherebbe da sé senza riprovare
+fetch "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-${ARCH}" "$TOOLS/runtime-${ARCH}"
 export PATH="$TOOLS:$PATH"
 export APPIMAGE_EXTRACT_AND_RUN=1   # niente FUSE richiesto (anche nei container della CI)
 
@@ -50,6 +66,14 @@ mkdir -p "$APPDIR/usr$REL"
 cp -a "$HELPERS" "$APPDIR/usr$REL/"
 rm -f "$APPDIR/usr$REL/webkit2gtk-4.1/MiniBrowser"
 
+# Script di avvio: va creato PRIMA di linuxdeploy, che genera AppRun elencando gli script
+# presenti in quel momento (uno aggiunto dopo non verrebbe mai eseguito)
+mkdir -p "$APPDIR/apprun-hooks"
+cat > "$APPDIR/apprun-hooks/zz-koreshelf-webkit.sh" <<'HOOK'
+# I processi di WebKit vanno cercati dentro l'AppImage
+cd "$APPDIR/usr"
+HOOK
+
 # linuxdeploy copia app, librerie (compresa libwebkit2gtk) e dipendenze dei processi ausiliari
 linuxdeploy --appdir "$APPDIR" \
     --executable "$APPDIR/usr/bin/koreshelf" \
@@ -64,16 +88,10 @@ linuxdeploy --appdir "$APPDIR" \
 for lib in "$APPDIR"/usr/lib/libwebkit2gtk-4.1.so*; do
     [ -f "$lib" ] && sed -i "s|/usr$REL/webkit2gtk-4.1|././$REL/webkit2gtk-4.1|g" "$lib"
 done
-mkdir -p "$APPDIR/apprun-hooks"
-cat > "$APPDIR/apprun-hooks/zz-koreshelf-webkit.sh" <<'HOOK'
-# I processi di WebKit vanno cercati dentro l'AppImage
-cd "$APPDIR/usr"
-HOOK
 
 # --- Impacchettamento -------------------------------------------------------
-export OUTPUT="$OUT/KoreShelf-${VERSION}-${ARCH}.AppImage"
+OUTPUT="$OUT/KoreShelf-${VERSION}-${ARCH}.AppImage"
 rm -f "$OUTPUT"
-export LDAI_OUTPUT="$OUTPUT"
-linuxdeploy --appdir "$APPDIR" --output appimage
+ARCH="$ARCH" appimagetool --runtime-file "$TOOLS/runtime-${ARCH}" "$APPDIR" "$OUTPUT"
 chmod +x "$OUTPUT"
 echo "Creato $OUTPUT"
