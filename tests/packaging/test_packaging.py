@@ -202,13 +202,26 @@ def test_downloads_survive_flaky_servers():
     assert "--retry-delay" in body or "--retry-max-time" in body, "Pause tra un tentativo e l'altro"
     assert "echo" in body, "Il log deve dire quale file sta scaricando"
     assert re.search(r"\.part|mktemp|\.tmp", body) and "mv " in body, "Download su file temporaneo, poi rinomina"
-    assert "type2-runtime" in script and "--runtime-file" in script, \
-        "Il runtime dell'AppImage va scaricato dallo script (con tentativi) e passato ad appimagetool"
-    assert "--output appimage" not in script, "Il plugin appimage scarica il runtime da sé, senza tentativi"
+    # Meno download possibili: niente appimagetool né runtime da GitHub. Il runtime (MIT) è nel
+    # repository, verificato con SHA-256; l'AppImage si assembla con mksquashfs (pacchetto Ubuntu).
+    downloaded = " ".join(re.findall(r'fetch\s+"([^"]+)"', script))
+    assert "appimagetool" not in downloaded and "type2-runtime" not in downloaded, \
+        f"appimagetool e runtime non si scaricano più: {downloaded}"
+    runtime = ROOT / "packaging" / "linux" / "runtime-x86_64"
+    digest = ROOT / "packaging" / "linux" / "runtime-x86_64.sha256"
+    assert runtime.exists() and digest.exists(), "Runtime incluso nel repository, con la sua impronta SHA-256"
+    import hashlib
+    assert hashlib.sha256(runtime.read_bytes()).hexdigest() == digest.read_text().split()[0], "Impronta del runtime errata"
+    assert "sha256sum -c" in script, "Lo script verifica il runtime prima di usarlo"
+    assert "mksquashfs" in script and "--output appimage" not in script
 
     wf = yaml.safe_load(WORKFLOW.read_text())
     linux = json.dumps(wf["jobs"]["linux"])
     assert "actions/cache" in linux and "appimage-tools" in linux, "Linux: strumenti AppImage in cache"
+    assert "squashfs-tools" in linux, "Linux: mksquashfs dai pacchetti di Ubuntu"
+    saves = [s for s in wf["jobs"]["linux"]["steps"] if "actions/cache/save" in str(s.get("uses", ""))]
+    assert saves and all("always()" in str(s.get("if", "")) for s in saves), \
+        "La cache si salva anche se il job fallisce (un download riuscito non va perso)"
     android = wf["jobs"]["android"]
     assert any("setup-gradle" in str(s.get("uses", "")) for s in android["steps"]), "Android: Gradle in cache"
     build = next(s for s in android["steps"] if "tauri android build" in str(s.get("run", "")))

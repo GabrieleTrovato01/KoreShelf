@@ -34,10 +34,12 @@ fetch() {
 }
 fetch "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${ARCH}.AppImage" "$TOOLS/linuxdeploy"
 fetch "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh" "$TOOLS/linuxdeploy-plugin-gtk.sh"
-fetch "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-${ARCH}.AppImage" "$TOOLS/appimagetool"
-# Il "runtime" che rende l'AppImage eseguibile: lo scarichiamo noi (con i tentativi) e lo passiamo
-# ad appimagetool, che altrimenti lo scaricherebbe da sé senza riprovare
-fetch "https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-${ARCH}" "$TOOLS/runtime-${ARCH}"
+
+# Il "runtime" (MIT, progetto AppImage) è incluso nel repository: niente download, solo una verifica
+RUNTIME="$ROOT/packaging/linux/runtime-${ARCH}"
+[ -f "$RUNTIME" ] || { echo "Runtime per $ARCH non incluso (packaging/linux/runtime-$ARCH)" >&2; exit 1; }
+(cd "$ROOT/packaging/linux" && sha256sum -c "runtime-${ARCH}.sha256") || { echo "Runtime alterato: impronta SHA-256 diversa" >&2; exit 1; }
+command -v mksquashfs > /dev/null || { echo "Serve mksquashfs: sudo apt-get install squashfs-tools" >&2; exit 1; }
 export PATH="$TOOLS:$PATH"
 export APPIMAGE_EXTRACT_AND_RUN=1   # niente FUSE richiesto (anche nei container della CI)
 
@@ -92,6 +94,10 @@ done
 # --- Impacchettamento -------------------------------------------------------
 OUTPUT="$OUT/KoreShelf-${VERSION}-${ARCH}.AppImage"
 rm -f "$OUTPUT"
-ARCH="$ARCH" appimagetool --runtime-file "$TOOLS/runtime-${ARCH}" "$APPDIR" "$OUTPUT"
+# Un'AppImage è il runtime seguito dall'archivio compresso (squashfs) della cartella dell'app:
+# lo assembliamo con mksquashfs, dai pacchetti di Ubuntu, senza scaricare appimagetool
+[ -e "$APPDIR/.DirIcon" ] || ln -s koreshelf.png "$APPDIR/.DirIcon"
+mksquashfs "$APPDIR" "$WORK/app.squashfs" -root-owned -noappend -comp zstd -Xcompression-level 19 -quiet
+cat "$RUNTIME" "$WORK/app.squashfs" > "$OUTPUT"
 chmod +x "$OUTPUT"
 echo "Creato $OUTPUT"

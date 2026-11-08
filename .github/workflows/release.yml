@@ -89,7 +89,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev libxdo-dev libssl-dev \
-            librsvg2-dev file xvfb
+            librsvg2-dev file xvfb squashfs-tools
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - name: Interfaccia
@@ -101,8 +101,8 @@ jobs:
         run: cargo build --release
       # Strumenti per l'AppImage in cache: dopo la prima volta non si riscaricano
       # (i server dei download a volte rispondono 504)
-      - name: Strumenti AppImage (cache)
-        uses: actions/cache@v4
+      - name: Strumenti AppImage (dalla cache)
+        uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/appimage-tools
           key: appimage-tools-${{ runner.os }}-${{ hashFiles('packaging/linux/build-appimage.sh') }}
@@ -116,6 +116,13 @@ jobs:
         run: |
           pip install pyyaml pillow
           ONLY=appimage python3 tests/packaging/test_packaging.py
+      # Salvata anche se il job fallisce: un download riuscito non va perso
+      - name: Strumenti AppImage (in cache)
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/appimage-tools
+          key: appimage-tools-${{ runner.os }}-${{ hashFiles('packaging/linux/build-appimage.sh') }}
       - uses: actions/upload-artifact@v4
         with:
           name: KoreShelf-linux
