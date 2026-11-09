@@ -1,0 +1,8 @@
+*
+# A Docker si manda solo quello che serve a compilare KoreShelf (vedi Dockerfile).
+!Cargo.toml
+!Cargo.lock
+!build.rs
+!src/
+!assets/
+!frontend/dist/

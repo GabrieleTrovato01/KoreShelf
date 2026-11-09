@@ -218,6 +218,192 @@ def test_all_version_numbers_agree():
     assert not wrong, f"Cargo.toml dice {VERSION}, ma: " + ", ".join(f"{k} = {v}" for k, v in wrong.items())
 
 
+READMES = {"en": "README.md", "it": "docs/README.it.md", "de": "docs/README.de.md",
+           "fr": "docs/README.fr.md", "es": "docs/README.es.md"}
+
+
+def test_readmes_describe_the_4_0_downloads():
+    """I README nelle 5 lingue spiegano come scaricare la 4.0.0: il sito koreshelf.github.io,
+    l'ultima release e i cinque file (exe, dmg, AppImage, apk, ipa), con l'avviso della prima
+    apertura. Niente istruzioni che con la versione Rust non esistono più (zip da estrarre, i vecchi
+    eseguibili, le traduzioni in src/locales, la vecchia immagine Docker con Node.js). Ogni README
+    porta alle altre lingue. (Docker in sé non è più "superato": dalla 4.0 c'è la nuova immagine,
+    controllata da test_readmes_explain_self_hosting_with_docker.)"""
+    problems = []
+    obsolete = ["koreshelf-win.exe", "koreshelf-linux", "koreshelf-macos-arm", "AppleSilicon.zip", "src/locales",
+                "langBtn", "monkey-patch", "Node.js nel Dockerfile", "node:22", "CustomEvent is not defined"]
+    for lang, rel in READMES.items():
+        path = ROOT / rel
+        if not path.exists():
+            problems.append(f"{rel}: manca")
+            continue
+        text = path.read_text(encoding="utf-8")
+        for need in ("https://koreshelf.github.io", "releases/latest", ".exe", ".dmg", ".AppImage", ".apk", ".ipa",
+                     "KoreShelf_Data", "koreshelf.log"):
+            if need not in text:
+                problems.append(f"{rel}: deve citare {need!r}")
+        for word in obsolete:
+            if word.lower() in text.lower():
+                problems.append(f"{rel}: istruzione superata {word!r}")
+        for other, other_rel in READMES.items():
+            if other == lang:
+                continue
+            target = os.path.relpath(ROOT / other_rel, path.parent).replace(os.sep, "/")
+            if f"]({target})" not in text:
+                problems.append(f"{rel}: manca il link alla versione {other} ({target})")
+    assert not problems, "\n".join(problems)
+
+
+def test_readmes_explain_self_hosting_with_docker():
+    """Ogni README spiega il self-hosting: l'immagine pronta su ghcr.io, docker compose, il volume
+    /data, la password facoltativa, l'importazione dalla versione Docker 3.x (./public in /app/public)
+    e l'avvertenza sull'esposizione a internet (HTTPS)."""
+    problems = []
+    for lang, rel in READMES.items():
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        for need in ("ghcr.io/gabrieletrovato01/koreshelf", "docker compose up -d", "/data", "KORESHELF_PASSWORD",
+                     "/app/public", "HTTPS", "koreshelf --server"):
+            if need not in text:
+                problems.append(f"{rel}: la sezione Docker deve citare {need!r}")
+    assert not problems, "\n".join(problems)
+
+
+def _dockerfile():
+    path = ROOT / "Dockerfile"
+    assert path.exists(), "Manca il Dockerfile"
+    return path.read_text()
+
+
+def test_dockerfile_builds_a_small_server_image():
+    """Dockerfile in due fasi: si compila con Rust (versione server, senza finestra, lock rispettato)
+    e si consegna un'immagine Debian slim con il solo eseguibile. Gira come utente normale (non root),
+    dati nel volume /data, porta 3000 su tutta la rete, controllo di salute con --health, avvio con
+    --server, e cartella di lavoro /app (dove montare la vecchia ./public per importarla)."""
+    df = _dockerfile()
+    stages = re.findall(r"^FROM\s+(\S+)(?:\s+AS\s+(\S+))?", df, re.M | re.I)
+    problems = []
+    if len(stages) < 2 or not stages[0][0].startswith("rust:") or "slim" not in stages[-1][0]:
+        problems.append(f"Servono due fasi: rust:… per compilare, debian …-slim per l'immagine finale: {stages}")
+    if not re.search(r"cargo build[^\n]*--release[^\n]*--locked[^\n]*--no-default-features|cargo build[^\n]*--locked[^\n]*--release[^\n]*--no-default-features", df):
+        problems.append("La compilazione deve essere: cargo build --release --locked --no-default-features")
+    final = df[df.rfind("\nFROM "):]
+    user = re.findall(r"^USER\s+(\S+)", final, re.M)
+    if not user or user[-1] in ("root", "0"):
+        problems.append(f"L'immagine finale deve girare come utente normale (USER): {user}")
+    for need, why in ((r'^VOLUME\s+\[?"?/data', "VOLUME /data"), (r"^EXPOSE\s+3000", "EXPOSE 3000"),
+                      (r"KORESHELF_HOST=0\.0\.0\.0", "ENV KORESHELF_HOST=0.0.0.0"), (r"KORESHELF_DATA=/data", "ENV KORESHELF_DATA=/data"),
+                      (r"^HEALTHCHECK[^\n]*--health", "HEALTHCHECK … koreshelf --health"),
+                      (r'^CMD\s+\[\s*"koreshelf"\s*,\s*"--server"\s*\]', 'CMD ["koreshelf", "--server"]'),
+                      (r"^WORKDIR\s+/app\b", "WORKDIR /app")):
+        if not re.search(need, final, re.M):
+            problems.append(f"Nell'immagine finale manca {why}")
+    for src in re.findall(r"^COPY\s+(?!--from)(.+?)\s+\S+$", df, re.M):
+        for item in src.split():
+            if not (ROOT / item).exists():
+                problems.append(f"COPY di un file che non esiste: {item}")
+    assert not problems, "\n".join(problems)
+
+
+def test_dockerignore_sends_only_what_the_build_needs():
+    """Il contesto della build contiene solo quello che serve (niente target/ da gigabyte, app
+    mobile, node_modules, test), e tutto quello che il Dockerfile copia è incluso."""
+    path = ROOT / ".dockerignore"
+    assert path.exists(), "Manca .dockerignore"
+    rules = [l.strip() for l in path.read_text().splitlines() if l.strip() and not l.startswith("#")]
+    assert rules and rules[0] == "*", f".dockerignore deve partire da '*' (esclude tutto) e riammettere il necessario: {rules[:3]}"
+    allowed = {r[1:].rstrip("/") for r in rules if r.startswith("!")}
+    need = {"Cargo.toml", "Cargo.lock", "build.rs", "src", "assets", "frontend/dist"}
+    missing = need - allowed
+    extra = {a for a in allowed if a.split("/")[0] in ("target", "mobile", "tests", "node_modules")}
+    assert not missing, f".dockerignore deve riammettere {sorted(missing)}"
+    assert not extra, f".dockerignore non deve mandare a Docker {sorted(extra)}"
+    copied = set()
+    for src in re.findall(r"^COPY\s+(?!--from)(.+?)\s+\S+$", _dockerfile(), re.M):
+        copied.update(i.rstrip("/") for i in src.split())
+    assert copied <= allowed, f"Il Dockerfile copia file esclusi da .dockerignore: {sorted(copied - allowed)}"
+
+
+def test_compose_file_is_ready_for_self_hosting():
+    """docker-compose.yml pronto all'uso: immagine pubblicata su ghcr.io, porta 3000, dati in un
+    volume su /data, riavvio automatico; con le righe (commentate) per la password e per importare
+    la libreria della versione Docker 3.x."""
+    path = ROOT / "docker-compose.yml"
+    assert path.exists(), "Manca docker-compose.yml"
+    text = path.read_text()
+    svc = (yaml.safe_load(text) or {}).get("services", {}).get("koreshelf", {})
+    problems = []
+    if not str(svc.get("image", "")).startswith("ghcr.io/gabrieletrovato01/koreshelf"):
+        problems.append(f"image deve essere ghcr.io/gabrieletrovato01/koreshelf: {svc.get('image')}")
+    if "3000:3000" not in [str(p) for p in svc.get("ports", [])]:
+        problems.append(f"Porta 3000 non pubblicata: {svc.get('ports')}")
+    if not any(str(v).endswith(":/data") for v in svc.get("volumes", [])):
+        problems.append(f"I dati devono stare in un volume montato su /data: {svc.get('volumes')}")
+    if svc.get("restart") != "unless-stopped":
+        problems.append(f"restart deve essere unless-stopped: {svc.get('restart')}")
+    for hint in ("KORESHELF_PASSWORD", "./public:/app/public"):
+        if hint not in text:
+            problems.append(f"Manca la riga d'esempio con {hint}")
+    assert not problems, "\n".join(problems)
+
+
+def test_docker_workflow_builds_and_checks_the_image_for_pc_and_raspberry():
+    """La CI costruisce l'immagine per PC (amd64) e Raspberry/NAS (arm64) su macchine native,
+    la AVVIA davvero e la controlla (salute, pagina, spegnimento pulito), ritenta la build se i
+    server rispondono male, e solo con un tag v* la pubblica su ghcr.io (versione e latest)."""
+    path = ROOT / ".github" / "workflows" / "docker.yml"
+    assert path.exists(), "Manca .github/workflows/docker.yml"
+    text = path.read_text()
+    wf = yaml.safe_load(text)
+    problems = []
+    on = wf.get(True) or wf.get("on") or {}
+    if "v*" not in str(on.get("push", {}).get("tags", [])):
+        problems.append("Deve partire sui tag v*")
+    build = wf["jobs"].get("build", {})
+    matrix = json.dumps(build.get("strategy", {}).get("matrix", {}))
+    for need in ("linux/amd64", "linux/arm64", "ubuntu-24.04-arm"):
+        if need not in matrix:
+            problems.append(f"La matrice deve includere {need}")
+    steps = "\n".join(json.dumps(s) for s in build.get("steps", []))
+    for need, why in (("--health", "il controllo di salute"), ("__KORESHELF_SERVER__", "la pagina in modalità server"),
+                      ("docker stop", "lo spegnimento"), ("ExitCode", "il codice di uscita dopo docker stop"),
+                      ("push-by-digest=true", "la pubblicazione per digest"), ("steps.build.outcome == 'failure'", "il secondo tentativo")):
+        if need not in steps:
+            problems.append(f"Il job build deve controllare {why} ({need})")
+    merge = json.dumps(wf["jobs"].get("merge", {}))
+    for need in ("imagetools create", "ghcr.io/gabrieletrovato01/koreshelf", "latest", "refs/tags/v"):
+        if need not in merge and need not in text:
+            problems.append(f"Il job merge deve usare {need}")
+    if "packages: write" not in text:
+        problems.append("Servono i permessi packages: write per pubblicare su ghcr.io")
+    assert not problems, "\n".join(problems)
+
+
+def test_repository_keeps_the_community_files():
+    """Con la fusione su main non si perdono i file della comunità: guida al contributo (aggiornata
+    a Rust: cargo test, frontend/src/locales, niente vecchia immagine Node), sicurezza, codice di
+    condotta, modelli per le segnalazioni (con la versione di KoreShelf e koreshelf.log) e donazioni.
+    Dalla 4.0 Docker c'è di nuovo (immagine Rust), quindi parlarne non è più un errore."""
+    problems = []
+    for rel in ("CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "LICENSE",
+                ".github/FUNDING.yml", ".github/ISSUE_TEMPLATE/bug_report.md", ".github/ISSUE_TEMPLATE/feature_request.md"):
+        if not (ROOT / rel).exists():
+            problems.append(f"Manca {rel}")
+    contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8") if (ROOT / "CONTRIBUTING.md").exists() else ""
+    for need in ("cargo test", "frontend/src/locales", "tests/e2e/test_ui.py"):
+        if contributing and need not in contributing:
+            problems.append(f"CONTRIBUTING.md: deve spiegare {need!r}")
+    if "node:22" in contributing.lower():
+        problems.append("CONTRIBUTING.md: parla ancora della vecchia immagine Docker con Node.js")
+    bug = ROOT / ".github/ISSUE_TEMPLATE/bug_report.md"
+    if bug.exists():
+        text = bug.read_text(encoding="utf-8")
+        if "node:22" in text.lower():
+            problems.append("bug_report.md: parla ancora della vecchia immagine Docker con Node.js")
+        if "KoreShelf" not in text or "koreshelf.log" not in text:
+            problems.append("bug_report.md: deve chiedere la versione di KoreShelf e il file koreshelf.log")
+    assert not problems, "\n".join(problems)
+
+
 def test_downloads_survive_flaky_servers():
     """I server di download (GitHub release, Gradle) a volte rispondono 504: i download devono
     dire cosa scaricano, ritentare a lungo, non lasciare file a metà, e restare in cache."""

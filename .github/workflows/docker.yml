@@ -1,0 +1,148 @@
+name: Immagine Docker (PC e Raspberry Pi)
+
+# - ogni push e pull request: si costruisce l'immagine per amd64 e arm64 e la si AVVIA per controllarla
+#   (salute, pagina in modalità server, utente non root, spegnimento pulito)
+# - push di un tag "v4.0.0": in più la si pubblica su ghcr.io/gabrieletrovato01/koreshelf
+#   con i tag 4.0.0, 4.0 e latest (un'unica immagine per PC e ARM)
+on:
+  push:
+    branches: [main, rust_version]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/gabrieletrovato01/koreshelf
+
+jobs:
+  build:
+    name: Immagine ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm      # macchina ARM vera: niente emulazione lenta
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # Se i server delle immagini base o di crates.io rispondono male (5xx) si ritenta una volta.
+      - name: Costruisco l'immagine
+        id: build
+        continue-on-error: true
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: koreshelf:test
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+      - name: Attendo prima di ritentare
+        if: steps.build.outcome == 'failure'
+        run: sleep 30
+      - name: Secondo tentativo
+        if: steps.build.outcome == 'failure'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          load: true
+          tags: koreshelf:test
+          cache-from: type=gha,scope=${{ matrix.platform }}
+
+      - name: Avvio l'immagine e la controllo
+        run: |
+          set -eu
+          docker run -d --name ks -p 3000:3000 -v ks-data:/data koreshelf:test
+          # il controllo di salute (HEALTHCHECK) usa "koreshelf --health"
+          for i in $(seq 1 45); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' ks)
+            echo "salute: $status"
+            [ "$status" = healthy ] && break
+            sleep 2
+          done
+          docker logs ks
+          test "$(docker inspect --format '{{.State.Health.Status}}' ks)" = healthy
+          docker exec ks koreshelf --health
+          curl -fsS http://127.0.0.1:3000/api/ping | grep -q KoreShelf
+          # la pagina sa di essere sul server (niente pulsante Spegni)
+          curl -fsS http://127.0.0.1:3000/ | grep -q __KORESHELF_SERVER__
+          # lo spegnimento da remoto è rifiutato
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/shutdown)" = 403
+          # non gira come amministratore
+          test "$(docker exec ks id -u)" != 0
+          # docker stop: chiusura pulita con codice 0
+          docker stop -t 10 ks
+          test "$(docker inspect --format '{{.State.ExitCode}}' ks)" = 0
+          docker logs ks 2>&1 | tail -3
+
+      - name: Login su ghcr.io
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pubblico l'immagine (per digest)
+        id: push
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+      - name: Salvo il digest
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.push.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: digest-${{ matrix.runner }}
+          path: /tmp/digests/*
+          retention-days: 1
+
+  merge:
+    name: Immagine unica (PC + ARM) su ghcr.io
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+      - name: Unisco amd64 e arm64 in un'unica immagine
+        working-directory: /tmp/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.IMAGE }}@sha256:%s ' *)
+      - name: Controllo l'immagine pubblicata
+        run: docker buildx imagetools inspect ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}

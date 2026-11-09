@@ -45,8 +45,8 @@ export function openHelpModal() {
         </button>
     `;
 
-    // Nell'app desktop non c'è il pulsante Spegni: basta chiudere la finestra.
-    if (window.__KORESHELF_DESKTOP__) {
+    // Nell'app desktop e sul server non c'è il pulsante Spegni: niente spiegazione.
+    if (window.__KORESHELF_DESKTOP__ || window.__KORESHELF_SERVER__) {
         modalBox.querySelectorAll('li').forEach(li => {
             if (li.querySelector('b[style*="d9534f"]')) li.remove();
         });

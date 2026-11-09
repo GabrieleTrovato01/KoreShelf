@@ -13,6 +13,7 @@ pub mod online;
 pub mod paths;
 pub mod pdf;
 pub mod server;
+pub mod server_mode;
 pub mod text;
 
 use server::{AppControl, AppState, Controller};
@@ -80,6 +81,8 @@ pub fn start_embedded_with(
                     http: online::http_client(),
                     lang: Arc::new(RwLock::new(i18n::DEFAULT_LANG.to_string())),
                     control,
+                    public: false,
+                    auth: None,
                 };
                 let _ = tx.send(Ok(url.clone()));
                 log_info!("KoreShelf incorporato attivo su {url}");

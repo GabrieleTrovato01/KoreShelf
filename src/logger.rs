@@ -8,6 +8,12 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 static LOG_FILE: OnceLock<Mutex<File>> = OnceLock::new();
+/// In modalità server i log vanno anche sul terminale (`docker logs`).
+static ECHO: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn echo_to_terminal() {
+    ECHO.store(true, std::sync::atomic::Ordering::Relaxed);
+}
 const MAX_LOG_BYTES: u64 = 5 * 1024 * 1024;
 
 pub fn init(path: &Path) {
@@ -23,7 +29,7 @@ pub fn init(path: &Path) {
 
 pub fn write(level: &str, message: &str) {
     let line = format!("{} [{}] {}\n", timestamp(), level, message);
-    if cfg!(debug_assertions) {
+    if cfg!(debug_assertions) || ECHO.load(std::sync::atomic::Ordering::Relaxed) {
         eprint!("{line}");
     }
     if let Some(lock) = LOG_FILE.get() {

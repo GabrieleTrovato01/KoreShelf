@@ -39,6 +39,11 @@ pub struct AppState {
     pub http: reqwest::Client,
     pub lang: Arc<RwLock<String>>,
     pub control: Controller,
+    /// Modalità server (self-hosting, Docker): raggiungibile da altri dispositivi, quindi niente
+    /// spegnimento da remoto né programmi aperti sul server.
+    pub public: bool,
+    /// Se impostata (KORESHELF_PASSWORD), il browser chiede utente e password.
+    pub auth: Option<Arc<crate::server_mode::Credentials>>,
 }
 
 impl AppState {
@@ -50,6 +55,7 @@ impl AppState {
 pub fn router(state: AppState) -> Router {
     let covers = ServeDir::new(&state.paths.covers);
     let ebooks = ServeDir::new(&state.paths.ebooks);
+    let public = state.public;
     Router::new()
         .route("/api/ping", get(ping))
         .route("/api/focus", post(focus))
@@ -72,8 +78,9 @@ pub fn router(state: AppState) -> Router {
         .route("/api/open-external", post(open_external))
         .nest_service("/covers", covers)
         .nest_service("/ebooks", ebooks)
-        .fallback(crate::assets::serve)
+        .fallback(move |uri: axum::http::Uri| crate::assets::serve(uri, public))
         .layer(DefaultBodyLimit::max(upload_limit())) // ebook fino a 4 GB
+        .layer(axum::middleware::from_fn_with_state(state.clone(), require_password))
         .with_state(state)
 }
 
@@ -94,6 +101,33 @@ pub async fn serve(listener: tokio::net::TcpListener, state: AppState) {
     if let Err(e) = axum::serve(listener, router(state)).await {
         log_error!("Il server si è fermato: {e}");
     }
+}
+
+/// Come [`serve`], ma si chiude in modo pulito quando `stop` termina (es. `docker stop`):
+/// smette di accettare richieste, finisce quelle in corso ed esce.
+pub async fn serve_until(listener: tokio::net::TcpListener, state: AppState, stop: impl std::future::Future<Output = ()> + Send + 'static) {
+    if let Err(e) = axum::serve(listener, router(state)).with_graceful_shutdown(stop).await {
+        log_error!("Il server si è fermato: {e}");
+    }
+}
+
+/// Con una password impostata, tutto richiede utente e password tranne `/api/ping`
+/// (lo usa il controllo di salute di Docker e rivela solo nome e versione).
+async fn require_password(State(st): State<AppState>, request: axum::extract::Request, next: axum::middleware::Next) -> Response {
+    if let Some(creds) = &st.auth {
+        if request.uri().path() != "/api/ping" {
+            let header = request.headers().get(axum::http::header::AUTHORIZATION).and_then(|v| v.to_str().ok());
+            if !creds.accepts(header) {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    [(axum::http::header::WWW_AUTHENTICATE, "Basic realm=\"KoreShelf\", charset=\"UTF-8\"")],
+                    "KoreShelf: password richiesta",
+                )
+                    .into_response();
+            }
+        }
+    }
+    next.run(request).await
 }
 
 // ---------------------------------------------------------------- helpers
@@ -164,9 +198,12 @@ async fn ping() -> Json<Value> {
     Json(json!({ "app": "KoreShelf", "version": env!("CARGO_PKG_VERSION") }))
 }
 
-async fn focus(State(st): State<AppState>) -> Json<Value> {
+async fn focus(State(st): State<AppState>) -> Response {
+    if st.public {
+        return reply(StatusCode::FORBIDDEN, false, "non disponibile sul server");
+    }
     (st.control)(AppControl::Focus);
-    Json(json!({ "success": true }))
+    Json(json!({ "success": true })).into_response()
 }
 
 #[derive(Deserialize)]
@@ -869,7 +906,7 @@ mod tests {
 /// aprire il link e il server lo passa all'app. Solo link web/email, solo dall'interfaccia stessa
 /// (l'intestazione X-KoreShelf non può essere inviata da altri siti senza un permesso CORS).
 async fn open_external(State(st): State<AppState>, headers: axum::http::HeaderMap, Json(body): Json<Value>) -> Response {
-    if headers.get("x-koreshelf").and_then(|v| v.to_str().ok()) != Some("1") {
+    if st.public || headers.get("x-koreshelf").and_then(|v| v.to_str().ok()) != Some("1") {
         return reply(StatusCode::FORBIDDEN, false, "forbidden");
     }
     let url = body.get("url").and_then(Value::as_str).unwrap_or("").trim().to_string();
@@ -884,6 +921,10 @@ async fn open_external(State(st): State<AppState>, headers: axum::http::HeaderMa
 // --- Spegnimento ------------------------------------------------------------
 
 async fn shutdown(State(st): State<AppState>) -> Response {
+    if st.public {
+        // sul server lo spegne chi lo amministra (docker stop), non chi lo usa dal browser
+        return reply(StatusCode::FORBIDDEN, false, "non disponibile sul server");
+    }
     log_info!("Richiesta di spegnimento ricevuta");
     let control = st.control.clone();
     tokio::spawn(async move {

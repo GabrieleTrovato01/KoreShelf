@@ -23,7 +23,7 @@ default = ["window"]
 window = ["dep:wry", "dep:tao"]
 
 [dependencies]
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "time", "net", "sync"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "io-util", "time", "net", "sync", "signal"] }
 axum = { version = "0.8", features = ["multipart"] }
 tower-http = { version = "0.6", features = ["fs"] }
 rust-embed = { version = "8", features = ["mime-guess"] }

@@ -431,7 +431,8 @@ shutdownBtn.onclick = async () => {
 };
 
 // Aggiungiamo il bottone alla barra in alto, subito dopo la lingua
-if (!window.__KORESHELF_DESKTOP__) topBar.appendChild(shutdownBtn);
+// Niente Spegni nell'app desktop (si chiude la finestra) e sul server (lo spegne chi lo amministra)
+if (!window.__KORESHELF_DESKTOP__ && !window.__KORESHELF_SERVER__) topBar.appendChild(shutdownBtn);
 
 // Telefono: due pulsanti rotondi accanto alla categoria (la ricerca si apre a tutta larghezza)
 const searchToggle = document.createElement('button');

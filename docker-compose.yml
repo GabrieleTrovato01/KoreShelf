@@ -1,0 +1,25 @@
+# KoreShelf per il self-hosting.
+#   Avvio:          docker compose up -d
+#   Aggiornamento:  docker compose pull && docker compose up -d
+#   Poi apri http://INDIRIZZO-DEL-SERVER:3000 da qualsiasi dispositivo della rete.
+services:
+  koreshelf:
+    image: ghcr.io/gabrieletrovato01/koreshelf:latest
+    # Per costruire l'immagine dal codice invece di scaricarla:  build: .
+    container_name: koreshelf
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Libri, copertine e database restano qui anche quando aggiorni o ricrei il container.
+      - koreshelf-data:/data
+      # Arrivi dalla versione Docker 3.x? Togli il # dalla riga sotto (dalla cartella del vecchio
+      # docker-compose.yml): al primo avvio la libreria viene importata in /data.
+      # - ./public:/app/public:ro
+    # environment:
+      # Facoltativo: il browser chiede utente e password (utente predefinito: koreshelf).
+      # KORESHELF_PASSWORD: "scegli-una-password"
+      # KORESHELF_USERNAME: "koreshelf"
+
+volumes:
+  koreshelf-data:
