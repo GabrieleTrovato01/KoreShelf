@@ -12,11 +12,12 @@
    🌍 **Read this in:** [🇬🇧 English](README.md) | [🇮🇹 Italiano](docs/README.it.md) | [🇪🇸 Español](docs/README.es.md) | [🇫🇷 Français](docs/README.fr.md) | [🇩🇪 Deutsch](docs/README.de.md)
 
    ## Home
-   <img align="center" width="800" height="500" alt="Demo of the app" src="https://github.com/user-attachments/assets/4dc13a62-af86-4b1e-a5ed-9dc64050a282" />
-   
+   <img align="center" width="858" height="720" alt="demo_home_rust" src="https://github.com/user-attachments/assets/c879b004-f214-4541-ad72-9b1071e3fa2d" />
+
    
    ## Reader
-  <img align="center" width="800" height="500" alt="Demo reader" src="https://github.com/user-attachments/assets/b1fabd7e-3587-4c47-ba02-7fec9696eee6" />
+  <img width="858" height="720" alt="demo_reader_rust" src="https://github.com/user-attachments/assets/edd3273e-25ff-457c-9f31-6f3cf9b871fc" />
+
 
 </div>
 
