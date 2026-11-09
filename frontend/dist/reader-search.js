@@ -18,7 +18,7 @@
         #reader-search-panel {
             position: absolute; top: 62px; right: 20px; z-index: 1001; width: min(380px, calc(100vw - 40px));
             border-radius: 18px; padding: 14px; box-sizing: border-box; display: none; flex-direction: column; gap: 10px;
-            max-height: calc(100vh - 140px); font-family: 'Segoe UI', system-ui, sans-serif;
+            max-height: calc(var(--ks-app-h, 100vh) - 140px); font-family: 'Segoe UI', system-ui, sans-serif;
             box-shadow: 0 12px 35px rgba(0,0,0,.25);
         }
         #reader-search-panel.open { display: flex; }

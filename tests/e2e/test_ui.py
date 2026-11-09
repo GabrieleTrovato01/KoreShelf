@@ -1332,6 +1332,94 @@ async def test_reader_selection_small_finger_move_keeps_the_page(p):
         assert not problems, "\n".join(problems)
 
 
+PHONE_BROWSER_UA = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/130.0 Mobile Safari/537.36")
+BROWSER_TOOLBAR = 56   # altezza tipica della barra degli indirizzi di Chrome sul telefono
+
+# Chromium di prova non ha la barra del browser. Sul telefono vero, con la barra visibile,
+# window.innerHeight e visualViewport.height valgono l'altezza VISIBILE, mentre 100vh resta
+# l'altezza con la barra nascosta: qui facciamo riportare a Chromium esattamente questi valori.
+FAKE_TOOLBAR = """(() => { const T = %d;
+    const visible = () => document.documentElement.clientHeight - T;
+    Object.defineProperty(window, 'innerHeight', { configurable: true, get: visible });
+    if (window.visualViewport) Object.defineProperty(window.visualViewport, 'height', { configurable: true, get: visible });
+})();""" % BROWSER_TOOLBAR
+
+# Parole numerate interamente visibili nella pagina (dentro il riquadro del libro e sopra `limit`)
+VISIBLE_WORDS = """(limit) => {
+    const c = rendition.manager.container, cr = c.getBoundingClientRect();
+    const out = [];
+    for (const ifr of document.querySelectorAll('#viewer iframe')) {
+        const ir = ifr.getBoundingClientRect();
+        if (ir.right <= cr.left || ir.left >= cr.right) continue;
+        const d = ifr.contentDocument, walker = d.createTreeWalker(d.body, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            for (const m of n.data.matchAll(/w(\\d{4})/g)) {
+                const r = d.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[0].length);
+                const b = r.getBoundingClientRect(), left = b.left + ir.left, top = b.top + ir.top, bottom = b.bottom + ir.top;
+                if (b.width && left >= cr.left - 1 && left + b.width <= cr.right + 1 && top >= cr.top - 1 && bottom <= limit + 1)
+                    out.push(parseInt(m[1], 10));
+            }
+        }
+    }
+    out.sort((a, b) => a - b);
+    return out;
+}"""
+
+
+async def test_reader_fits_the_visible_screen_in_a_phone_browser(p):
+    """KoreShelf servito da Docker e aperto nel browser del telefono (non nell'app): la barra del
+    browser occupa una parte dello schermo. Il lettore deve stare tutto nella parte visibile, in
+    verticale e in orizzontale: barra in basso (Indice, Stile, Tema e percentuale) intera, testo
+    solo sopra di essa, e girando pagina nessuna parola saltata (l'ultima parola visibile di una
+    pagina e la prima della successiva sono consecutive). In orizzontale il telefono usa la stessa
+    interfaccia da telefono dell'app."""
+    problems = []
+    with Server() as srv:
+        path = srv.home / "Numeri.epub"
+        make_epub(path, "Parole numerate", "Autore Test", (60, 160, 80), chapters=NUMBERED_WORDS)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        for orientation, (w, h) in (("verticale", (390, 844)), ("orizzontale", (844, 390))):
+            browser = await p.chromium.launch(executable_path=os.environ.get("CHROME_PATH") or None, args=CHROME_ARGS)
+            ctx = await browser.new_context(viewport={"width": w, "height": h}, device_scale_factor=1,
+                                            is_mobile=True, has_touch=True, user_agent=PHONE_BROWSER_UA,
+                                            screen={"width": w, "height": h})
+            await ctx.route("https://api.github.com/**", lambda route: route.fulfill(status=404, body="{}"))
+            await ctx.add_init_script("localStorage.setItem('KoreShelf_lang','it');" + FAKE_TOOLBAR)   # browser: niente flag dell'app
+            page = await ctx.new_page()
+            await page.goto(BASE)
+            await page.wait_for_function("document.getElementById('loading-screen').style.display === 'none'", timeout=30000)
+            await open_reader(page, book)
+            await page.evaluate("document.getElementById('next-page-btn').click()")
+            await page.wait_for_timeout(900)
+            visible = await page.evaluate("window.innerHeight")
+            bar = await rect(page, "#ks-reader-bar")
+            percent = await rect(page, "#ks-reader-bar .ks-rb-progress")
+            if not bar or not percent:
+                problems.append(f"{orientation}: manca la barra del telefono (Indice/Stile/Tema e percentuale)")
+                limit = visible
+            else:
+                if bar["bottom"] > visible + 1:
+                    problems.append(f"{orientation}: la barra in basso esce dallo schermo visibile "
+                                    f"(finisce a {bar['bottom']:.0f} px, visibili {visible} px)")
+                limit = min(visible, bar["top"])
+            box = await page.evaluate("rendition.manager.container.getBoundingClientRect().toJSON()")
+            if box["bottom"] > limit + 1:
+                problems.append(f"{orientation}: il testo arriva fino a {box['bottom']:.0f} px, oltre la parte visibile ({limit:.0f} px)")
+            first = await page.evaluate(VISIBLE_WORDS, limit)
+            await page.evaluate("document.getElementById('next-page-btn').click()")
+            await page.wait_for_timeout(900)
+            second = await page.evaluate(VISIBLE_WORDS, limit)
+            await shot(page, f"phone_browser_{orientation}")
+            await browser.close()
+            if not first or not second:
+                problems.append(f"{orientation}: nessuna parola visibile ({len(first)}, {len(second)})")
+            elif second[0] != first[-1] + 1:
+                problems.append(f"{orientation}: girando pagina si saltano {second[0] - first[-1] - 1} parole "
+                                f"(pagina: w{first[0]:04d}–w{first[-1]:04d}, dopo: w{second[0]:04d}–…)")
+    assert not problems, "\n".join(problems)
+
+
 async def test_mobile_swipes_work_after_closing_a_post_it(p):
     """Telefono: sulla bacheca si apre un post-it e lo si chiude; gli swipe verticali devono
     continuare a funzionare (si torna agli scaffali)."""

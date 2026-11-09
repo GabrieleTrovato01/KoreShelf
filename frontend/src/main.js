@@ -165,9 +165,11 @@ let targetCameraY = 1.5; // Altezza bersaglio della telecamera
 
 // --- TELEFONO: app mobile o schermo stretto ---
 function isPhone() {
-    // Schermo stretto, oppure app mobile su un telefono (i tablet usano il layout normale)
+    // Schermo stretto, oppure un telefono (app mobile, o browser con il dito al posto del mouse)
+    // anche in orizzontale. I tablet hanno lo schermo più grande e usano il layout normale.
     const smallScreen = Math.min(window.screen.width, window.screen.height) < 700;
-    return window.matchMedia('(max-width: 700px)').matches || (!!window.__KORESHELF_MOBILE__ && smallScreen);
+    const touch = !!window.__KORESHELF_MOBILE__ || window.matchMedia('(pointer: coarse)').matches;
+    return window.matchMedia('(max-width: 700px)').matches || (touch && smallScreen);
 }
 // Inquadratura: sul telefono verticale la telecamera si allontana (libro ≈ metà larghezza)
 // e si abbassa, così il libro sta nello spazio libero tra la barra in alto e il pannello.

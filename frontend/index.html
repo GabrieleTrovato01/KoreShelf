@@ -5,6 +5,28 @@
     <!-- App: scala sempre 1:1 (niente zoom automatici dopo una rotazione); zone di sistema gestite con env() -->
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <title>KoreShelf</title>
+    <script>
+      // Altezza VISIBILE dello schermo in --ks-app-h. Nei browser dei telefoni 100vh vale l'altezza
+      // con la barra del browser nascosta: il lettore finirebbe in parte sotto la barra.
+      // Gira per primo, così chi ricalcola al "resize" (il lettore) trova già il valore giusto.
+      (function () {
+        var root = document.documentElement;
+        function update() {
+          var vv = window.visualViewport;
+          var h = vv ? vv.height * (vv.scale || 1) : window.innerHeight;
+          if (h > 0) root.style.setProperty('--ks-app-h', Math.round(h) + 'px');
+        }
+        update();
+        window.addEventListener('resize', update);
+        window.addEventListener('orientationchange', update);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', function () {
+          var before = root.style.getPropertyValue('--ks-app-h');
+          update();
+          // la barra del browser è comparsa o sparita senza un "resize" della finestra
+          if (root.style.getPropertyValue('--ks-app-h') !== before) window.dispatchEvent(new Event('resize'));
+        });
+      })();
+    </script>
     <link rel="icon" type="image/png" href="/logo.png" />
     <style>
         /* Animazione e stile per la freccia di scroll */
@@ -53,7 +75,7 @@
     <script src="/reader-mobile.js"></script>
     <script type="module" src="/src/main.js"></script>
     
-    <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #1e2d3b; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
+    <div id="loading-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: var(--ks-app-h, 100vh); background: #1e2d3b; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.5s ease;">
         <div class="loader"></div>
         <h2 style="color: white; font-family: sans-serif; margin-top: 20px; letter-spacing: 2px;">KoreShelf</h2>
         <p id="loading-text" style="color: rgba(255,255,255,0.5); font-family: sans-serif; font-size: 14px;">Inizializzazione libreria...</p>
@@ -73,7 +95,7 @@
             to { transform: rotate(360deg); }
         }
     </style>
-    <div id="reader-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #faf9f6; z-index: 999; opacity: 0; transition: opacity 0.8s ease;">
+    <div id="reader-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: var(--ks-app-h, 100vh); background: #faf9f6; z-index: 999; opacity: 0; transition: opacity 0.8s ease;">
 
         <div id="viewer" style="position: absolute; top: 60px; left: 10px; right: 10px; bottom: 40px; overflow: hidden;"></div>
         
