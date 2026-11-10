@@ -182,11 +182,8 @@ jobs:
           ../packaging/mobile/patch-android.sh src-tauri/gen/android
       - name: Compila l'APK (release)
         working-directory: mobile
-        env:
-          CARGO_TARGET_DIR: "${{ github.workspace }}/target"
-          # La libreria UnRAR (fumetti CBR) è in C++: la sua libreria standard va dentro il
-          # .so, perché l'APK non contiene libc++_shared.so e l'app si chiuderebbe all'avvio
-          CXXSTDLIB: c++_static
+        # Il collegamento della libreria UnRAR (C++) su Android è in mobile/src-tauri/build.rs
+        env: { CARGO_TARGET_DIR: "${{ github.workspace }}/target" }
         # Fino a 3 tentativi: se fallisce è quasi sempre un server di download momentaneamente
         # irraggiungibile; Rust è già compilato, quindi i tentativi successivi sono rapidi
         run: |
