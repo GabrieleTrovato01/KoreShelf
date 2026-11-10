@@ -585,7 +585,7 @@ async def test_mobile_library_follows_design_A(p):
 
 
 async def test_mobile_more_sheet_category_and_search(p):
-    """Telefono: 'Altro' si apre dal basso con voci grandi (anche Gestisci scaffali e Lingua),
+    """Telefono: 'Altro' si apre dal basso con voci grandi (anche Gestisci scaffali, Lingua e Supporta),
     'Categoria' apre l'assegnazione, la ricerca si apre a tutta larghezza dall'icona."""
     with Server() as srv:
         srv.seed()
@@ -601,9 +601,22 @@ async def test_mobile_more_sheet_category_and_search(p):
         if not menu or menu["left"] < 0 or menu["right"] > vw or menu["bottom"] > vh or vh - menu["bottom"] > 40:
             problems.append(f"'Altro' deve aprirsi dal basso, dentro lo schermo: {menu}")
         texts = " ".join(i["text"].lower() for i in items)
-        for word in ["modifica", "elimina", "gestisci", "lingua"]:
+        for word in ["modifica", "elimina", "gestisci", "lingua", "supporta"]:
             if word not in texts:
                 problems.append(f"Nel menu 'Altro' manca '{word}': {texts}")
+        # "Supporta" apre PayPal nel browser del telefono, come il pulsante su computer
+        opened = []
+        async def capture(route):
+            opened.append(route.request.post_data or "")
+            await route.fulfill(status=200, content_type="application/json", body='{"success":true}')
+        await page.route("**/api/open-external", capture)
+        await page.click("#ks-support-item")
+        await page.wait_for_timeout(400)
+        if not any("paypal.me" in o for o in opened):
+            problems.append(f"'Supporta' deve aprire la pagina PayPal: {opened}")
+        if not await rect(page, "#ks-more-menu.open"):
+            await page.click("#ks-more-btn")
+            await page.wait_for_timeout(300)
         if any(i["h"] < 44 for i in items):
             problems.append(f"Voci del menu troppo piccole per il dito: {items}")
         await page.keyboard.press("Escape")
@@ -2106,10 +2119,18 @@ READER_FORMATS = [
     ("Racconto_FB2.fb2", "#viewer"),
     ("Appunti_TXT.txt", "#viewer"),
     ("Fumetto_CBZ.cbz", "#cbz-container"),
+    ("Documento_Word.docx", "#viewer"),
+    ("Libro_Kindle.azw3", "#viewer"),
+    ("Fumetto_RAR.cbr", "#cbz-container"),
 ]
 
+# File veri creati con LibreOffice, Calibre, RAR... (vedi tests/fixtures/README.md); password "segreto"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+FIXTURE_FOR = {".docx": "plain.docx", ".azw3": "kf8.azw3", ".cbr": "plain.cbr"}
+
 # Estensioni che la finestra di scelta deve proporre
-IMPORTABLE_EXTENSIONS = {".epub", ".kepub", ".pdf", ".fb2", ".fbz", ".zip", ".cbz", ".txt", ".md", ".markdown"}
+IMPORTABLE_EXTENSIONS = {".epub", ".kepub", ".pdf", ".mobi", ".azw3", ".azw", ".fb2", ".fbz", ".zip", ".docx", ".odt",
+                         ".cbz", ".cbr", ".cb7", ".txt", ".md", ".markdown"}
 
 
 def make_cbz(path: Path, pages=3):
@@ -2124,7 +2145,9 @@ def make_cbz(path: Path, pages=3):
 
 def make_book_file(path: Path):
     title = path.name.split(".")[0].replace("_", " ")
-    if path.suffix == ".pdf":
+    if path.suffix in FIXTURE_FOR:
+        shutil.copy(FIXTURES / FIXTURE_FOR[path.suffix], path)
+    elif path.suffix == ".pdf":
         make_pdf(path, {1: "Prima pagina del manuale."})
     elif path.suffix == ".cbz":
         make_cbz(path)
@@ -2235,6 +2258,115 @@ async def test_comic_reader_turns_pages_both_ways(p):
     assert progress == 1.0, f"Avanzamento salvato sul server: {progress}"
     assert rtl_back == {"page": "2 / 3", "color": "green"}, f"In modalità manga la direzione si inverte: {rtl_back}"
     assert cleaned, "Chiudendo il fumetto i suoi comandi spariscono e tornano quelli degli altri lettori"
+
+
+async def unlock_with_dialog(page, password, remember):
+    """Compila la finestra della password; restituisce il messaggio che mostrava."""
+    await page.wait_for_selector("#ks-password-dialog", timeout=20000)
+    message = await page.inner_text("#ks-password-dialog .ks-pw-message")
+    await page.fill("#ks-password-input", password)
+    if remember:
+        await page.check("#ks-password-remember")
+    await page.click("#ks-password-ok")
+    return message
+
+
+async def test_protected_files_ask_once_then_open_by_themselves(p):
+    """Fumetto, PDF e documento Word protetti: la password si chiede, se è sbagliata lo si dice,
+    se si sceglie "Ricorda" la volta dopo il file si apre da solo. Il fumetto riceve anche la
+    copertina, che prima (senza password) non si poteva fare."""
+    cases = [
+        ("Fumetto protetto.cbr", "locked.cbr", "document.getElementById('cbz-page') && document.getElementById('cbz-page').naturalWidth > 0"),
+        ("Manuale protetto.pdf", "locked.pdf", "typeof pdfDoc !== 'undefined' && pdfDoc && document.querySelector('.textLayer span')"),
+        ("Documento protetto.docx", "locked-word.docx", "typeof rendition !== 'undefined' && rendition && rendition.location"),
+    ]
+    for name, fixture, ready in cases:
+        with Server() as srv:
+            path = srv.home / name
+            shutil.copy(FIXTURES / fixture, path)
+            book = api("POST", "/api/upload", files={"ebook": path})["book"]
+            browser, ctx, page = await open_app(p)
+            await page.click("#ks-read-btn")
+            first = await unlock_with_dialog(page, "sbagliata", remember=False)
+            await page.wait_for_function("document.querySelector('#ks-password-dialog .ks-pw-error')", timeout=20000)
+            second = await unlock_with_dialog(page, "segreto", remember=True)
+            await page.wait_for_function(ready, timeout=30000)
+            await shot(page, f"protected_{fixture}")
+            saved = await page.evaluate(f"localStorage.getItem('ks_password_{book['id']}')")
+            await page.click("#close-reader-btn")
+            await page.wait_for_function("document.getElementById('reader-overlay').style.display === 'none'", timeout=5000)
+            await page.wait_for_timeout(1500)
+            cover = next(b for b in api("GET", "/api/books") if b["id"] == book["id"]).get("coverPath")
+
+            # Seconda apertura: niente finestra, la password la mette lo script
+            await page.click("#ks-read-btn")
+            await page.wait_for_function(ready, timeout=30000)
+            asked_again = await page.locator("#ks-password-dialog").count()
+            await browser.close()
+
+        assert "protetto" in first.lower(), f"{name}: {first!r}"
+        assert "errata" in second.lower(), f"{name}: dopo una password sbagliata lo si dice: {second!r}"
+        assert saved == "segreto", f"{name}: password ricordata solo su questo dispositivo"
+        assert asked_again == 0, f"{name}: la seconda volta si apre senza chiedere"
+        if fixture != "locked-word.docx":
+            assert cover, f"{name}: dopo lo sblocco il libro ha la copertina"
+
+
+async def test_a_forgotten_password_is_asked_again(p):
+    """Se la password salvata non va più (file sostituito, password cambiata) si dimentica e si chiede."""
+    with Server() as srv:
+        path = srv.home / "Fumetto.cbz"
+        shutil.copy(FIXTURES / "locked-aes.cbz", path)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        browser, ctx, page = await open_app(p)
+        await page.evaluate(f"localStorage.setItem('ks_password_{book['id']}', 'vecchia')")
+        await page.click("#ks-read-btn")
+        message = await unlock_with_dialog(page, "segreto", remember=False)
+        await page.wait_for_function("document.getElementById('cbz-page') && document.getElementById('cbz-page').naturalWidth > 0", timeout=20000)
+        saved = await page.evaluate(f"localStorage.getItem('ks_password_{book['id']}')")
+        await browser.close()
+    assert "errata" in message.lower(), message
+    assert saved is None, "senza 'Ricorda' la password non resta salvata, e quella vecchia è stata tolta"
+
+
+async def test_many_uploads_always_fly_from_the_bottom_right(p):
+    """20 libri insieme: i caricamenti corrono più dei voli e il vassoio scorre in avanti, così i
+    primi libri escono dal vassoio a sinistra. Il loro volo deve partire comunque dal vassoio,
+    in basso a destra, non da fuori schermo in basso a sinistra."""
+    with Server() as srv:
+        books = srv.home / "tanti"
+        books.mkdir()
+        files = []
+        for n in range(1, 21):
+            path = books / f"Volo_numero_{n:02d}.epub"
+            make_epub(path, f"Volo numero {n}", "Autore Test", ((n * 37) % 255, 80, 160))
+            files.append(str(path))
+        browser, ctx, page = await open_app(p)
+        # Per ogni libro che parte: da dove parte e dov'è il vassoio in quel momento
+        await page.evaluate("""() => {
+            window.__starts = [];
+            new MutationObserver(records => {
+                for (const r of records) for (const el of r.addedNodes) {
+                    if (!el.classList || !el.classList.contains('ks-flyer')) continue;
+                    const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(el.style.transform || '');
+                    const tray = document.querySelector('.ks-tray').getBoundingClientRect();
+                    window.__starts.push({ x: m ? +m[1] : null, y: m ? +m[2] : null,
+                                           trayLeft: tray.left, trayRight: tray.right, trayTop: tray.top, trayBottom: tray.bottom });
+                }
+            }).observe(document.body, { childList: true });
+        }""")
+        await page.set_input_files("#file-upload", files)
+        await page.wait_for_selector(".ks-tray", state="attached", timeout=10000)
+        await page.wait_for_function("window.__starts.length >= 20", timeout=180000, polling=500)
+        starts = await page.evaluate("window.__starts")
+        width = await page.evaluate("innerWidth")
+        await browser.close()
+
+    outside = [(i + 1, s) for i, s in enumerate(starts)
+               if s["x"] is None or s["x"] < s["trayLeft"] - 2 or s["x"] > s["trayRight"]
+               or s["y"] < s["trayTop"] - 2 or s["y"] > s["trayBottom"]]
+    assert not outside, f"Voli partiti da fuori del vassoio (n. libro, posizione): {outside[:3]}"
+    assert all(s["x"] > width / 2 for s in starts), f"Tutti i voli partono dalla metà destra: {[round(s['x']) for s in starts]}"
 
 
 async def main():

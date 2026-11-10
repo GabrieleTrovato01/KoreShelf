@@ -21,7 +21,7 @@
 
 ## Italiano
 
-KoreShelf è una libreria 3D per i tuoi ebook. Carichi file EPUB, PDF, FB2, TXT, Markdown e fumetti CBZ, li ritrovi come libri su uno scaffale e li leggi nel lettore integrato. Funziona su Windows, Mac, Linux e Android, e puoi anche ospitarlo tu con Docker.
+KoreShelf è una libreria 3D per i tuoi ebook. Carichi file EPUB, PDF, Kindle (MOBI, AZW3), FB2, Word (DOCX), LibreOffice (ODT), TXT e Markdown, o fumetti CBZ, CBR e CB7, li ritrovi come libri su uno scaffale e li leggi nel lettore integrato. Funziona su Windows, Mac, Linux e Android, e puoi anche ospitarlo tu con Docker.
 
 ### Requisiti di sistema
 
@@ -122,7 +122,7 @@ Il server funziona anche senza Docker: `koreshelf --server` usa le stesse impost
 Quando apri KoreShelf vedi il tuo scaffale.
 
 - La prima volta premi *Prova con un libro di esempio*. Sullo scaffale arriva un libro breve che ti spiega l'app mentre lo leggi.
-- Per aggiungere libri premi *+ Carica Ebook* oppure trascina i file sulla finestra: EPUB (anche KEPUB di Kobo), PDF, FB2 (anche compressi), TXT, Markdown e fumetti CBZ.
+- Per aggiungere libri premi *+ Carica Ebook* oppure trascina i file sulla finestra: EPUB (anche KEPUB di Kobo), PDF, MOBI e AZW3 senza DRM, FB2 (anche compressi), DOCX, ODT, TXT, Markdown e fumetti CBZ, CBR, CB7.
 - Per leggere premi *Inizia a leggere* (o *Riprendi a leggere*) sotto il libro al centro. Le azioni meno frequenti sono nel menu *Altro*.
 - *Gestisci* ti permette di creare, rinominare ed eliminare scaffali e di spostare più libri insieme.
 - Per uscire chiudi la finestra. Se apri KoreShelf quando è già aperto, torna in primo piano la finestra esistente.
@@ -130,8 +130,9 @@ Quando apri KoreShelf vedi il tuo scaffale.
 ### Il lettore
 
 - Apre EPUB (testo che si adatta allo schermo) e PDF (impaginazione fissa). Puoi leggere a pagine o con lo scorrimento continuo.
-- FB2, TXT e Markdown vengono convertiti in EPUB al caricamento, quindi hanno lo stesso lettore, la ricerca e le sottolineature. I TXT vengono divisi in capitoli da soli e la loro codifica dei caratteri viene riconosciuta.
-- I fumetti CBZ si aprono in un visualizzatore a pagine: frecce o swipe, adatta alla pagina o alla larghezza e modalità da destra a sinistra per i manga.
+- MOBI, AZW3, FB2, DOCX, ODT, TXT e Markdown vengono convertiti in EPUB al caricamento, quindi hanno lo stesso lettore, la ricerca e le sottolineature. I TXT vengono divisi in capitoli da soli e la loro codifica dei caratteri viene riconosciuta.
+- I fumetti CBR e CB7 diventano CBZ. I fumetti si aprono in un visualizzatore a pagine: frecce o swipe, adatta alla pagina o alla larghezza e modalità da destra a sinistra per i manga.
+- PDF, DOCX, ODT e fumetti protetti da password restano cifrati nella libreria. La password si chiede all'apertura; se spunti *Ricorda* resta salvata solo su quel dispositivo e viene inserita in automatico le volte dopo. I libri del Kindle Store con DRM non si possono aprire.
 - Il testo dei PDF si può selezionare e sottolineare come negli EPUB.
 - I PDF senza copertina ne ricevono una ricavata dalla prima pagina.
 - Seleziona una frase per sottolinearla. Le sottolineature vengono salvate e le ritrovi nella bacheca.
@@ -207,3 +208,7 @@ cargo test --no-default-features
 ```
 
 Struttura del progetto, test end-to-end e creazione dei pacchetti sono spiegati in [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Licenza
+
+KoreShelf è distribuito con [licenza MIT](../LICENSE). I fumetti CBR si leggono con la libreria UnRAR di Alexander Roshal, che ha una licenza sua: si può usare e ridistribuire liberamente, ma non per ricreare l'algoritmo di compressione RAR. KoreShelf si limita a estrarre.

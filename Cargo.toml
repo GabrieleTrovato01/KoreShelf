@@ -2,7 +2,7 @@
 name = "koreshelf"
 version = "4.0.0"
 edition = "2021"
-description = "KoreShelf - la tua libreria 3D di ebook (EPUB, PDF, FB2, CBZ, TXT, Markdown)"
+description = "KoreShelf - la tua libreria 3D di ebook (EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, CBZ, CBR, CB7, TXT, Markdown)"
 authors = ["GabrieleTrovato01"]
 license = "MIT"
 build = "build.rs"
@@ -32,14 +32,26 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
-zip = { version = "2", default-features = false, features = ["deflate"] }
+zip = { version = "2", default-features = false, features = ["deflate", "aes-crypto"] }
 roxmltree = "0.20"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp"] }
 lopdf = "0.47"
 # Testi in codifiche diverse da UTF-8 (TXT e FB2 in Windows-1252, Windows-1251, UTF-16...)
-encoding_rs = "0.8"
+encoding_rs = "=0.8.35"
 # Markdown → XHTML per la conversione in EPUB
 pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
+# Fumetti CBR (RAR, libreria UnRAR in C++, solo estrazione) e CB7 (7z, anche cifrati AES)
+unrar = "0.5"
+sevenz-rust2 = { version = "=0.20.2", default-features = false, features = ["aes256"] }
+# Documenti Word/LibreOffice protetti da password: contenitore OLE (DOCX cifrati) e crittografia
+cfb = "0.10"
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+sha1 = "0.10"
+sha2 = "0.10"
+pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
+# Parti dei documenti ODT cifrati: deflate "grezzo" dopo la decifratura
+flate2 = "1"
 regex = "1"
 percent-encoding = "2"
 urlencoding = "2"

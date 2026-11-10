@@ -215,10 +215,10 @@ fn file_whose_content_does_not_match_the_extension_is_rejected() {
 
 #[test]
 fn unknown_formats_are_rejected() {
-    // I formati nuovi (FB2, TXT, Markdown, CBZ) hanno i loro test in formats.rs:
+    // Gli altri formati hanno i loro test in formats.rs e protected.rs:
     // qui restano solo quelli che KoreShelf non sa leggere.
     let lib = Library::new("formats");
-    for name in ["documento.docx", "programma.exe", "foglio.xlsx", "senza_estensione", "libro.mobi", "fumetto.cbr"] {
+    for name in ["documento.doc", "programma.exe", "foglio.xlsx", "senza_estensione", "libro.lit", "fumetto.cbt"] {
         let (status, res) = lib.upload(name, b"PK contenuto qualsiasi");
         assert_eq!(status, 400, "{name}: {res}");
         assert_eq!(res["success"], false, "{name}");

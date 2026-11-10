@@ -649,8 +649,44 @@ window.openPdfReader = function(pdfUrl, bookId) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdf.worker.min.js';
 
     const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    // PDF protetto: prima la password salvata su questo dispositivo, poi la si chiede
+    let triedSaved = false;
+    let pendingPassword = null;
+    let usedPassword = false;
+    loadingTask.onPassword = async (updatePassword, reason) => {
+        usedPassword = true;
+        const wrong = reason === pdfjsLib.PasswordResponses.INCORRECT_PASSWORD;
+        const saved = KSPassword.saved(bookId);
+        if (saved && !triedSaved) {
+            triedSaved = true;
+            updatePassword(saved);
+            return;
+        }
+        if (triedSaved && wrong && !pendingPassword) KSPassword.forget(bookId);
+        const answer = await KSPassword.ask({ wrong: wrong && (!!pendingPassword || triedSaved) });
+        if (!answer) {
+            loadingTask.destroy();
+            window.closeReader();
+            return;
+        }
+        pendingPassword = answer;
+        updatePassword(answer.password);
+    };
     loadingTask.promise.then(function(pdf) {
         pdfDoc = pdf;
+        if (pendingPassword && pendingPassword.remember) KSPassword.remember(bookId, pendingPassword.password);
+        // Il frontend fa la copertina dei PDF dalla prima pagina; per quelli protetti si può solo ora
+        if (usedPassword && typeof window.ksBookHasCover === 'function' && !window.ksBookHasCover(bookId)) {
+            pdf.getPage(1).then(async (page) => {
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+                if (blob) await window.ksSetBookCover(bookId, blob);
+            }).catch(e => console.warn(e));
+        }
         const savedPage = localStorage.getItem(`pdf_bookmark_${bookId}`);
         pageNum = savedPage ? parseInt(savedPage) : 1;
         if (pageNum > pdf.numPages) pageNum = pdf.numPages;
@@ -695,6 +731,8 @@ window.openPdfReader = function(pdfUrl, bookId) {
 
         setupPdfTextSelection();
     }).catch(err => {
+        // Annullato dalla finestra della password: niente messaggio
+        if (err && (err.name === 'PasswordException' || /destroy|abort/i.test(err.message || ''))) return;
         alert("Errore caricamento PDF: " + err.message);
     });
 };
@@ -1210,29 +1248,78 @@ function applyComicDirection() {
     rtlBtn.style.opacity = comic.rtl ? '1' : '0.55';
 }
 
-function renderComicPage() {
+// Pagine dei fumetti protetti: si scaricano con la password nell'intestazione e si mostrano
+// da memoria (indice → Promise dell'URL locale). Ne teniamo poche, vicine alla pagina aperta.
+const comicBlobs = new Map();
+
+function comicPageSrc(index) {
+    if (!comic.password) return Promise.resolve(comicPageUrl(index));
+    if (!comicBlobs.has(index)) {
+        const url = comicPageUrl(index);
+        comicBlobs.set(index, fetch(url, { headers: KSPassword.header(comic.password) })
+            .then(r => (r.ok ? r.blob() : null))
+            .then(b => (b ? URL.createObjectURL(b) : null))
+            .catch(() => null));
+    }
+    return comicBlobs.get(index);
+}
+
+function trimComicBlobs() {
+    if (!comic) return;
+    for (const [index, promise] of comicBlobs) {
+        if (Math.abs(index - comic.page) > 4) {
+            promise.then(u => { if (u) URL.revokeObjectURL(u); });
+            comicBlobs.delete(index);
+        }
+    }
+}
+
+function clearComicBlobs() {
+    for (const promise of comicBlobs.values()) promise.then(u => { if (u) URL.revokeObjectURL(u); });
+    comicBlobs.clear();
+}
+
+// Fumetto protetto senza copertina: la prima pagina diventa la copertina sullo scaffale
+async function ensureComicCover() {
+    if (!comic || !comic.password || typeof window.ksBookHasCover !== 'function' || window.ksBookHasCover(comic.id)) return;
+    const id = comic.id;
+    const src = await comicPageSrc(0);
+    if (!src) return;
+    try {
+        const blob = await (await fetch(src)).blob();
+        await window.ksSetBookCover(id, blob);
+    } catch (e) { console.warn(e); }
+}
+
+async function renderComicPage() {
     if (!comic) return;
     const img = document.getElementById('cbz-page');
     const box = document.getElementById('cbz-container');
     if (!img || !box) return;
-    img.src = comicPageUrl(comic.page);
-    img.alt = `${comic.page + 1} / ${comic.pages}`;
+    const index = comic.page;
+    const src = await comicPageSrc(index);
+    if (!comic || comic.page !== index) return;  // nel frattempo si è girata pagina
+    if (src) img.src = src;
+    img.alt = `${index + 1} / ${comic.pages}`;
     box.scrollTop = 0;
     // Le pagine vicine arrivano in anticipo: girare pagina è istantaneo
-    [comic.page + 1, comic.page + 2, comic.page - 1].forEach(i => {
-        if (i >= 0 && i < comic.pages) new Image().src = comicPageUrl(i);
+    [index + 1, index + 2, index - 1].forEach(i => {
+        if (i < 0 || i >= comic.pages) return;
+        if (comic.password) comicPageSrc(i);
+        else new Image().src = comicPageUrl(i);
     });
+    trimComicBlobs();
 
-    const percentage = (comic.page + 1) / comic.pages;
+    const percentage = (index + 1) / comic.pages;
     const progressEl = document.getElementById('reading-progress');
-    if (progressEl) progressEl.innerText = `${comic.page + 1} / ${comic.pages}`;
+    if (progressEl) progressEl.innerText = `${index + 1} / ${comic.pages}`;
     const reviewBtn = document.getElementById('reader-review-btn');
     if (reviewBtn) {
-        const last = comic.page === comic.pages - 1;
+        const last = index === comic.pages - 1;
         reviewBtn.style.display = last ? 'block' : 'none';
         if (last) window.applyCurrentTheme();
     }
-    localStorage.setItem(`cbz_bookmark_${comic.id}`, comic.page);
+    localStorage.setItem(`cbz_bookmark_${comic.id}`, index);
     fetch(`/api/books/${encodeURIComponent(comic.id)}/progress`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1314,15 +1401,26 @@ window.openComicReader = async function(comicUrl, bookId) {
     const fitBtn = toolBtn('cbz-fit-btn', 'image');
     readerOverlay.appendChild(tools);
 
-    let pages = 0;
-    try {
-        const res = await fetch(`/api/books/${encodeURIComponent(bookId)}/pages`);
-        pages = (await res.json()).pages || 0;
-    } catch (e) {
-        console.warn(e);
-    }
-    if (!pages) {
-        alert(window.t('epubError'));
+    // Prima con la password salvata (o senza); se il fumetto è protetto la si chiede
+    const pagesUrl = `/api/books/${encodeURIComponent(bookId)}/pages`;
+    const unlocked = await KSPassword.unlock(bookId, async (password) => {
+        try {
+            const res = await fetch(pagesUrl, { headers: KSPassword.header(password) });
+            const status = await KSPassword.statusOf(res);
+            if (status === 'ok') return { status, value: await res.json() };
+            if (status === 'error') {
+                let message = '';
+                try { message = (await res.json()).message; } catch (e) { /* niente */ }
+                return { status, message: message || window.t('epubError') };
+            }
+            return { status };
+        } catch (e) {
+            return { status: 'error', message: window.t('epubError') };
+        }
+    });
+    const pages = unlocked ? (unlocked.value.pages || 0) : 0;
+    if (!unlocked || !pages) {
+        if (unlocked) alert(window.t('epubError'));
         window.closeReader();
         return;
     }
@@ -1333,6 +1431,7 @@ window.openComicReader = async function(comicUrl, bookId) {
         page: Math.min(Math.max(isNaN(saved) ? 0 : saved, 0), pages - 1),
         rtl: localStorage.getItem(`cbz_rtl_${bookId}`) === 'true',
         fitWidth: localStorage.getItem('cbzFitWidth') === 'true',
+        password: unlocked.value.protected ? unlocked.password : null,
     };
 
     rtlBtn.onclick = () => {
@@ -1357,13 +1456,41 @@ window.openComicReader = async function(comicUrl, bookId) {
         tools.remove();
         box.innerHTML = '';
         box.style.display = 'none';
+        clearComicBlobs();
         comic = null;
     }, { once: true });
 
     applyComicFit();
     applyComicDirection();
-    renderComicPage();
+    await renderComicPage();
     window.applyCurrentTheme();
+    ensureComicCover();
+};
+
+// ======================================================================
+// DOCUMENTI WORD / LIBREOFFICE PROTETTI: il server li converte al volo con la password
+// ======================================================================
+window.openProtectedDocument = async function(bookId, fileName) {
+    const unlocked = await KSPassword.unlock(bookId, async (password) => {
+        if (!password) return { status: 'needs' };
+        try {
+            const res = await fetch(`/api/books/${encodeURIComponent(bookId)}/document`, { headers: KSPassword.header(password) });
+            const status = await KSPassword.statusOf(res);
+            if (status === 'ok') return { status, value: await res.arrayBuffer() };
+            if (status === 'error') {
+                let message = '';
+                try { message = (await res.json()).message; } catch (e) { /* niente */ }
+                return { status, message: message || window.t('epubError') };
+            }
+            return { status };
+        } catch (e) {
+            return { status: 'error', message: window.t('epubError') };
+        }
+    }, { fileName });
+    if (!unlocked) return false;
+    // epub.js accetta anche il libro già in memoria
+    window.openReader(unlocked.value, bookId);
+    return true;
 };
 
 window.closeReader = function() {

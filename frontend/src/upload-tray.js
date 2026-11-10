@@ -176,7 +176,7 @@ function injectStyle() {
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 function cleanFileName(name) {
-    return name.replace(/(\.kepub)?\.(epub|kepub|pdf|fb2|fbz|zip|cbz|txt|md|markdown)$/i, '').replace(/\.fb2$/i, '').replace(/[_-]+/g, ' ').trim();
+    return name.replace(/(\.kepub)?\.(epub|kepub|pdf|mobi|azw3|azw|fb2|fbz|zip|docx|odt|cbz|cbr|cb7|txt|md|markdown)$/i, '').replace(/\.fb2$/i, '').replace(/[_-]+/g, ' ').trim();
 }
 
 function burst(container, radius = 45, delay = 0.45) {
@@ -205,7 +205,7 @@ class TrayItem {
                     <div class="ks-fill"></div>
                     <img class="ks-cover-img" alt="">
                     <div class="ks-cover-text"><b></b><span></span></div>
-                    <div class="ks-icon">${KS_ICON(/\.cbz$/i.test(file.name) ? 'image' : /\.(pdf|txt|md|markdown)$/i.test(file.name) ? 'file' : 'book', 26)}</div>
+                    <div class="ks-icon">${KS_ICON(/\.(cbz|cbr|cb7)$/i.test(file.name) ? 'image' : /\.(pdf|txt|md|markdown|docx|odt)$/i.test(file.name) ? 'file' : 'book', 26)}</div>
                     <div class="ks-shine"></div>
                 </div>
                 <div class="ks-face ks-back"></div>
@@ -277,6 +277,16 @@ class TrayItem {
         const itemRect = this.el.getBoundingClientRect();
         const W = this.book.offsetWidth, H = this.book.offsetHeight;
         const startRect = { x: itemRect.x + this.book.offsetLeft, y: itemRect.y + this.book.offsetTop, width: W, height: H };
+        // Con tanti libri il vassoio scorre dietro ai caricamenti, che vanno più veloci dei voli:
+        // quando tocca a un libro dei primi, il suo posto può essere già uscito dal vassoio a
+        // sinistra (anche fuori dallo schermo). Allora parte dall'angolo in basso a destra della
+        // parte visibile del vassoio, dove arrivano i caricamenti.
+        const shelfRect = this.tray.shelf.getBoundingClientRect();
+        const visible = startRect.x >= shelfRect.left - 1 && startRect.x + W <= shelfRect.right + 1;
+        if (!visible && shelfRect.width > 0) {
+            startRect.x = Math.max(shelfRect.left, shelfRect.right - W);
+            startRect.y = Math.min(startRect.y, shelfRect.bottom - H);
+        }
 
         const flyer = document.createElement('div');
         flyer.className = 'ks-flyer';

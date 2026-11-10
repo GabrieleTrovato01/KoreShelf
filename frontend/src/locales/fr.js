@@ -139,7 +139,7 @@ export default {
         <li><b>Navigation :</b> Faites défiler horizontalement (swipe ou flèches ←/→) pour parcourir les ouvrages, et verticalement (↑/↓) pour changer de catégorie.</li>
         <li><b>Organiser et gérer :</b> Utilisez "Assigner une catégorie" pour classer vos volumes, ou "Gérer" pour les opérations avancées de la bibliothèque.</li>
         <li><b>Modifier les métadonnées :</b> Cliquez sur le bouton "Modifier" sur n'importe quel livre pour modifier manuellement le titre, l'auteur, la description ou la catégorie. Vous pouvez également télécharger une couverture personnalisée haute résolution, et le modèle 3D sera mis à jour instantanément.</li>
-        <li><b>Lecture avancée :</b> Cliquez sur un livre pour l'ouvrir. Le lecteur supporte nativement <b>EPUB</b> (format fluide), <b>PDF</b> (format fixe) et les BD <b>CBZ</b>. Les fichiers <b>FB2</b>, <b>TXT</b> et <b>Markdown</b> sont convertis en EPUB lors de l'envoi.</li>
+        <li><b>Lecture avancée :</b> Cliquez sur un livre pour l'ouvrir. Le lecteur supporte nativement <b>EPUB</b> (format fluide), <b>PDF</b> (format fixe) et les BD <b>CBZ</b>, <b>CBR</b> et <b>CB7</b>. Les fichiers <b>MOBI</b>, <b>AZW3</b>, <b>FB2</b>, <b>DOCX</b>, <b>ODT</b>, <b>TXT</b> et <b>Markdown</b> sont convertis en EPUB lors de l'envoi. Les fichiers protégés demandent le mot de passe à l'ouverture et peuvent le mémoriser sur cet appareil.</li>
         <li><b>Personnalisation du lecteur (Menu Hamburger) :</b> Ouvrez le menu latéral (≡) pour ajuster :
             <ul>
                 <li><b>Zoom :</b> Agrandissez le texte ou les pages pour une lecture optimale.</li>
@@ -186,7 +186,7 @@ export default {
 
     //server.js locales
     errNoFile: "Aucun fichier uploadé.",
-    errFormat: "Format non supporté. Utilisez EPUB, PDF, FB2, CBZ, TXT ou Markdown.",
+    errFormat: "Format non supporté. Utilisez EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, TXT, Markdown ou des BD CBZ, CBR, CB7.",
     errDuplicate: "Ce livre est déjà sur votre étagère !",
     successUpload: "Livre traité et ajouté avec succès !",
     errInternal: "Erreur interne du serveur.",
@@ -367,6 +367,16 @@ export default {
     comicRtl: "Lire de droite à gauche (manga)",
     comicFitWidth: "Ajuster à la largeur",
     comicFitPage: "Ajuster à la page",
+    errDrm: "Ce livre a un DRM de la boutique Kindle et ne peut pas être ouvert : il se lit seulement dans les applis Kindle.",
+    errEncryptionUnsupported: "Ce fichier utilise une protection que KoreShelf ne sait pas encore ouvrir.",
+    passwordRequired: "Ce fichier est protégé par un mot de passe.",
+    passwordWrong: "Mot de passe incorrect, réessayez.",
+    passwordTitle: "Fichier protégé",
+    passwordPlaceholder: "Mot de passe",
+    passwordRemember: "Mémoriser le mot de passe sur cet appareil",
+    passwordRememberHint: "Il reste uniquement ici et sera saisi automatiquement quand vous rouvrirez le fichier.",
+    passwordUnlock: "Déverrouiller",
+    passwordCancel: "Annuler",
     searchPlaceholderAmazon: "Cherchez un livre ou découvrez-en un sur Amazon",
 
     // Menu laterale del lettore

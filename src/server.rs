@@ -6,7 +6,8 @@ use crate::i18n::{self, t, t_with};
 use crate::online::{self, OnlineData};
 use crate::paths::Paths;
 use crate::text;
-use crate::{cbz, epub, fb2, images, log_error, log_info, log_warn, pdf, plaintext};
+use crate::protection::{password_from_header, OpenError, PASSWORD_HEADER};
+use crate::{comic, epub, fb2, images, log_error, log_info, log_warn, mobi, office, pdf, plaintext};
 use axum::extract::{DefaultBodyLimit, Multipart, Path as UrlPath, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -75,6 +76,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/books/{id}/review", put(set_review))
         .route("/api/books/{id}/highlights", post(add_highlight).delete(remove_highlight))
         .route("/api/books/{id}/pages", get(comic_pages))
+        .route("/api/books/{id}/document", get(protected_document))
         .route("/api/books/{id}/pages/{index}", get(comic_page))
         .route("/api/store/amazon-link", get(amazon_link))
         .route("/api/shutdown", post(shutdown))
@@ -310,14 +312,18 @@ pub enum Format {
     /// EPUB e KEPUB di Kobo (`.epub`, `.kepub.epub`, `.kepub`)
     Epub,
     Pdf,
+    /// Kindle senza DRM: MOBI, AZW3, AZW
+    Mobi,
     /// FictionBook
     Fb2,
     /// FictionBook compresso (`.fb2.zip`, `.fbz`, o uno `.zip` con dentro un `.fb2`)
     Fb2Zip,
+    Docx,
+    Odt,
     Text,
     Markdown,
-    /// Fumetto: ZIP di immagini
-    Cbz,
+    /// Fumetto CBZ, CBR o CB7 (il tipo vero si riconosce dal contenuto)
+    Comic,
 }
 
 impl Format {
@@ -327,39 +333,134 @@ impl Format {
         Some(match ext {
             "epub" | "kepub" => Format::Epub,
             "pdf" => Format::Pdf,
+            "mobi" | "azw3" | "azw" => Format::Mobi,
             "fb2" => Format::Fb2,
             "fbz" | "zip" => Format::Fb2Zip,
+            "docx" => Format::Docx,
+            "odt" => Format::Odt,
             "txt" | "text" => Format::Text,
             "md" | "markdown" => Format::Markdown,
-            "cbz" => Format::Cbz,
+            "cbz" | "cbr" | "cb7" => Format::Comic,
             _ => return None,
         })
     }
 
-    /// I formati di testo vengono convertiti in EPUB all'importazione.
-    pub fn is_converted(self) -> bool {
-        matches!(self, Format::Fb2 | Format::Fb2Zip | Format::Text | Format::Markdown)
-    }
-
-    /// Estensione del file salvato in `ebooks/`, che decide il lettore nel frontend.
-    pub fn stored_ext(self) -> &'static str {
-        match self {
-            Format::Pdf => "pdf",
-            Format::Cbz => "cbz",
-            _ => "epub",
-        }
+    /// Documenti personali più che libri: niente ricerche online di titolo e copertina.
+    fn is_personal_document(self) -> bool {
+        matches!(self, Format::Text | Format::Markdown | Format::Docx | Format::Odt)
     }
 }
 
-/// Converte FB2, TXT o Markdown in un EPUB.
-fn convert_to_epub(format: Format, file: &Path, original: &str) -> Result<Vec<u8>, String> {
-    let bytes = std::fs::read(file).map_err(|e| e.to_string())?;
+/// Converte un formato di testo in EPUB.
+fn convert_to_epub(format: Format, file: &Path, original: &str) -> Result<Vec<u8>, OpenError> {
+    let bytes = std::fs::read(file).map_err(|e| OpenError::Other(e.to_string()))?;
+    let fallback = text::plain_title_from_filename(original);
     match format {
-        Format::Fb2 => fb2::fb2_to_epub(&bytes),
-        Format::Fb2Zip => fb2::fb2_to_epub(&fb2::fb2_from_zip(&bytes)?),
-        Format::Text => plaintext::txt_to_epub(&bytes, original),
-        Format::Markdown => plaintext::markdown_to_epub(&bytes, original),
-        _ => Err("formato non convertibile".into()),
+        Format::Fb2 => Ok(fb2::fb2_to_epub(&bytes)?),
+        Format::Fb2Zip => Ok(fb2::fb2_to_epub(&fb2::fb2_from_zip(&bytes)?)?),
+        Format::Text => Ok(plaintext::txt_to_epub(&bytes, original)?),
+        Format::Markdown => Ok(plaintext::markdown_to_epub(&bytes, original)?),
+        Format::Mobi => mobi::mobi_to_epub(&bytes, &fallback).map(|(epub, _)| epub),
+        Format::Docx => office::docx_to_epub(&bytes, &fallback, None),
+        Format::Odt => office::odt_to_epub(&bytes, &fallback, None),
+        _ => Err(OpenError::Other("formato non convertibile".into())),
+    }
+}
+
+/// Il file da mettere in libreria dopo i controlli e le conversioni.
+struct Prepared {
+    /// File convertito (EPUB o CBZ) da usare al posto di quello caricato
+    converted: Option<TempFile>,
+    /// Estensione del file in `ebooks/`: decide il lettore nel frontend
+    ext: &'static str,
+}
+
+/// Messaggio per un file che non si può importare.
+fn rejection(lang: &str, original: &str, e: &OpenError) -> Response {
+    log_warn!("{original} non importato: {e}");
+    let key = match e {
+        OpenError::Unsupported(what) if what == "DRM" => "errDrm",
+        OpenError::Unsupported(_) => "errEncryptionUnsupported",
+        _ => "errFormat",
+    };
+    reply(StatusCode::BAD_REQUEST, false, t(lang, key))
+}
+
+async fn prepare(st: &AppState, lang: &str, file: &Path, original: &str, format: Format, base: &str) -> Result<Prepared, Response> {
+    let write_temp = |bytes: Vec<u8>, name: String| async move {
+        let temp = TempFile(st.paths.uploads.join(name));
+        tokio::fs::write(&temp.0, bytes).await.map_err(|e| internal(st, "Errore salvataggio", e))?;
+        Ok::<TempFile, Response>(temp)
+    };
+    let (src, name) = (file.to_path_buf(), original.to_string());
+    let reject = |e: OpenError| rejection(lang, original, &e);
+    match format {
+        Format::Epub => Ok(Prepared { converted: None, ext: "epub" }),
+        Format::Pdf => Ok(Prepared { converted: None, ext: "pdf" }),
+        Format::Comic => {
+            let info = run_parser(timeout_for(file, 1.0), move || Ok((|| {
+                let kind = comic::kind_of(&src)?;
+                let encrypted = comic::is_encrypted(&src)?;
+                let pages = if encrypted { None } else { Some(comic::page_names(&src, None)?.len()) };
+                let converted = if kind != comic::Kind::Zip && !encrypted { Some(comic::convert_to_cbz(&src)?) } else { None };
+                Ok::<_, OpenError>((kind, encrypted, pages, converted))
+            })()))
+            .await
+            .map_err(OpenError::Other)
+            .and_then(|r| r)
+            .map_err(reject)?;
+            let (kind, encrypted, pages, converted) = info;
+            if pages == Some(0) {
+                return Err(reject(OpenError::Other("nessuna immagine nel fumetto".into())));
+            }
+            if encrypted {
+                log_info!("{original}: fumetto protetto da password, resta cifrato");
+                return Ok(Prepared { converted: None, ext: kind.extension() });
+            }
+            match converted {
+                Some(bytes) => {
+                    log_info!("{original} convertito in CBZ");
+                    Ok(Prepared { converted: Some(write_temp(bytes, format!("{base}_converted.cbz")).await?), ext: "cbz" })
+                }
+                None => Ok(Prepared { converted: None, ext: "cbz" }),
+            }
+        }
+        Format::Docx | Format::Odt => {
+            let bytes = tokio::fs::read(file).await.map_err(|e| internal(st, "Errore lettura", e))?;
+            let encrypted = match format {
+                Format::Docx if bytes.starts_with(&crate::office_crypto::CFB_MAGIC) => {
+                    if office::docx_is_encrypted(&bytes) {
+                        true
+                    } else {
+                        // Un vecchio .doc rinominato in .docx
+                        return Err(reject(OpenError::Other("documento Word in formato .doc".into())));
+                    }
+                }
+                Format::Docx => false,
+                _ => office::odt_is_encrypted(&bytes).map_err(reject)?,
+            };
+            if encrypted {
+                log_info!("{original}: documento protetto da password, resta cifrato");
+                let ext = if format == Format::Docx { "docx" } else { "odt" };
+                return Ok(Prepared { converted: None, ext });
+            }
+            let epub = run_parser(timeout_for(file, 3.0), move || Ok(convert_to_epub(format, &src, &name)))
+                .await
+                .map_err(OpenError::Other)
+                .and_then(|r| r)
+                .map_err(reject)?;
+            log_info!("{original} convertito in EPUB");
+            Ok(Prepared { converted: Some(write_temp(epub, format!("{base}_converted.epub")).await?), ext: "epub" })
+        }
+        _ => {
+            let epub = run_parser(timeout_for(file, 3.0), move || Ok(convert_to_epub(format, &src, &name)))
+                .await
+                .map_err(OpenError::Other)
+                .and_then(|r| r)
+                .map_err(reject)?;
+            log_info!("{original} convertito in EPUB");
+            Ok(Prepared { converted: Some(write_temp(epub, format!("{base}_converted.epub")).await?), ext: "epub" })
+        }
     }
 }
 
@@ -441,9 +542,9 @@ async fn extract_local(st: &AppState, lang: &str, file: &Path, original: &str, e
                 LocalData { title, author: None, description: None, cover_path: None, text_length: 0, pdf_pages: None, isbn: None }
             }
         }
-    } else if ext == "cbz" {
+    } else if matches!(ext, "cbz" | "cbr" | "cb7") {
         let path = file.to_path_buf();
-        match run_parser(timeout_for(file, 1.0), move || cbz::read_cbz(&path)).await {
+        match run_parser(timeout_for(file, 1.0), move || Ok(comic::read_comic(&path))).await.map_err(OpenError::Other).and_then(|r| r) {
             Ok(info) => {
                 let (title, author) = match info.title.as_deref() {
                     Some(tt) if !text::is_junk_title(tt, false) => (tt.to_string(), info.author.clone()),
@@ -462,16 +563,20 @@ async fn extract_local(st: &AppState, lang: &str, file: &Path, original: &str, e
                     description: info.description,
                     cover_path,
                     text_length: 0,
-                    pdf_pages: Some(info.page_count as i64),
+                    pdf_pages: info.page_count.map(|n| n as i64),
                     isbn: info.isbn,
                 }
             }
             Err(e) => {
-                log_warn!("Impossibile leggere il CBZ ({e}): uso il nome del file");
+                log_warn!("Impossibile leggere il fumetto ({e}): uso il nome del file");
                 let (title, author) = fallback_from_filename(original, lang, true);
                 LocalData { title, author, description: None, cover_path: None, text_length: 0, pdf_pages: None, isbn: None }
             }
         }
+    } else if matches!(ext, "docx" | "odt") {
+        // Documento protetto: senza password non si legge niente, nemmeno i metadati
+        let (title, author) = fallback_from_filename(original, lang, true);
+        LocalData { title, author, description: None, cover_path: None, text_length: 0, pdf_pages: None, isbn: None }
     } else {
         let path = file.to_path_buf();
         match run_parser(timeout_for(file, 3.0), move || pdf::read_pdf(&path)).await {
@@ -528,46 +633,22 @@ async fn process_upload(st: &AppState, lang: &str, file: &Path, original: &str, 
     };
 
     // Controllo del contenuto reale: un EPUB o un CBZ è uno ZIP ("PK"), un PDF contiene
-    // "%PDF", un FB2 è XML FictionBook, un testo non è un file binario.
+    // "%PDF", un FB2 è XML FictionBook, un MOBI è un database Palm, un testo non è binario.
     if !looks_like(file, format).await {
         log_warn!("{original} non è un file {format:?} valido");
         return Ok(reply(StatusCode::BAD_REQUEST, false, t(lang, "errFormat")));
     }
-    if format == Format::Cbz {
-        let path = file.to_path_buf();
-        let pages = run_parser(timeout_for(file, 1.0), move || cbz::page_count(&path)).await.unwrap_or(0);
-        if pages == 0 {
-            log_warn!("{original}: nessuna immagine dentro il CBZ");
-            return Ok(reply(StatusCode::BAD_REQUEST, false, t(lang, "errFormat")));
-        }
-    }
 
     let base = unique_base_name(st);
-
-    // FB2, TXT e Markdown diventano un EPUB: da qui in poi si lavora su quello.
-    let converted = if format.is_converted() {
-        let (src, name) = (file.to_path_buf(), original.to_string());
-        match run_parser(timeout_for(file, 3.0), move || convert_to_epub(format, &src, &name)).await {
-            Ok(bytes) => {
-                let temp = TempFile(st.paths.uploads.join(format!("{base}_converted.epub")));
-                tokio::fs::write(&temp.0, bytes).await.map_err(|e| e.to_string())?;
-                log_info!("{original} convertito in EPUB");
-                Some(temp)
-            }
-            Err(e) => {
-                log_warn!("Conversione di {original} non riuscita: {e}");
-                return Ok(reply(StatusCode::BAD_REQUEST, false, t(lang, "errFormat")));
-            }
-        }
-    } else {
-        None
+    // FB2, MOBI, DOCX, ODT, TXT e Markdown diventano un EPUB, CBR e CB7 un CBZ (se non hanno password)
+    let prepared = match prepare(st, lang, file, original, format, &base).await {
+        Ok(p) => p,
+        Err(response) => return Ok(response),
     };
-    let source = converted.as_ref().map(|t| t.0.as_path()).unwrap_or(file);
-    let ext = format.stored_ext();
+    let source = prepared.converted.as_ref().map(|t| t.0.as_path()).unwrap_or(file);
+    let ext = prepared.ext;
     let local = extract_local(st, lang, source, original, ext, &base).await;
-    // TXT e Markdown sono spesso documenti personali: niente ricerche online che potrebbero
-    // cambiare titolo o copertina con quelli di un libro qualsiasi.
-    let offline = offline || matches!(format, Format::Text | Format::Markdown);
+    let offline = offline || format.is_personal_document();
     match &local.isbn {
         Some(isbn) => log_info!("ISBN trovato: {isbn}"),
         None => log_info!("Nessun ISBN trovato"),
@@ -622,7 +703,7 @@ async fn process_upload(st: &AppState, lang: &str, file: &Path, original: &str, 
     // Copertina: quella interna, altrimenti quella trovata online (libri EPUB e FB2;
     // per i PDF la genera il frontend fotografando la prima pagina, per i CBZ è la prima pagina).
     let mut cover_path = local.cover_path.clone();
-    if cover_path.is_none() && matches!(format, Format::Epub | Format::Fb2 | Format::Fb2Zip) {
+    if cover_path.is_none() && ext == "epub" && matches!(format, Format::Epub | Format::Fb2 | Format::Fb2Zip | Format::Mobi) {
         if let Some(url) = &online.cover_url {
             log_info!("Copertina mancante: la scarico da internet");
             if let Some(bytes) = online::download_image(&st.http, url).await {
@@ -679,7 +760,10 @@ async fn looks_like(file: &Path, format: Format) -> bool {
     };
     let head = &head[..n];
     match format {
-        Format::Epub | Format::Cbz | Format::Fb2Zip => head.starts_with(b"PK"),
+        Format::Epub | Format::Fb2Zip | Format::Odt => head.starts_with(b"PK"),
+        Format::Docx => head.starts_with(b"PK") || head.starts_with(&crate::office_crypto::CFB_MAGIC),
+        Format::Mobi => mobi::looks_like_mobi(head),
+        Format::Comic => comic::sniff(head).is_some(),
         Format::Pdf => head.windows(4).any(|w| w == b"%PDF"),
         Format::Fb2 => {
             let text = plaintext::decode_text(head);
@@ -850,6 +934,9 @@ async fn delete_book(State(st): State<AppState>, UrlPath(id): UrlPath<String>) -
     if let Err(e) = st.db.delete(&id) {
         return internal(&st, "Errore eliminazione libro", e);
     }
+    if let Some(path) = book.epub_path.as_deref().and_then(|p| st.paths.resolve_relative(p)) {
+        comic::forget(&path);
+    }
     remove_data_file(&st.paths, book.epub_path.as_deref()).await;
     remove_data_file(&st.paths, book.cover_path.as_deref()).await;
     log_info!("Libro eliminato: {}", book.title);
@@ -908,52 +995,114 @@ async fn remove_highlight(State(st): State<AppState>, UrlPath(id): UrlPath<Strin
     }
 }
 
-// --- Fumetti CBZ: una pagina alla volta --------------------------------------
+// --- Fumetti e documenti protetti -----------------------------------------
 
-/// Il file CBZ di un libro della libreria.
-fn comic_file(st: &AppState, id: &str) -> Result<PathBuf, Response> {
+/// Risposta per un file che chiede una password: il frontend la mostra e riprova.
+fn locked_reply(st: &AppState, e: OpenError) -> Response {
+    let (status, code, key) = match &e {
+        OpenError::NeedsPassword => (StatusCode::UNAUTHORIZED, "password_required", "passwordRequired"),
+        OpenError::WrongPassword => (StatusCode::UNAUTHORIZED, "password_wrong", "passwordWrong"),
+        OpenError::Unsupported(_) => (StatusCode::UNPROCESSABLE_ENTITY, "unsupported", "errEncryptionUnsupported"),
+        OpenError::Other(_) => return internal(st, "File non leggibile", e),
+    };
+    (status, Json(json!({ "success": false, "code": code, "message": t(&st.lang(), key) }))).into_response()
+}
+
+fn request_password(headers: &axum::http::HeaderMap) -> Option<String> {
+    password_from_header(headers.get(PASSWORD_HEADER).and_then(|v| v.to_str().ok()))
+}
+
+/// Il file di un libro della libreria, se ha una delle estensioni indicate.
+fn library_file(st: &AppState, id: &str, extensions: &[&str]) -> Result<PathBuf, Response> {
     let book = match st.db.get(id) {
         Ok(Some(b)) => b,
         Ok(None) => return Err(not_found(st)),
         Err(e) => return Err(internal(st, "Errore DB", e)),
     };
-    match book.epub_path.as_deref().filter(|p| p.to_lowercase().ends_with(".cbz")).and_then(|p| st.paths.resolve_relative(p)) {
+    let path = book.epub_path.as_deref().filter(|p| {
+        let lower = p.to_lowercase();
+        extensions.iter().any(|ext| lower.ends_with(&format!(".{ext}")))
+    });
+    match path.and_then(|p| st.paths.resolve_relative(p)) {
         Some(path) => Ok(path),
         None => Err(not_found(st)),
     }
 }
 
-async fn comic_pages(State(st): State<AppState>, UrlPath(id): UrlPath<String>) -> Response {
-    let path = match comic_file(&st, &id) {
+const COMIC_EXTENSIONS: [&str; 3] = ["cbz", "cbr", "cb7"];
+
+async fn comic_pages(State(st): State<AppState>, UrlPath(id): UrlPath<String>, headers: axum::http::HeaderMap) -> Response {
+    let path = match library_file(&st, &id, &COMIC_EXTENSIONS) {
         Ok(p) => p,
         Err(response) => return response,
     };
-    match tokio::task::spawn_blocking(move || cbz::page_count(&path)).await {
-        Ok(Ok(pages)) => Json(json!({ "success": true, "pages": pages })).into_response(),
-        Ok(Err(e)) => internal(&st, "Fumetto non leggibile", e),
+    let password = request_password(&headers);
+    let result = tokio::task::spawn_blocking(move || {
+        let encrypted = comic::is_encrypted(&path)?;
+        if encrypted && password.is_none() {
+            return Err(OpenError::NeedsPassword);
+        }
+        let pages = comic::page_names(&path, password.as_deref())?;
+        // Con i soli contenuti cifrati i nomi si leggono anche senza password giusta:
+        // la verifichiamo sulla prima pagina.
+        if encrypted && !pages.is_empty() {
+            comic::read_page(&path, 0, password.as_deref())?;
+        }
+        Ok((pages.len(), encrypted))
+    })
+    .await;
+    match result {
+        Ok(Ok((pages, encrypted))) => Json(json!({ "success": true, "pages": pages, "protected": encrypted })).into_response(),
+        Ok(Err(e)) => locked_reply(&st, e),
         Err(e) => internal(&st, "Fumetto non leggibile", e),
     }
 }
 
-async fn comic_page(State(st): State<AppState>, UrlPath((id, index)): UrlPath<(String, String)>) -> Response {
-    let path = match comic_file(&st, &id) {
+async fn comic_page(State(st): State<AppState>, UrlPath((id, index)): UrlPath<(String, String)>, headers: axum::http::HeaderMap) -> Response {
+    let path = match library_file(&st, &id, &COMIC_EXTENSIONS) {
         Ok(p) => p,
         Err(response) => return response,
     };
     let Ok(index) = index.parse::<usize>() else { return not_found(&st) };
-    match tokio::task::spawn_blocking(move || cbz::read_page(&path, index)).await {
+    let password = request_password(&headers);
+    let protected = password.is_some();
+    match tokio::task::spawn_blocking(move || comic::read_page(&path, index, password.as_deref())).await {
         Ok(Ok(Some((bytes, mime)))) => (
             [
                 (axum::http::header::CONTENT_TYPE, mime),
-                // Il contenuto di una pagina non cambia mai: il browser la tiene in cache
-                (axum::http::header::CACHE_CONTROL, "private, max-age=86400"),
+                // Le pagine in chiaro restano in cache; quelle protette no
+                (axum::http::header::CACHE_CONTROL, if protected { "no-store" } else { "private, max-age=86400" }),
             ],
             bytes,
         )
             .into_response(),
         Ok(Ok(None)) => not_found(&st),
-        Ok(Err(e)) => internal(&st, "Pagina del fumetto non leggibile", e),
+        Ok(Err(e)) => locked_reply(&st, e),
         Err(e) => internal(&st, "Pagina del fumetto non leggibile", e),
+    }
+}
+
+/// Un DOCX o ODT protetto, convertito al momento in EPUB con la password ricevuta.
+async fn protected_document(State(st): State<AppState>, UrlPath(id): UrlPath<String>, headers: axum::http::HeaderMap) -> Response {
+    let path = match library_file(&st, &id, &["docx", "odt"]) {
+        Ok(p) => p,
+        Err(response) => return response,
+    };
+    let password = request_password(&headers);
+    let result = tokio::task::spawn_blocking(move || {
+        let bytes = std::fs::read(&path).map_err(|e| OpenError::Other(e.to_string()))?;
+        let fallback = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+        if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("docx")) {
+            office::docx_to_epub(&bytes, &fallback, password.as_deref())
+        } else {
+            office::odt_to_epub(&bytes, &fallback, password.as_deref())
+        }
+    })
+    .await;
+    match result {
+        Ok(Ok(epub)) => ([(axum::http::header::CONTENT_TYPE, "application/epub+zip"), (axum::http::header::CACHE_CONTROL, "no-store")], epub).into_response(),
+        Ok(Err(e)) => locked_reply(&st, e),
+        Err(e) => internal(&st, "Documento non leggibile", e),
     }
 }
 

@@ -1,7 +1,7 @@
 {
   "it": {
     "errNoFile": "Nessun file caricato.",
-    "errFormat": "Formato non supportato. Usa EPUB, PDF, FB2, CBZ, TXT o Markdown.",
+    "errFormat": "Formato non supportato. Usa EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, TXT, Markdown o fumetti CBZ, CBR, CB7.",
     "successUpload": "Libro elaborato e aggiunto con successo!",
     "errInternal": "Errore interno del server.",
     "errInvalidTag": "Tag non valido.",
@@ -17,11 +17,15 @@
     "unknownAuthor": "Autore Sconosciuto",
     "unknownTitle": "Titolo Sconosciuto",
     "noDescriptionAvailable": "Nessuna trama disponibile per questo libro.",
-    "noPlotFound": "Trama non trovata."
+    "noPlotFound": "Trama non trovata.",
+    "errDrm": "Questo libro ha un DRM del Kindle Store e non si può aprire: si legge solo con le app Kindle.",
+    "errEncryptionUnsupported": "Questo file usa una protezione che KoreShelf non sa ancora aprire.",
+    "passwordRequired": "Questo file è protetto da password.",
+    "passwordWrong": "Password errata, riprova."
   },
   "en": {
     "errNoFile": "No file uploaded.",
-    "errFormat": "Unsupported format. Use EPUB, PDF, FB2, CBZ, TXT or Markdown.",
+    "errFormat": "Unsupported format. Use EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, TXT, Markdown or CBZ, CBR, CB7 comics.",
     "successUpload": "Book processed and successfully added!",
     "errInternal": "Internal server error.",
     "errInvalidTag": "Invalid tag.",
@@ -37,11 +41,15 @@
     "unknownAuthor": "Unknown Author",
     "unknownTitle": "Unknown Title",
     "noDescriptionAvailable": "No synopsis available for this book.",
-    "noPlotFound": "Plot not found."
+    "noPlotFound": "Plot not found.",
+    "errDrm": "This book has Kindle Store DRM and cannot be opened: it can only be read in the Kindle apps.",
+    "errEncryptionUnsupported": "This file uses a protection KoreShelf cannot open yet.",
+    "passwordRequired": "This file is password protected.",
+    "passwordWrong": "Wrong password, please try again."
   },
   "es": {
     "errNoFile": "No se ha seleccionado ningún archivo.",
-    "errFormat": "Formato no soportado. Usa EPUB, PDF, FB2, CBZ, TXT o Markdown.",
+    "errFormat": "Formato no soportado. Usa EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, TXT, Markdown o cómics CBZ, CBR, CB7.",
     "successUpload": "Libro procesado y agregado con éxito!",
     "errInternal": "Error interno del servidor.",
     "errInvalidTag": "Etiqueta inválida.",
@@ -57,11 +65,15 @@
     "unknownAuthor": "Autor Desconocido",
     "unknownTitle": "Título desconocido",
     "noDescriptionAvailable": "No hay sinopsis disponible para este libro.",
-    "noPlotFound": "No se ha encontrado la trama."
+    "noPlotFound": "No se ha encontrado la trama.",
+    "errDrm": "Este libro tiene DRM de la tienda Kindle y no se puede abrir: solo se lee con las apps de Kindle.",
+    "errEncryptionUnsupported": "Este archivo usa una protección que KoreShelf todavía no sabe abrir.",
+    "passwordRequired": "Este archivo está protegido con contraseña.",
+    "passwordWrong": "Contraseña incorrecta, inténtalo de nuevo."
   },
   "fr": {
     "errNoFile": "Aucun fichier uploadé.",
-    "errFormat": "Format non supporté. Utilisez EPUB, PDF, FB2, CBZ, TXT ou Markdown.",
+    "errFormat": "Format non supporté. Utilisez EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, TXT, Markdown ou des BD CBZ, CBR, CB7.",
     "successUpload": "Livre traité et ajouté avec succès !",
     "errInternal": "Erreur interne du serveur.",
     "errInvalidTag": "Tag invalide.",
@@ -77,11 +89,15 @@
     "unknownAuthor": "Auteur inconnu",
     "unknownTitle": "Titre inconnu",
     "noDescriptionAvailable": "Aucun synopsis disponible pour ce livre.",
-    "noPlotFound": "Synopsis introuvable."
+    "noPlotFound": "Synopsis introuvable.",
+    "errDrm": "Ce livre a un DRM de la boutique Kindle et ne peut pas être ouvert : il se lit seulement dans les applis Kindle.",
+    "errEncryptionUnsupported": "Ce fichier utilise une protection que KoreShelf ne sait pas encore ouvrir.",
+    "passwordRequired": "Ce fichier est protégé par un mot de passe.",
+    "passwordWrong": "Mot de passe incorrect, réessayez."
   },
   "de": {
     "errNoFile": "Keine Datei hochgeladen.",
-    "errFormat": "Nicht unterstütztes Format. Verwenden Sie EPUB, PDF, FB2, CBZ, TXT oder Markdown.",
+    "errFormat": "Nicht unterstütztes Format. Verwenden Sie EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, TXT, Markdown oder CBZ-, CBR-, CB7-Comics.",
     "successUpload": "Buch verarbeitet und erfolgreich hinzugefügt!",
     "errInternal": "Interner Serverfehler.",
     "errInvalidTag": "Ungültiger Tag.",
@@ -97,6 +113,10 @@
     "unknownAuthor": "Unbekannter Autor",
     "unknownTitle": "Unbekannter Titel",
     "noDescriptionAvailable": "Keine Zusammenfassung für dieses Buch verfügbar.",
-    "noPlotFound": "Handlung nicht gefunden."
+    "noPlotFound": "Handlung nicht gefunden.",
+    "errDrm": "Dieses Buch hat einen Kindle-Store-DRM und kann nicht geöffnet werden: Es lässt sich nur in den Kindle-Apps lesen.",
+    "errEncryptionUnsupported": "Diese Datei verwendet einen Schutz, den KoreShelf noch nicht öffnen kann.",
+    "passwordRequired": "Diese Datei ist passwortgeschützt.",
+    "passwordWrong": "Falsches Passwort, bitte erneut versuchen."
   }
 }

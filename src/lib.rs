@@ -1,8 +1,9 @@
 //! KoreShelf come libreria: il server (API + interfaccia incorporata) e tutto ciò che serve
-//! per leggere EPUB, PDF, FB2, CBZ, TXT e Markdown. Lo usano sia l'app desktop (src/main.rs) sia l'app mobile (mobile/).
+//! per leggere EPUB, PDF, MOBI/AZW3, FB2, DOCX/ODT, TXT, Markdown e fumetti CBZ/CBR/CB7. Lo usano sia l'app desktop (src/main.rs) sia l'app mobile (mobile/).
 
 pub mod assets;
-pub mod cbz;
+pub mod blocks;
+pub mod comic;
 pub mod db;
 pub mod dialogs;
 pub mod epub;
@@ -12,10 +13,14 @@ pub mod i18n;
 pub mod images;
 pub mod isbn;
 pub mod logger;
+pub mod mobi;
+pub mod office;
+pub mod office_crypto;
 pub mod online;
 pub mod paths;
 pub mod pdf;
 pub mod plaintext;
+pub mod protection;
 pub mod server;
 pub mod server_mode;
 pub mod text;

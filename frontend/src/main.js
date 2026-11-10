@@ -383,7 +383,7 @@ const fileInput = document.createElement('input');
 fileInput.type = 'file';
 fileInput.id = 'file-upload';
 // Formati importabili: lo stesso elenco lo usa il trascinamento (IMPORTABLE_FILE)
-const IMPORTABLE_EXTENSIONS = ['.epub', '.kepub', '.pdf', '.fb2', '.fbz', '.zip', '.cbz', '.txt', '.md', '.markdown'];
+const IMPORTABLE_EXTENSIONS = ['.epub', '.kepub', '.pdf', '.mobi', '.azw3', '.azw', '.fb2', '.fbz', '.zip', '.docx', '.odt', '.cbz', '.cbr', '.cb7', '.txt', '.md', '.markdown'];
 const IMPORTABLE_FILE = new RegExp('(' + IMPORTABLE_EXTENSIONS.map(e => e.replace('.', '\\.')).join('|') + ')$', 'i');
 fileInput.accept = IMPORTABLE_EXTENSIONS.join(', ');
 fileInput.multiple = true;
@@ -910,7 +910,12 @@ langItem.addEventListener('click', (e) => { e.stopPropagation(); langList.classL
     b.addEventListener('click', () => document.querySelector(`[data-lang="${code}"]`)?.click());
     langList.appendChild(b);
 });
-moreMenu.append(menuSep, manageItem, langItem, langList);
+// Telefono: anche "Supporta KoreShelf" (il pulsante PayPal in basso c'è solo su computer)
+const supportItem = document.createElement('button');
+supportItem.className = 'ks-menu-item ks-phone-only';
+supportItem.id = 'ks-support-item';
+supportItem.addEventListener('click', () => openExternal(donateBtn.href));
+moreMenu.append(menuSep, manageItem, langItem, langList, supportItem);
 
 // Telefono: riga Trama / Categoria / Altro sotto "Riprendi a leggere"
 const mobileActions = document.createElement('div');
@@ -945,6 +950,7 @@ function updateActiveBookPanel() {
     mobileCategory.textContent = t('categoryShort') || 'Categoria';
     manageItem.textContent = t('manageShelves') || 'Gestisci scaffali';
     langItem.textContent = (t('languageMenu') || 'Lingua') + ' · ' + (localStorage.getItem('KoreShelf_lang') || 'it').toUpperCase();
+    supportItem.innerHTML = KS_ICON('heart', 16) + ' ' + ((t('donateBtn') || 'Supporta').trim());
     searchToggle.setAttribute('aria-label', t('searchBtn') || 'Cerca');
     addBtn.setAttribute('aria-label', t('addBooks') || 'Aggiungi libri');
     assignCatBtn.innerHTML = t('assignCategory');
@@ -1237,6 +1243,7 @@ deleteBookBtn.onclick = async () => {
     deleteBookBtn.disabled = true;
     try {
         const response = await fetch(`/api/books/${activeBook.userData.id}`, { method: 'DELETE' });
+        window.KSPassword?.forget(activeBook.userData.id);
         const result = await response.json();
         if (!result.success) {
             await confirmDialog({ icon: KS_ICON('alert', 36), title, message: result.message || t('serverError'), confirmText: 'OK', cancelText: t('cancelBtn') });
@@ -2335,9 +2342,15 @@ function openActiveBook() {
     setTimeout(() => {
         const bookPath = activeBook.userData.epubPath;
         const isPdf = bookPath.toLowerCase().endsWith('.pdf');
-        const isComic = bookPath.toLowerCase().endsWith('.cbz');
+        const isComic = /\.(cbz|cbr|cb7)$/i.test(bookPath);
+        // DOCX e ODT restano tali solo se protetti da password: il server li converte all'apertura
+        const isProtectedDocument = /\.(docx|odt)$/i.test(bookPath);
 
-        if (isComic) {
+        if (isProtectedDocument) {
+            document.getElementById('pdf-container').style.display = 'none';
+            document.getElementById('viewer').style.display = 'block';
+            window.openProtectedDocument(activeBook.userData.id, activeBook.userData.title);
+        } else if (isComic) {
             console.log("Apertura fumetto");
             document.getElementById('viewer').style.display = 'none';
             document.getElementById('pdf-container').style.display = 'none';
@@ -2593,6 +2606,25 @@ async function checkForUpdates() {
     }
 }
 // --- GENERATORE COPERTINE PDF IN BACKGROUND (Frontend) ---
+// Copertina inviata dal lettore (prima pagina di un PDF o fumetto protetto, appena sbloccato)
+window.ksBookHasCover = (id) => !!booksArray.find(b => b.userData.id === id)?.userData.coverPath;
+window.ksSetBookCover = async function (id, blob) {
+    const formData = new FormData();
+    formData.append('cover', blob, `cover_${id}.jpg`);
+    const res = await fetch(`/api/books/${encodeURIComponent(id)}/cover`, { method: 'POST', body: formData });
+    if (!res.ok) return false;
+    const result = await res.json();
+    const mesh = booksArray.find(b => b.userData.id === id);
+    if (mesh && result.coverPath) {
+        mesh.userData.coverPath = result.coverPath;
+        const tex = await libLoader.loadTexture(`/${result.coverPath}`);
+        mesh.material[4].map = tex;
+        mesh.material[4].color.setHex(0xffffff);
+        mesh.material[4].needsUpdate = true;
+    }
+    return true;
+};
+
 async function generateMissingPdfCovers() {
     // 1. Controlliamo se pdf.js è disponibile nel browser
     if (typeof pdfjsLib === 'undefined') {

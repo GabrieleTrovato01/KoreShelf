@@ -38,7 +38,7 @@ KoreShelf is a Rust server that serves a web interface. The same server runs ins
 | `mobile/` | The Tauri 2 shell for Android and iOS, which starts the same server on `127.0.0.1`. |
 | `packaging/` | Scripts that build the `.dmg`, the AppImage and the other packages. |
 | `assets/` | Icons and `server_messages.json` (messages sent by the server, in every language). |
-| `tests/` | Rust tests (`import.rs` EPUB/PDF import, `formats.rs` FB2/TXT/Markdown/CBZ import, `library.rs` what happens to a book after import, `parsers.rs` parser edge cases, `compat.rs` old Node.js databases and translation sync, `embedded.rs`; shared helpers in `common/`), interface tests (`e2e/test_ui.py`), server-mode tests (`server/test_server_mode.py`) and packaging tests (`packaging/test_packaging.py`). |
+| `tests/` | Rust tests (`import.rs` EPUB/PDF import, `formats.rs` FB2/TXT/Markdown/CBZ import, `protected.rs` MOBI/AZW3, DOCX/ODT, CBR/CB7 and password-protected files on the real files in `fixtures/`, `library.rs` what happens to a book after import, `parsers.rs` parser edge cases, `compat.rs` old Node.js databases and translation sync, `embedded.rs`; shared helpers in `common/`), interface tests (`e2e/test_ui.py`), server-mode tests (`server/test_server_mode.py`) and packaging tests (`packaging/test_packaging.py`). |
 | `.github/workflows/` | `release.yml` builds every package; `docker.yml` builds, tests and publishes the Docker image. |
 
 ### Setting up
@@ -124,7 +124,7 @@ Available in 4.0:
 - [x] Android app and iPhone/iPad app (sideloading)
 - [x] Docker image for PC and ARM, server mode with optional password
 - [x] 3D library with shelves, *Manage* and manual metadata editing
-- [x] Reader for EPUB and PDF (FB2, TXT and Markdown converted to EPUB), CBZ comic viewer: pages or continuous scrolling, table of contents, search, typography settings
+- [x] Reader for EPUB and PDF (MOBI, AZW3, FB2, DOCX, ODT, TXT and Markdown converted to EPUB), CBZ/CBR/CB7 comic viewer, password-protected files: pages or continuous scrolling, table of contents, search, typography settings
 - [x] Highlights board and quote sharing as an image
 - [x] Ratings, reviews and reading ribbon on the 3D book
 - [x] Five languages: English, Italian, Spanish, French, German
@@ -178,7 +178,7 @@ KoreShelf è un server Rust che serve un'interfaccia web. Lo stesso server gira 
 | `mobile/` | Il guscio Tauri 2 per Android e iOS, che avvia lo stesso server su `127.0.0.1`. |
 | `packaging/` | Gli script che creano il `.dmg`, l'AppImage e gli altri pacchetti. |
 | `assets/` | Le icone e `server_messages.json` (i messaggi del server, in tutte le lingue). |
-| `tests/` | Test Rust (`import.rs` importazione di EPUB/PDF, `formats.rs` importazione di FB2/TXT/Markdown/CBZ, `library.rs` cosa succede a un libro dopo l'importazione, `parsers.rs` casi limite dei parser, `compat.rs` vecchi database Node.js e allineamento delle traduzioni, `embedded.rs`; strumenti comuni in `common/`), test dell'interfaccia (`e2e/test_ui.py`), test della modalità server (`server/test_server_mode.py`) e test dei pacchetti (`packaging/test_packaging.py`). |
+| `tests/` | Test Rust (`import.rs` importazione di EPUB/PDF, `formats.rs` importazione di FB2/TXT/Markdown/CBZ, `protected.rs` MOBI/AZW3, DOCX/ODT, CBR/CB7 e file protetti da password sui file veri di `fixtures/`, `library.rs` cosa succede a un libro dopo l'importazione, `parsers.rs` casi limite dei parser, `compat.rs` vecchi database Node.js e allineamento delle traduzioni, `embedded.rs`; strumenti comuni in `common/`), test dell'interfaccia (`e2e/test_ui.py`), test della modalità server (`server/test_server_mode.py`) e test dei pacchetti (`packaging/test_packaging.py`). |
 | `.github/workflows/` | `release.yml` costruisce tutti i pacchetti; `docker.yml` costruisce, prova e pubblica l'immagine Docker. |
 
 ### Per iniziare
@@ -264,7 +264,7 @@ Disponibile nella 4.0:
 - [x] App per Android e per iPhone/iPad (sideloading)
 - [x] Immagine Docker per PC e ARM, modalità server con password facoltativa
 - [x] Libreria 3D con scaffali, *Gestisci* e modifica manuale dei metadati
-- [x] Lettore EPUB e PDF (FB2, TXT e Markdown convertiti in EPUB), visualizzatore di fumetti CBZ: pagine o scorrimento continuo, indice, ricerca, impostazioni del testo
+- [x] Lettore EPUB e PDF (MOBI, AZW3, FB2, DOCX, ODT, TXT e Markdown convertiti in EPUB), visualizzatore di fumetti CBZ/CBR/CB7, file protetti da password: pagine o scorrimento continuo, indice, ricerca, impostazioni del testo
 - [x] Bacheca delle sottolineature e condivisione delle citazioni come immagine
 - [x] Voti, recensioni e nastro di lettura sul libro 3D
 - [x] Cinque lingue: inglese, italiano, spagnolo, francese, tedesco

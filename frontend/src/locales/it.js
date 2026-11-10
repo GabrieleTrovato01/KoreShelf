@@ -141,7 +141,7 @@ export default {
             <li><b>Navigazione Mensola:</b> Scorri lateralmente (swipe o frecce ←/→) per le opere, e verticalmente (↑/↓) per cambiare categoria.</li>
             <li><b>Organizza e Gestisci:</b> Usa "Assegna Categoria" per classificare i volumi, o "Gestisci" per le operazioni avanzate sulla libreria.</li>
             <li><b>Modifica Metadati:</b> Clicca il pulsante "Modifica" su qualsiasi libro per modificare manualmente il titolo, l'autore, la descrizione o la categoria. Puoi anche caricare una copertina personalizzata, e il modello 3D si aggiornerà istantaneamente.</li>
-            <li><b>Lettura Avanzata:</b> Clicca sul libro per aprirlo. Il lettore supporta nativamente <b>EPUB</b> (formato fluido), <b>PDF</b> (formato fisso) e fumetti <b>CBZ</b>. I file <b>FB2</b>, <b>TXT</b> e <b>Markdown</b> vengono convertiti in EPUB al caricamento.</li>
+            <li><b>Lettura Avanzata:</b> Clicca sul libro per aprirlo. Il lettore supporta nativamente <b>EPUB</b> (formato fluido), <b>PDF</b> (formato fisso) e fumetti <b>CBZ</b>, <b>CBR</b> e <b>CB7</b>. I file <b>MOBI</b>, <b>AZW3</b>, <b>FB2</b>, <b>DOCX</b>, <b>ODT</b>, <b>TXT</b> e <b>Markdown</b> vengono convertiti in EPUB al caricamento. I file protetti da password chiedono la password all'apertura e, se vuoi, la ricordano su questo dispositivo.</li>
             <li><b>Personalizzazione Lettore (Menu Hamburger):</b> Apri il menu laterale (≡) per regolare:
                 <ul>
                     <li><b>Zoom:</b> Ingrandisci il testo o le pagine per una lettura ottimale.</li>
@@ -222,7 +222,7 @@ export default {
 
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",
-        errFormat: "Formato non supportato. Usa EPUB, PDF, FB2, CBZ, TXT o Markdown.",
+        errFormat: "Formato non supportato. Usa EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, TXT, Markdown o fumetti CBZ, CBR, CB7.",
         errDuplicate: "Questo libro è già nella tua libreria!",
         successUpload: "Libro elaborato e aggiunto con successo!",
         errInternal: "Errore interno del server.",
@@ -372,6 +372,16 @@ export default {
     comicRtl: "Leggi da destra a sinistra (manga)",
     comicFitWidth: "Adatta alla larghezza",
     comicFitPage: "Adatta alla pagina",
+    errDrm: "Questo libro ha un DRM del Kindle Store e non si può aprire: si legge solo con le app Kindle.",
+    errEncryptionUnsupported: "Questo file usa una protezione che KoreShelf non sa ancora aprire.",
+    passwordRequired: "Questo file è protetto da password.",
+    passwordWrong: "Password errata, riprova.",
+    passwordTitle: "File protetto",
+    passwordPlaceholder: "Password",
+    passwordRemember: "Ricorda la password su questo dispositivo",
+    passwordRememberHint: "Resta salvata solo qui e viene inserita in automatico quando riapri il file.",
+    passwordUnlock: "Sblocca",
+    passwordCancel: "Annulla",
     searchPlaceholderAmazon: "Cerca un libro o scoprine uno nuovo su Amazon",
 
     // Menu laterale del lettore

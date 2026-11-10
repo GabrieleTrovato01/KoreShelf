@@ -140,7 +140,7 @@ export default {
             <li><b>Shelf Navigation:</b> Scroll horizontally (swipe or ←/→ arrows) to browse works, and vertically (↑/↓) to switch categories.</li>
             <li><b>Organize and Manage:</b> Use "Assign Category" to classify volumes, or "Manage" for advanced library operations.</li>
             <li><b>Edit Metadata:</b> Click the "Edit" button on any book to manually modify the title, author, description, or category. You can also upload a custom high-res cover, and the 3D model will update instantly.</li>
-            <li><b>Advanced Reading:</b> Click on a book to open it. The reader natively supports <b>EPUB</b> (reflowable format), <b>PDF</b> (fixed format) and <b>CBZ</b> comics. <b>FB2</b>, <b>TXT</b> and <b>Markdown</b> files are converted to EPUB when uploaded.</li>
+            <li><b>Advanced Reading:</b> Click on a book to open it. The reader natively supports <b>EPUB</b> (reflowable format), <b>PDF</b> (fixed format) and <b>CBZ</b>, <b>CBR</b> and <b>CB7</b> comics. <b>MOBI</b>, <b>AZW3</b>, <b>FB2</b>, <b>DOCX</b>, <b>ODT</b>, <b>TXT</b> and <b>Markdown</b> files are converted to EPUB when uploaded. Password-protected files ask for the password when opened and, if you like, remember it on this device.</li>
             <li><b>Reader Customization (Hamburger Menu):</b> Open the side menu (≡) to adjust:
                 <ul>
                     <li><b>Zoom:</b> Magnify text or pages for optimal reading.</li>
@@ -187,7 +187,7 @@ export default {
 
         //server.js locales
         errNoFile: "No file uploaded.",
-        errFormat: "Unsupported format. Use EPUB, PDF, FB2, CBZ, TXT or Markdown.",
+        errFormat: "Unsupported format. Use EPUB, PDF, MOBI, AZW3, FB2, DOCX, ODT, TXT, Markdown or CBZ, CBR, CB7 comics.",
         errDuplicate: "This book is already on your shelf!",
         successUpload: "Book processed and successfully added!",
         errInternal: "Internal server error.",
@@ -370,6 +370,16 @@ export default {
     comicRtl: "Read right to left (manga)",
     comicFitWidth: "Fit to width",
     comicFitPage: "Fit to page",
+    errDrm: "This book has Kindle Store DRM and cannot be opened: it can only be read in the Kindle apps.",
+    errEncryptionUnsupported: "This file uses a protection KoreShelf cannot open yet.",
+    passwordRequired: "This file is password protected.",
+    passwordWrong: "Wrong password, please try again.",
+    passwordTitle: "Protected file",
+    passwordPlaceholder: "Password",
+    passwordRemember: "Remember the password on this device",
+    passwordRememberHint: "It stays only here and is filled in automatically when you open the file again.",
+    passwordUnlock: "Unlock",
+    passwordCancel: "Cancel",
     searchPlaceholderAmazon: "Search a book or discover a new one on Amazon",
 
     // Menu laterale del lettore

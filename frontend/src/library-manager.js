@@ -365,6 +365,7 @@ export function openLibraryManager({ onChanged = () => {}, initialTab = 'shelves
         // Le righe scivolano via mentre il server elimina i file
         ids.forEach(id => body.querySelector(`.ks-mgr-book[data-id="${CSS.escape(id)}"]`)?.classList.add('leaving'));
         await Promise.all(ids.map(id => fetch(`/api/books/${encodeURIComponent(id)}`, { method: 'DELETE' }).catch(() => null)));
+        ids.forEach(id => window.KSPassword?.forget(id));
         await new Promise(r => setTimeout(r, 450));
         state.selected.clear();
         await load();
