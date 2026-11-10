@@ -30,8 +30,9 @@
             display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; }
         .ks-phone #reader-search-panel { top: calc(60px + env(safe-area-inset-top, 0px)) !important;
             left: 8px; right: 8px; width: auto; }
-        .ks-phone #pdf-container { top: calc(60px + env(safe-area-inset-top, 0px)) !important; left: 0 !important; right: 0 !important;
+        .ks-phone #pdf-container, .ks-phone #cbz-container { top: calc(60px + env(safe-area-inset-top, 0px)) !important; left: 0 !important; right: 0 !important;
             bottom: var(--ks-reader-bar-h, calc(118px + env(safe-area-inset-bottom, 0px))) !important; }
+        .ks-phone #cbz-tools { bottom: calc(var(--ks-reader-bar-h, calc(118px + env(safe-area-inset-bottom, 0px))) + 10px) !important; left: 12px !important; }
         .ks-phone #ks-reader-back { display: flex; position: absolute; top: calc(8px + env(safe-area-inset-top, 0px)); left: 8px;
             width: 44px; height: 44px; border: none; border-radius: 50%; background: transparent; color: inherit;
             align-items: center; justify-content: center; cursor: pointer; z-index: 1002; }

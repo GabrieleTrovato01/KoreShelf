@@ -6,7 +6,7 @@ use crate::i18n::{self, t, t_with};
 use crate::online::{self, OnlineData};
 use crate::paths::Paths;
 use crate::text;
-use crate::{epub, images, log_error, log_info, log_warn, pdf};
+use crate::{cbz, epub, fb2, images, log_error, log_info, log_warn, pdf, plaintext};
 use axum::extract::{DefaultBodyLimit, Multipart, Path as UrlPath, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -16,7 +16,8 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::AsyncWriteExt;
 use tower_http::services::ServeDir;
@@ -73,6 +74,8 @@ pub fn router(state: AppState) -> Router {
         .route("/api/books/{id}/progress", put(set_progress))
         .route("/api/books/{id}/review", put(set_review))
         .route("/api/books/{id}/highlights", post(add_highlight).delete(remove_highlight))
+        .route("/api/books/{id}/pages", get(comic_pages))
+        .route("/api/books/{id}/pages/{index}", get(comic_page))
         .route("/api/store/amazon-link", get(amazon_link))
         .route("/api/shutdown", post(shutdown))
         .route("/api/open-external", post(open_external))
@@ -270,7 +273,7 @@ async fn upload(State(st): State<AppState>, mut multipart: Multipart) -> Respons
             .file_name()
             .map(|n| n.rsplit(['/', '\\']).next().unwrap_or(n).to_string())
             .unwrap_or_else(|| "book".into());
-        let temp = TempFile(st.paths.uploads.join(format!("upload_{}", now_ms())));
+        let temp = TempFile(st.paths.uploads.join(format!("upload_{}_{}", now_ms(), UPLOAD_COUNTER.fetch_add(1, Ordering::Relaxed))));
         let mut file = match tokio::fs::File::create(&temp.0).await {
             Ok(f) => f,
             Err(e) => return internal(&st, "Impossibile creare il file temporaneo", e),
@@ -298,6 +301,65 @@ async fn upload(State(st): State<AppState>, mut multipart: Multipart) -> Respons
     match process_upload(&st, &lang, &temp.0, &original, offline).await {
         Ok(response) => response,
         Err(e) => internal(&st, "Errore critico durante l'upload", e),
+    }
+}
+
+/// I formati che KoreShelf importa.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Format {
+    /// EPUB e KEPUB di Kobo (`.epub`, `.kepub.epub`, `.kepub`)
+    Epub,
+    Pdf,
+    /// FictionBook
+    Fb2,
+    /// FictionBook compresso (`.fb2.zip`, `.fbz`, o uno `.zip` con dentro un `.fb2`)
+    Fb2Zip,
+    Text,
+    Markdown,
+    /// Fumetto: ZIP di immagini
+    Cbz,
+}
+
+impl Format {
+    pub fn from_file_name(name: &str) -> Option<Format> {
+        let lower = name.to_lowercase();
+        let ext = lower.rsplit_once('.').map(|(_, e)| e)?;
+        Some(match ext {
+            "epub" | "kepub" => Format::Epub,
+            "pdf" => Format::Pdf,
+            "fb2" => Format::Fb2,
+            "fbz" | "zip" => Format::Fb2Zip,
+            "txt" | "text" => Format::Text,
+            "md" | "markdown" => Format::Markdown,
+            "cbz" => Format::Cbz,
+            _ => return None,
+        })
+    }
+
+    /// I formati di testo vengono convertiti in EPUB all'importazione.
+    pub fn is_converted(self) -> bool {
+        matches!(self, Format::Fb2 | Format::Fb2Zip | Format::Text | Format::Markdown)
+    }
+
+    /// Estensione del file salvato in `ebooks/`, che decide il lettore nel frontend.
+    pub fn stored_ext(self) -> &'static str {
+        match self {
+            Format::Pdf => "pdf",
+            Format::Cbz => "cbz",
+            _ => "epub",
+        }
+    }
+}
+
+/// Converte FB2, TXT o Markdown in un EPUB.
+fn convert_to_epub(format: Format, file: &Path, original: &str) -> Result<Vec<u8>, String> {
+    let bytes = std::fs::read(file).map_err(|e| e.to_string())?;
+    match format {
+        Format::Fb2 => fb2::fb2_to_epub(&bytes),
+        Format::Fb2Zip => fb2::fb2_to_epub(&fb2::fb2_from_zip(&bytes)?),
+        Format::Text => plaintext::txt_to_epub(&bytes, original),
+        Format::Markdown => plaintext::markdown_to_epub(&bytes, original),
+        _ => Err("formato non convertibile".into()),
     }
 }
 
@@ -379,6 +441,37 @@ async fn extract_local(st: &AppState, lang: &str, file: &Path, original: &str, e
                 LocalData { title, author: None, description: None, cover_path: None, text_length: 0, pdf_pages: None, isbn: None }
             }
         }
+    } else if ext == "cbz" {
+        let path = file.to_path_buf();
+        match run_parser(timeout_for(file, 1.0), move || cbz::read_cbz(&path)).await {
+            Ok(info) => {
+                let (title, author) = match info.title.as_deref() {
+                    Some(tt) if !text::is_junk_title(tt, false) => (tt.to_string(), info.author.clone()),
+                    _ => fallback_from_filename(original, lang, true),
+                };
+                let mut cover_path = None;
+                if let Some(bytes) = info.cover {
+                    match save_cover(&st.paths, bytes, format!("{base}.jpg"), 70).await {
+                        Ok(p) => cover_path = Some(p),
+                        Err(e) => log_warn!("Prima pagina del fumetto non utilizzabile come copertina: {e}"),
+                    }
+                }
+                LocalData {
+                    title,
+                    author,
+                    description: info.description,
+                    cover_path,
+                    text_length: 0,
+                    pdf_pages: Some(info.page_count as i64),
+                    isbn: info.isbn,
+                }
+            }
+            Err(e) => {
+                log_warn!("Impossibile leggere il CBZ ({e}): uso il nome del file");
+                let (title, author) = fallback_from_filename(original, lang, true);
+                LocalData { title, author, description: None, cover_path: None, text_length: 0, pdf_pages: None, isbn: None }
+            }
+        }
     } else {
         let path = file.to_path_buf();
         match run_parser(timeout_for(file, 3.0), move || pdf::read_pdf(&path)).await {
@@ -409,33 +502,72 @@ async fn extract_local(st: &AppState, lang: &str, file: &Path, original: &str, e
     }
 }
 
+/// Numera i file temporanei: due caricamenti nello stesso millisecondo non si toccano.
+static UPLOAD_COUNTER: AtomicU64 = AtomicU64::new(0);
+/// Ultimo id assegnato (in ms): ogni caricamento ne prende uno più grande, anche se due
+/// arrivano nello stesso istante e il primo non è ancora nel database.
+static LAST_BOOK_MS: Mutex<u128> = Mutex::new(0);
+
 fn unique_base_name(st: &AppState) -> String {
     loop {
-        let candidate = format!("book_{}", now_ms());
+        let ms = {
+            let mut last = LAST_BOOK_MS.lock().unwrap_or_else(|e| e.into_inner());
+            *last = now_ms().max(*last + 1);
+            *last
+        };
+        let candidate = format!("book_{ms}");
         if !st.db.exists(&candidate).unwrap_or(false) {
             return candidate;
         }
-        std::thread::sleep(Duration::from_millis(2));
     }
 }
 
 async fn process_upload(st: &AppState, lang: &str, file: &Path, original: &str, offline: bool) -> Result<Response, String> {
-    let ext = Path::new(original)
-        .extension()
-        .map(|e| e.to_string_lossy().to_lowercase())
-        .unwrap_or_default();
-    if ext != "epub" && ext != "pdf" {
+    let Some(format) = Format::from_file_name(original) else {
+        return Ok(reply(StatusCode::BAD_REQUEST, false, t(lang, "errFormat")));
+    };
+
+    // Controllo del contenuto reale: un EPUB o un CBZ è uno ZIP ("PK"), un PDF contiene
+    // "%PDF", un FB2 è XML FictionBook, un testo non è un file binario.
+    if !looks_like(file, format).await {
+        log_warn!("{original} non è un file {format:?} valido");
         return Ok(reply(StatusCode::BAD_REQUEST, false, t(lang, "errFormat")));
     }
-
-    // Controllo del contenuto reale: un .epub è uno ZIP ("PK"), un PDF contiene "%PDF".
-    if !looks_like(file, &ext).await {
-        log_warn!("{original} non è un {ext} valido");
-        return Ok(reply(StatusCode::BAD_REQUEST, false, t(lang, "errFormat")));
+    if format == Format::Cbz {
+        let path = file.to_path_buf();
+        let pages = run_parser(timeout_for(file, 1.0), move || cbz::page_count(&path)).await.unwrap_or(0);
+        if pages == 0 {
+            log_warn!("{original}: nessuna immagine dentro il CBZ");
+            return Ok(reply(StatusCode::BAD_REQUEST, false, t(lang, "errFormat")));
+        }
     }
 
     let base = unique_base_name(st);
-    let local = extract_local(st, lang, file, original, &ext, &base).await;
+
+    // FB2, TXT e Markdown diventano un EPUB: da qui in poi si lavora su quello.
+    let converted = if format.is_converted() {
+        let (src, name) = (file.to_path_buf(), original.to_string());
+        match run_parser(timeout_for(file, 3.0), move || convert_to_epub(format, &src, &name)).await {
+            Ok(bytes) => {
+                let temp = TempFile(st.paths.uploads.join(format!("{base}_converted.epub")));
+                tokio::fs::write(&temp.0, bytes).await.map_err(|e| e.to_string())?;
+                log_info!("{original} convertito in EPUB");
+                Some(temp)
+            }
+            Err(e) => {
+                log_warn!("Conversione di {original} non riuscita: {e}");
+                return Ok(reply(StatusCode::BAD_REQUEST, false, t(lang, "errFormat")));
+            }
+        }
+    } else {
+        None
+    };
+    let source = converted.as_ref().map(|t| t.0.as_path()).unwrap_or(file);
+    let ext = format.stored_ext();
+    let local = extract_local(st, lang, source, original, ext, &base).await;
+    // TXT e Markdown sono spesso documenti personali: niente ricerche online che potrebbero
+    // cambiare titolo o copertina con quelli di un libro qualsiasi.
+    let offline = offline || matches!(format, Format::Text | Format::Markdown);
     match &local.isbn {
         Some(isbn) => log_info!("ISBN trovato: {isbn}"),
         None => log_info!("Nessun ISBN trovato"),
@@ -487,10 +619,10 @@ async fn process_upload(st: &AppState, lang: &str, file: &Path, original: &str, 
         .into_response());
     }
 
-    // Copertina: quella interna, altrimenti quella trovata online (solo EPUB;
-    // per i PDF la genera il frontend fotografando la prima pagina).
+    // Copertina: quella interna, altrimenti quella trovata online (libri EPUB e FB2;
+    // per i PDF la genera il frontend fotografando la prima pagina, per i CBZ è la prima pagina).
     let mut cover_path = local.cover_path.clone();
-    if cover_path.is_none() && ext == "epub" {
+    if cover_path.is_none() && matches!(format, Format::Epub | Format::Fb2 | Format::Fb2Zip) {
         if let Some(url) = &online.cover_url {
             log_info!("Copertina mancante: la scarico da internet");
             if let Some(bytes) = online::download_image(&st.http, url).await {
@@ -514,8 +646,8 @@ async fn process_upload(st: &AppState, lang: &str, file: &Path, original: &str, 
     // Spostiamo il file nella libreria.
     let ebook_rel = format!("ebooks/{base}.{ext}");
     let destination = st.paths.ebooks.join(format!("{base}.{ext}"));
-    if tokio::fs::rename(file, &destination).await.is_err() {
-        tokio::fs::copy(file, &destination).await.map_err(|e| e.to_string())?;
+    if tokio::fs::rename(source, &destination).await.is_err() {
+        tokio::fs::copy(source, &destination).await.map_err(|e| e.to_string())?;
     }
 
     let book = Book {
@@ -538,18 +670,22 @@ async fn process_upload(st: &AppState, lang: &str, file: &Path, original: &str, 
     Ok(Json(json!({ "success": true, "message": t(lang, "successUpload"), "book": book })).into_response())
 }
 
-async fn looks_like(file: &Path, ext: &str) -> bool {
+async fn looks_like(file: &Path, format: Format) -> bool {
     use tokio::io::AsyncReadExt;
-    let mut head = vec![0u8; 1024];
+    let mut head = vec![0u8; 4096];
     let n = match tokio::fs::File::open(file).await {
         Ok(mut f) => f.read(&mut head).await.unwrap_or(0),
         Err(_) => 0,
     };
     let head = &head[..n];
-    match ext {
-        "epub" => head.starts_with(b"PK"),
-        "pdf" => head.windows(4).any(|w| w == b"%PDF"),
-        _ => false,
+    match format {
+        Format::Epub | Format::Cbz | Format::Fb2Zip => head.starts_with(b"PK"),
+        Format::Pdf => head.windows(4).any(|w| w == b"%PDF"),
+        Format::Fb2 => {
+            let text = plaintext::decode_text(head);
+            text.contains("<FictionBook")
+        }
+        Format::Text | Format::Markdown => plaintext::looks_like_text(head),
     }
 }
 
@@ -769,6 +905,55 @@ async fn remove_highlight(State(st): State<AppState>, UrlPath(id): UrlPath<Strin
     match st.db.upsert(&book) {
         Ok(()) => ok("Evidenziazione rimossa!"),
         Err(e) => internal(&st, "Errore rimozione highlight", e),
+    }
+}
+
+// --- Fumetti CBZ: una pagina alla volta --------------------------------------
+
+/// Il file CBZ di un libro della libreria.
+fn comic_file(st: &AppState, id: &str) -> Result<PathBuf, Response> {
+    let book = match st.db.get(id) {
+        Ok(Some(b)) => b,
+        Ok(None) => return Err(not_found(st)),
+        Err(e) => return Err(internal(st, "Errore DB", e)),
+    };
+    match book.epub_path.as_deref().filter(|p| p.to_lowercase().ends_with(".cbz")).and_then(|p| st.paths.resolve_relative(p)) {
+        Some(path) => Ok(path),
+        None => Err(not_found(st)),
+    }
+}
+
+async fn comic_pages(State(st): State<AppState>, UrlPath(id): UrlPath<String>) -> Response {
+    let path = match comic_file(&st, &id) {
+        Ok(p) => p,
+        Err(response) => return response,
+    };
+    match tokio::task::spawn_blocking(move || cbz::page_count(&path)).await {
+        Ok(Ok(pages)) => Json(json!({ "success": true, "pages": pages })).into_response(),
+        Ok(Err(e)) => internal(&st, "Fumetto non leggibile", e),
+        Err(e) => internal(&st, "Fumetto non leggibile", e),
+    }
+}
+
+async fn comic_page(State(st): State<AppState>, UrlPath((id, index)): UrlPath<(String, String)>) -> Response {
+    let path = match comic_file(&st, &id) {
+        Ok(p) => p,
+        Err(response) => return response,
+    };
+    let Ok(index) = index.parse::<usize>() else { return not_found(&st) };
+    match tokio::task::spawn_blocking(move || cbz::read_page(&path, index)).await {
+        Ok(Ok(Some((bytes, mime)))) => (
+            [
+                (axum::http::header::CONTENT_TYPE, mime),
+                // Il contenuto di una pagina non cambia mai: il browser la tiene in cache
+                (axum::http::header::CACHE_CONTROL, "private, max-age=86400"),
+            ],
+            bytes,
+        )
+            .into_response(),
+        Ok(Ok(None)) => not_found(&st),
+        Ok(Err(e)) => internal(&st, "Pagina del fumetto non leggibile", e),
+        Err(e) => internal(&st, "Pagina del fumetto non leggibile", e),
     }
 }
 

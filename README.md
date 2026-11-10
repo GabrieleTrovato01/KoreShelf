@@ -21,7 +21,7 @@
 </div>
 
 
-KoreShelf is a 3D library for your ebooks. You upload EPUB and PDF files, they show up as books on a shelf, and you read them in the built-in reader. It runs on Windows, Mac, Linux and Android, and you can also host it yourself with Docker.
+KoreShelf is a 3D library for your ebooks. You upload EPUB, PDF, FB2, TXT, Markdown and CBZ comic files, they show up as books on a shelf, and you read them in the built-in reader. It runs on Windows, Mac, Linux and Android, and you can also host it yourself with Docker.
 
 ### System requirements
 
@@ -29,7 +29,7 @@ Since version 4.0.0 KoreShelf is a single file. You don't need Node.js or anythi
 
 - Windows 10 or 11
 - Mac with Apple silicon or Intel (one universal file)
-- Linux: any recent 64-bit (x86_64) distribution
+- Linux: any recent 64-bit distribution, on PCs (x86_64) and on ARM computers (aarch64) such as the Raspberry Pi 4 and 5
 - Android phones and tablets
 - iPhone and iPad: possible, but only for advanced users (see below)
 
@@ -41,7 +41,8 @@ The simplest way is [koreshelf.github.io](https://koreshelf.github.io): the site
 |---|---|
 | Windows | `KoreShelf-<version>-windows-x64.exe` |
 | Mac | `KoreShelf-<version>-macos-universal.dmg` |
-| Linux | `KoreShelf-<version>-x86_64.AppImage` |
+| Linux (PC with Intel or AMD) | `KoreShelf-<version>-x86_64.AppImage` |
+| Linux (ARM, e.g. Raspberry Pi) | `KoreShelf-<version>-aarch64.AppImage` |
 | Android | `KoreShelf-<version>-android.apk` |
 | iPhone / iPad | `KoreShelf-<version>-ios-unsigned.ipa` |
 
@@ -56,9 +57,18 @@ KoreShelf has no paid code-signing certificate, so the first time you open it yo
 2. The first time, macOS blocks the app. Go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway**.
 
 #### Linux
-1. Download the `.AppImage`.
+1. Download the `.AppImage` for your type of computer (see *Which file?* below).
 2. Make it executable: right-click it and choose **Properties → Allow executing file as program**, or run `chmod +x KoreShelf-*.AppImage`.
 3. Double-click it.
+
+**Which file?** Every computer has a "brain", called the processor. There are two big families of processors, and each file only works with its own family:
+
+| If your computer has... | it is called | download |
+|---|---|---|
+| an Intel or AMD processor (almost all PCs and laptops) | x86_64, also written amd64 or x64 | `KoreShelf-<version>-x86_64.AppImage` |
+| an ARM processor (Raspberry Pi, some newer laptops) | aarch64, also written arm64 | `KoreShelf-<version>-aarch64.AppImage` |
+
+Not sure? Open a terminal, type `uname -m` and press Enter. If it says `x86_64`, take the first file; if it says `aarch64`, take the second. The website [koreshelf.github.io](https://koreshelf.github.io) tries to work it out for you.
 
 #### Android
 1. Download the `.apk` on your phone, open it and tap **Install**.
@@ -75,7 +85,7 @@ With a free Apple ID the app has to be refreshed every 7 days. AltStore can do t
 
 ### Self-hosting with Docker
 
-You can keep KoreShelf running on a home server, a NAS or a Raspberry Pi and open it from the browser of any device on your network. The image is built for PCs (amd64) and for ARM boards such as the Raspberry Pi 4/5 and most NAS (arm64).
+You can keep KoreShelf running on a home server, a NAS or a Raspberry Pi and open it from the browser of any device on your network. The image is built for PCs (amd64) and for ARM boards such as the Raspberry Pi 4/5 and most NAS (arm64). Docker picks the right one for your server by itself.
 
 1. Install Docker: Docker Desktop on Windows and Mac, or Docker Engine with the Compose plugin on Linux.
 2. Create a folder, copy this project's [`docker-compose.yml`](docker-compose.yml) into it and run:
@@ -112,7 +122,7 @@ You can also run the server without Docker: `koreshelf --server` takes the same 
 When you open KoreShelf you see your shelf.
 
 - The first time, press *Try a sample book*. A short book is added to the shelf and explains the app while you read it.
-- To add books, press *+ Upload Ebook* or drag EPUB and PDF files onto the window.
+- To add books, press *+ Upload Ebook* or drag your files onto the window: EPUB (also Kobo KEPUB), PDF, FB2 (also zipped), TXT, Markdown and CBZ comics.
 - To read, press *Start reading* (or *Continue reading*) under the book in the middle. Less common actions are in the *More* menu.
 - *Manage* lets you create, rename and delete shelves and move several books at once.
 - To quit, close the window. If you open KoreShelf while it is already running, the existing window comes to the front.
@@ -120,6 +130,8 @@ When you open KoreShelf you see your shelf.
 ### The reader
 
 - It opens EPUB (reflowable) and PDF (fixed layout). You can read page by page or scroll continuously.
+- FB2, TXT and Markdown are converted to EPUB when uploaded, so they get the same reader, search and highlights. TXT files are split into chapters automatically and their character encoding is detected.
+- CBZ comics open in a page viewer: arrow keys or swipes, fit to page or to width, and a right-to-left mode for manga.
 - Text in PDFs can be selected and underlined, as in EPUBs.
 - PDFs without a cover get one made from their first page.
 - Select a sentence to underline it. Highlights are saved, and you can find them again on the board.

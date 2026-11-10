@@ -141,7 +141,7 @@ export default {
             <li><b>Navigazione Mensola:</b> Scorri lateralmente (swipe o frecce ←/→) per le opere, e verticalmente (↑/↓) per cambiare categoria.</li>
             <li><b>Organizza e Gestisci:</b> Usa "Assegna Categoria" per classificare i volumi, o "Gestisci" per le operazioni avanzate sulla libreria.</li>
             <li><b>Modifica Metadati:</b> Clicca il pulsante "Modifica" su qualsiasi libro per modificare manualmente il titolo, l'autore, la descrizione o la categoria. Puoi anche caricare una copertina personalizzata, e il modello 3D si aggiornerà istantaneamente.</li>
-            <li><b>Lettura Avanzata:</b> Clicca sul libro per aprirlo. Il lettore supporta nativamente sia <b>EPUB</b> (formato fluido) che <b>PDF</b> (formato fisso).</li>
+            <li><b>Lettura Avanzata:</b> Clicca sul libro per aprirlo. Il lettore supporta nativamente <b>EPUB</b> (formato fluido), <b>PDF</b> (formato fisso) e fumetti <b>CBZ</b>. I file <b>FB2</b>, <b>TXT</b> e <b>Markdown</b> vengono convertiti in EPUB al caricamento.</li>
             <li><b>Personalizzazione Lettore (Menu Hamburger):</b> Apri il menu laterale (≡) per regolare:
                 <ul>
                     <li><b>Zoom:</b> Ingrandisci il testo o le pagine per una lettura ottimale.</li>
@@ -222,7 +222,7 @@ export default {
 
         //-----------------------------------------------------server.js locales...-----------------------------------------------------
         errNoFile: "Nessun file caricato.",
-        errFormat: "Formato non supportato. Usa EPUB o PDF.",
+        errFormat: "Formato non supportato. Usa EPUB, PDF, FB2, CBZ, TXT o Markdown.",
         errDuplicate: "Questo libro è già nella tua libreria!",
         successUpload: "Libro elaborato e aggiunto con successo!",
         errInternal: "Errore interno del server.",
@@ -337,7 +337,7 @@ export default {
     uploadReady: "Pronto!",
     uploadDuplicate: "Già presente",
     uploadError: "Errore",
-    dropFilesHere: "Rilascia qui i tuoi EPUB e PDF",
+    dropFilesHere: "Rilascia qui i tuoi ebook e fumetti",
 
     // Ricerca nel lettore
     readerSearch: "Cerca",
@@ -352,7 +352,7 @@ export default {
 
     // Libreria vuota (B) e azione principale (C)
     emptyTitle: "Il tuo scaffale ti aspetta",
-    emptySubtitle: "Trascina qui i tuoi EPUB e PDF, oppure scegli i file. Ogni posto vuoto ti mostra cosa succederà.",
+    emptySubtitle: "Trascina qui i tuoi ebook e fumetti, oppure scegli i file. Ogni posto vuoto ti mostra cosa succederà.",
     slotCover: "Copertina, autore e trama arrivano da soli",
     slotShelves: "Uno scaffale per ogni categoria",
     slotRead: "Leggi, cerca una frase, sottolinea",
@@ -368,7 +368,10 @@ export default {
     hideSynopsisShort: "Copertina",
     keyBrowse: "sfoglia i libri",
     keyShelf: "cambia scaffale",
-    keyDrop: "Trascina qui nuovi EPUB e PDF",
+    keyDrop: "Trascina qui nuovi ebook e fumetti",
+    comicRtl: "Leggi da destra a sinistra (manga)",
+    comicFitWidth: "Adatta alla larghezza",
+    comicFitPage: "Adatta alla pagina",
     searchPlaceholderAmazon: "Cerca un libro o scoprine uno nuovo su Amazon",
 
     // Menu laterale del lettore

@@ -139,7 +139,7 @@ export default {
         <li><b>Regal-Navigation:</b> Scrollen Sie horizontal (wischen oder ←/→ Pfeile), um Werke zu durchsuchen, und vertikal (↑/↓), um die Kategorien zu wechseln.</li>
         <li><b>Organisieren und Verwalten:</b> Verwenden Sie "Kategorie zuweisen", um Bände zu klassifizieren, oder "Verwalten" für erweiterte Bibliotheksvorgänge.</li>
         <li><b>Metadaten bearbeiten:</b> Klicken Sie bei einem beliebigen Buch auf "Bearbeiten", um Titel, Autor, Beschreibung oder Kategorie manuell zu ändern. Sie können auch ein benutzerdefiniertes hochauflösendes Cover hochladen. Das 3D-Modell wird sofort aktualisiert.</li>
-        <li><b>Erweitertes Lesen:</b> Klicken Sie auf ein Buch, um es zu öffnen. Der Reader unterstützt nativ sowohl <b>EPUB</b> (fließendes Format) als auch <b>PDF</b> (festes Format).</li>
+        <li><b>Erweitertes Lesen:</b> Klicken Sie auf ein Buch, um es zu öffnen. Der Reader unterstützt nativ <b>EPUB</b> (fließendes Format), <b>PDF</b> (festes Format) und <b>CBZ</b>-Comics. <b>FB2</b>-, <b>TXT</b>- und <b>Markdown</b>-Dateien werden beim Hochladen in EPUB umgewandelt.</li>
         <li><b>Reader-Anpassung (Hamburger-Menü):</b> Öffnen Sie das Seitenmenü (≡), um Folgendes anzupassen:
             <ul>
                 <li><b>Zoom:</b> Vergrößern Sie Text oder Seiten für optimales Lesen.</li>
@@ -186,7 +186,7 @@ export default {
 
     //server.js locales
     errNoFile: "Keine Datei hochgeladen.",
-    errFormat: "Nicht unterstütztes Format. Verwenden Sie EPUB oder PDF.",
+    errFormat: "Nicht unterstütztes Format. Verwenden Sie EPUB, PDF, FB2, CBZ, TXT oder Markdown.",
     errDuplicate: "Dieses Buch befindet sich bereits in Ihrem Regal!",
     successUpload: "Buch verarbeitet und erfolgreich hinzugefügt!",
     errInternal: "Interner Serverfehler.",
@@ -332,7 +332,7 @@ export default {
     uploadReady: "Fertig!",
     uploadDuplicate: "Schon vorhanden",
     uploadError: "Fehler",
-    dropFilesHere: "EPUBs und PDFs hier ablegen",
+    dropFilesHere: "E-Books und Comics hier ablegen",
 
     // Ricerca nel lettore
     readerSearch: "Suchen",
@@ -347,7 +347,7 @@ export default {
 
     // Libreria vuota (B) e azione principale (C)
     emptyTitle: "Dein Regal wartet auf dich",
-    emptySubtitle: "Zieh deine EPUBs und PDFs hierher oder wähle die Dateien. Jeder leere Platz zeigt dir, was passieren wird.",
+    emptySubtitle: "Zieh deine E-Books und Comics hierher oder wähle die Dateien. Jeder leere Platz zeigt dir, was passieren wird.",
     slotCover: "Cover, Autor und Inhalt kommen von selbst",
     slotShelves: "Ein Regal für jede Kategorie",
     slotRead: "Lesen, Sätze suchen, markieren",
@@ -363,7 +363,10 @@ export default {
     hideSynopsisShort: "Cover",
     keyBrowse: "Bücher durchblättern",
     keyShelf: "Regal wechseln",
-    keyDrop: "Neue EPUBs und PDFs hierher ziehen",
+    keyDrop: "Neue E-Books und Comics hierher ziehen",
+    comicRtl: "Von rechts nach links lesen (Manga)",
+    comicFitWidth: "An Breite anpassen",
+    comicFitPage: "An Seite anpassen",
     searchPlaceholderAmazon: "Buch suchen oder ein neues auf Amazon entdecken",
 
     // Menu laterale del lettore

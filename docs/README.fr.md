@@ -27,7 +27,7 @@ Depuis la version 4.0.0, KoreShelf tient en un seul fichier. Vous n'avez besoin 
 
 - Windows 10 ou 11
 - Mac avec puce Apple ou Intel (un seul fichier universel)
-- Linux : toute distribution 64 bits (x86_64) récente
+- Linux : toute distribution 64 bits récente, sur PC (x86_64) et sur ordinateurs ARM (aarch64) comme le Raspberry Pi 4 et 5
 - Téléphones et tablettes Android
 - iPhone et iPad : possible, mais réservé aux utilisateurs avancés (voir plus bas)
 
@@ -39,7 +39,8 @@ Le plus simple est de passer par [koreshelf.github.io](https://koreshelf.github.
 |---|---|
 | Windows | `KoreShelf-<version>-windows-x64.exe` |
 | Mac | `KoreShelf-<version>-macos-universal.dmg` |
-| Linux | `KoreShelf-<version>-x86_64.AppImage` |
+| Linux (PC avec Intel ou AMD) | `KoreShelf-<version>-x86_64.AppImage` |
+| Linux (ARM, par ex. Raspberry Pi) | `KoreShelf-<version>-aarch64.AppImage` |
 | Android | `KoreShelf-<version>-android.apk` |
 | iPhone / iPad | `KoreShelf-<version>-ios-unsigned.ipa` |
 
@@ -54,9 +55,18 @@ KoreShelf n'a pas de certificat de signature payant : la première fois que vous
 2. La première fois, macOS bloque l'app. Ouvrez **Réglages Système → Confidentialité et sécurité**, faites défiler vers le bas et cliquez sur **Ouvrir quand même**.
 
 #### Linux
-1. Téléchargez le fichier `.AppImage`.
+1. Téléchargez le fichier `.AppImage` adapté à votre ordinateur (voir *Quel fichier ?* plus bas).
 2. Rendez-le exécutable : clic droit, **Propriétés → Autoriser l'exécution du fichier comme un programme**, ou `chmod +x KoreShelf-*.AppImage` dans un terminal.
 3. Double-cliquez sur le fichier.
+
+**Quel fichier ?** Chaque ordinateur a un « cerveau », qu'on appelle le processeur. Il existe deux grandes familles de processeurs, et chaque fichier ne fonctionne qu'avec la sienne :
+
+| Si votre ordinateur a… | on l'appelle | téléchargez |
+|---|---|---|
+| un processeur Intel ou AMD (presque tous les PC et portables) | x86_64, aussi écrit amd64 ou x64 | `KoreShelf-<version>-x86_64.AppImage` |
+| un processeur ARM (Raspberry Pi, certains portables récents) | aarch64, aussi écrit arm64 | `KoreShelf-<version>-aarch64.AppImage` |
+
+Vous ne savez pas ? Ouvrez un terminal, tapez `uname -m` et appuyez sur Entrée. Si vous voyez `x86_64`, prenez le premier fichier ; si vous voyez `aarch64`, le second. Le site [koreshelf.github.io](https://koreshelf.github.io) essaie de le deviner pour vous.
 
 #### Android
 1. Téléchargez le fichier `.apk` sur votre téléphone, ouvrez-le et appuyez sur **Installer**.
@@ -73,7 +83,7 @@ Avec un identifiant Apple gratuit, l'app doit être renouvelée tous les 7 jours
 
 ### Auto-hébergement avec Docker
 
-Vous pouvez faire tourner KoreShelf sur un serveur domestique, un NAS ou un Raspberry Pi et l'ouvrir depuis le navigateur de n'importe quel appareil de votre réseau. L'image est disponible pour PC (amd64) et pour les cartes ARM comme le Raspberry Pi 4/5 et la plupart des NAS (arm64).
+Vous pouvez faire tourner KoreShelf sur un serveur domestique, un NAS ou un Raspberry Pi et l'ouvrir depuis le navigateur de n'importe quel appareil de votre réseau. L'image est disponible pour PC (amd64) et pour les cartes ARM comme le Raspberry Pi 4/5 et la plupart des NAS (arm64). Docker choisit tout seul la bonne pour votre serveur.
 
 1. Installez Docker : Docker Desktop sous Windows et macOS, ou Docker Engine avec le plugin Compose sous Linux.
 2. Créez un dossier, copiez-y le fichier [`docker-compose.yml`](../docker-compose.yml) de ce projet et lancez :

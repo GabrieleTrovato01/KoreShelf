@@ -176,7 +176,7 @@ function injectStyle() {
 const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
 function cleanFileName(name) {
-    return name.replace(/\.(epub|pdf)$/i, '').replace(/[_-]+/g, ' ').trim();
+    return name.replace(/(\.kepub)?\.(epub|kepub|pdf|fb2|fbz|zip|cbz|txt|md|markdown)$/i, '').replace(/\.fb2$/i, '').replace(/[_-]+/g, ' ').trim();
 }
 
 function burst(container, radius = 45, delay = 0.45) {
@@ -205,7 +205,7 @@ class TrayItem {
                     <div class="ks-fill"></div>
                     <img class="ks-cover-img" alt="">
                     <div class="ks-cover-text"><b></b><span></span></div>
-                    <div class="ks-icon">${KS_ICON(file.name.toLowerCase().endsWith('.pdf') ? 'file' : 'book', 26)}</div>
+                    <div class="ks-icon">${KS_ICON(/\.cbz$/i.test(file.name) ? 'image' : /\.(pdf|txt|md|markdown)$/i.test(file.name) ? 'file' : 'book', 26)}</div>
                     <div class="ks-shine"></div>
                 </div>
                 <div class="ks-face ks-back"></div>

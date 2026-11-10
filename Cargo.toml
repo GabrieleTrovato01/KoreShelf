@@ -2,7 +2,7 @@
 name = "koreshelf"
 version = "4.0.0"
 edition = "2021"
-description = "KoreShelf - la tua libreria 3D di ebook (EPUB e PDF)"
+description = "KoreShelf - la tua libreria 3D di ebook (EPUB, PDF, FB2, CBZ, TXT, Markdown)"
 authors = ["GabrieleTrovato01"]
 license = "MIT"
 build = "build.rs"
@@ -36,6 +36,10 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 roxmltree = "0.20"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp"] }
 lopdf = "0.47"
+# Testi in codifiche diverse da UTF-8 (TXT e FB2 in Windows-1252, Windows-1251, UTF-16...)
+encoding_rs = "0.8"
+# Markdown → XHTML per la conversione in EPUB
+pulldown-cmark = { version = "0.12", default-features = false, features = ["html"] }
 regex = "1"
 percent-encoding = "2"
 urlencoding = "2"

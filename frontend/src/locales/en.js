@@ -140,7 +140,7 @@ export default {
             <li><b>Shelf Navigation:</b> Scroll horizontally (swipe or ←/→ arrows) to browse works, and vertically (↑/↓) to switch categories.</li>
             <li><b>Organize and Manage:</b> Use "Assign Category" to classify volumes, or "Manage" for advanced library operations.</li>
             <li><b>Edit Metadata:</b> Click the "Edit" button on any book to manually modify the title, author, description, or category. You can also upload a custom high-res cover, and the 3D model will update instantly.</li>
-            <li><b>Advanced Reading:</b> Click on a book to open it. The reader natively supports both <b>EPUB</b> (reflowable format) and <b>PDF</b> (fixed format).</li>
+            <li><b>Advanced Reading:</b> Click on a book to open it. The reader natively supports <b>EPUB</b> (reflowable format), <b>PDF</b> (fixed format) and <b>CBZ</b> comics. <b>FB2</b>, <b>TXT</b> and <b>Markdown</b> files are converted to EPUB when uploaded.</li>
             <li><b>Reader Customization (Hamburger Menu):</b> Open the side menu (≡) to adjust:
                 <ul>
                     <li><b>Zoom:</b> Magnify text or pages for optimal reading.</li>
@@ -187,7 +187,7 @@ export default {
 
         //server.js locales
         errNoFile: "No file uploaded.",
-        errFormat: "Unsupported format. Use EPUB or PDF.",
+        errFormat: "Unsupported format. Use EPUB, PDF, FB2, CBZ, TXT or Markdown.",
         errDuplicate: "This book is already on your shelf!",
         successUpload: "Book processed and successfully added!",
         errInternal: "Internal server error.",
@@ -335,7 +335,7 @@ export default {
     uploadReady: "Ready!",
     uploadDuplicate: "Already here",
     uploadError: "Error",
-    dropFilesHere: "Drop your EPUBs and PDFs here",
+    dropFilesHere: "Drop your ebooks and comics here",
 
     // Ricerca nel lettore
     readerSearch: "Search",
@@ -350,7 +350,7 @@ export default {
 
     // Libreria vuota (B) e azione principale (C)
     emptyTitle: "Your shelf is waiting",
-    emptySubtitle: "Drop your EPUBs and PDFs here, or choose the files. Each empty slot shows you what will happen.",
+    emptySubtitle: "Drop your ebooks and comics here, or choose the files. Each empty slot shows you what will happen.",
     slotCover: "Cover, author and synopsis arrive on their own",
     slotShelves: "One shelf for every category",
     slotRead: "Read, search a sentence, highlight",
@@ -366,7 +366,10 @@ export default {
     hideSynopsisShort: "Cover",
     keyBrowse: "browse books",
     keyShelf: "change shelf",
-    keyDrop: "Drop new EPUBs and PDFs here",
+    keyDrop: "Drop new ebooks and comics here",
+    comicRtl: "Read right to left (manga)",
+    comicFitWidth: "Fit to width",
+    comicFitPage: "Fit to page",
     searchPlaceholderAmazon: "Search a book or discover a new one on Amazon",
 
     // Menu laterale del lettore

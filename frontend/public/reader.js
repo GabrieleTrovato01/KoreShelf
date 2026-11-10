@@ -1173,6 +1173,199 @@ function updatePdfScrollProgress() {
     localStorage.setItem(`pdf_bookmark_${currentPdfId}`, currentPageNum);
 }
 
+// ======================================================================
+// FUMETTI CBZ: il server consegna una pagina (immagine) alla volta
+// ======================================================================
+let comic = null; // { id, pages, page, rtl, fitWidth }
+
+function comicPageUrl(index) {
+    return `/api/books/${encodeURIComponent(comic.id)}/pages/${index}`;
+}
+
+function applyComicFit() {
+    const img = document.getElementById('cbz-page');
+    const box = document.getElementById('cbz-container');
+    const fitBtn = document.getElementById('cbz-fit-btn');
+    if (!img || !box || !comic) return;
+    if (comic.fitWidth) {
+        // Larghezza piena, si scorre in verticale (comodo per le tavole lunghe e sul telefono)
+        Object.assign(img.style, { width: '100%', height: 'auto', maxWidth: '100%', maxHeight: 'none' });
+        box.style.alignItems = 'flex-start';
+    } else {
+        // Pagina intera sullo schermo
+        Object.assign(img.style, { width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: '100%' });
+        box.style.alignItems = 'center';
+    }
+    if (fitBtn) {
+        const label = window.t(comic.fitWidth ? 'comicFitPage' : 'comicFitWidth');
+        fitBtn.title = label;
+        fitBtn.setAttribute('aria-label', label);
+    }
+}
+
+function applyComicDirection() {
+    const rtlBtn = document.getElementById('cbz-rtl-btn');
+    if (!rtlBtn || !comic) return;
+    rtlBtn.setAttribute('aria-pressed', comic.rtl ? 'true' : 'false');
+    rtlBtn.style.opacity = comic.rtl ? '1' : '0.55';
+}
+
+function renderComicPage() {
+    if (!comic) return;
+    const img = document.getElementById('cbz-page');
+    const box = document.getElementById('cbz-container');
+    if (!img || !box) return;
+    img.src = comicPageUrl(comic.page);
+    img.alt = `${comic.page + 1} / ${comic.pages}`;
+    box.scrollTop = 0;
+    // Le pagine vicine arrivano in anticipo: girare pagina è istantaneo
+    [comic.page + 1, comic.page + 2, comic.page - 1].forEach(i => {
+        if (i >= 0 && i < comic.pages) new Image().src = comicPageUrl(i);
+    });
+
+    const percentage = (comic.page + 1) / comic.pages;
+    const progressEl = document.getElementById('reading-progress');
+    if (progressEl) progressEl.innerText = `${comic.page + 1} / ${comic.pages}`;
+    const reviewBtn = document.getElementById('reader-review-btn');
+    if (reviewBtn) {
+        const last = comic.page === comic.pages - 1;
+        reviewBtn.style.display = last ? 'block' : 'none';
+        if (last) window.applyCurrentTheme();
+    }
+    localStorage.setItem(`cbz_bookmark_${comic.id}`, comic.page);
+    fetch(`/api/books/${encodeURIComponent(comic.id)}/progress`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ progress: percentage })
+    }).catch(e => console.warn(e));
+}
+
+// +1 = avanti nell'ordine di lettura
+function comicStep(delta) {
+    if (!comic) return;
+    const next = comic.page + delta;
+    if (next < 0 || next >= comic.pages) return;
+    comic.page = next;
+    renderComicPage();
+}
+// Freccia/lato sinistro e destro: nei manga (da destra a sinistra) si va avanti verso sinistra
+function comicLeft() { if (comic) comicStep(comic.rtl ? 1 : -1); }
+function comicRight() { if (comic) comicStep(comic.rtl ? -1 : 1); }
+
+window.openComicReader = async function(comicUrl, bookId) {
+    const readerOverlay = document.getElementById('reader-overlay');
+    const box = document.getElementById('cbz-container');
+    if (!readerOverlay || !box) return;
+
+    const readerReviewBtn = document.getElementById('reader-review-btn');
+    if (readerReviewBtn) {
+        readerReviewBtn.style.display = 'none';
+        readerReviewBtn.innerHTML = window.t('readerReviewBtnText');
+        readerReviewBtn.onclick = () => window.openReviewModal(bookId);
+    }
+
+    ['viewer', 'pdf-container'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    readerOverlay.style.display = 'block';
+    setTimeout(() => { readerOverlay.style.opacity = '1'; }, 50);
+
+    // Un fumetto non ha testo: niente caratteri, interlinea, indice né ricerca
+    const hidden = [];
+    const hide = el => { if (el) { hidden.push([el, el.style.display]); el.style.display = 'none'; } };
+    ['sidebar-font-select', 'sidebar-line-height-slider'].forEach(id => hide(document.getElementById(id)?.parentElement));
+    hide(document.getElementById('alignment-section'));
+    hide(document.getElementById('reader-toc-btn'));
+    hide(document.getElementById('reader-search-btn'));
+    document.querySelectorAll('.ks-epub-only').forEach(hide);
+    ['prev-page-btn', 'next-page-btn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.display = 'flex';
+    });
+
+    box.innerHTML = '';
+    box.style.display = 'flex';
+    const img = document.createElement('img');
+    img.id = 'cbz-page';
+    img.draggable = false;
+    img.style.display = 'block';
+    img.style.margin = '0 auto';
+    img.style.userSelect = 'none';
+    img.style.boxShadow = '0 4px 18px rgba(0,0,0,0.25)';
+    box.appendChild(img);
+
+    // Due comandi in basso a sinistra: verso di lettura e adattamento
+    const tools = document.createElement('div');
+    tools.id = 'cbz-tools';
+    tools.style.cssText = 'position: fixed; bottom: 20px; left: 20px; display: flex; gap: 10px; z-index: 1000;';
+    const toolBtn = (id, icon) => {
+        const b = document.createElement('button');
+        b.id = id;
+        b.className = 'glass-effect modern-btn';
+        b.style.cssText = 'width: 44px; height: 44px; border-radius: 50%; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;';
+        b.innerHTML = KS_ICON(icon, 18);
+        tools.appendChild(b);
+        return b;
+    };
+    const rtlBtn = toolBtn('cbz-rtl-btn', 'chevronLeft');
+    rtlBtn.title = window.t('comicRtl');
+    rtlBtn.setAttribute('aria-label', window.t('comicRtl'));
+    const fitBtn = toolBtn('cbz-fit-btn', 'image');
+    readerOverlay.appendChild(tools);
+
+    let pages = 0;
+    try {
+        const res = await fetch(`/api/books/${encodeURIComponent(bookId)}/pages`);
+        pages = (await res.json()).pages || 0;
+    } catch (e) {
+        console.warn(e);
+    }
+    if (!pages) {
+        alert(window.t('epubError'));
+        window.closeReader();
+        return;
+    }
+    const saved = parseInt(localStorage.getItem(`cbz_bookmark_${bookId}`) || '0', 10);
+    comic = {
+        id: bookId,
+        pages,
+        page: Math.min(Math.max(isNaN(saved) ? 0 : saved, 0), pages - 1),
+        rtl: localStorage.getItem(`cbz_rtl_${bookId}`) === 'true',
+        fitWidth: localStorage.getItem('cbzFitWidth') === 'true',
+    };
+
+    rtlBtn.onclick = () => {
+        comic.rtl = !comic.rtl;
+        localStorage.setItem(`cbz_rtl_${bookId}`, comic.rtl);
+        applyComicDirection();
+    };
+    fitBtn.onclick = () => {
+        comic.fitWidth = !comic.fitWidth;
+        localStorage.setItem('cbzFitWidth', comic.fitWidth);
+        applyComicFit();
+    };
+
+    const keyListener = (e) => {
+        if (e.key === 'ArrowLeft') comicLeft();
+        if (e.key === 'ArrowRight') comicRight();
+    };
+    document.addEventListener('keydown', keyListener);
+    window.addEventListener('readerClosed', () => {
+        document.removeEventListener('keydown', keyListener);
+        hidden.forEach(([el, display]) => { el.style.display = display; });
+        tools.remove();
+        box.innerHTML = '';
+        box.style.display = 'none';
+        comic = null;
+    }, { once: true });
+
+    applyComicFit();
+    applyComicDirection();
+    renderComicPage();
+    window.applyCurrentTheme();
+};
+
 window.closeReader = function() {
     const readerOverlay = document.getElementById('reader-overlay');
     const viewer = document.getElementById('viewer');
@@ -1623,11 +1816,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (prevBtn) prevBtn.onclick = () => { 
-        if (pdfDoc) onPrevPage();
+        if (comic) comicLeft();
+        else if (pdfDoc) onPrevPage();
         else if (rendition) rendition.prev(); 
     };
     if (nextBtn) nextBtn.onclick = () => { 
-        if (pdfDoc) onNextPage();
+        if (comic) comicRight();
+        else if (pdfDoc) onNextPage();
         else if (rendition) rendition.next(); 
     };
     

@@ -80,9 +80,19 @@ jobs:
         with: { files: dist/*.dmg }
 
   linux:
-    name: Linux (.AppImage)
-    # Ubuntu 22.04: glibc meno recente = l'AppImage funziona su più distribuzioni
-    runs-on: ubuntu-22.04
+    name: Linux (.AppImage ${{ matrix.arch }})
+    # Due AppImage, ognuna costruita su una macchina vera del suo tipo:
+    # x86_64 (PC Intel/AMD) e aarch64 (ARM a 64 bit: Raspberry Pi con il desktop, portatili ARM).
+    # Ubuntu 22.04: glibc meno recente = l'AppImage funziona su più distribuzioni.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            arch: x86_64
+          - runner: ubuntu-22.04-arm
+            arch: aarch64
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - name: Dipendenze di sistema
@@ -105,7 +115,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/appimage-tools
-          key: appimage-tools-${{ runner.os }}-${{ hashFiles('packaging/linux/build-appimage.sh') }}
+          key: appimage-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/linux/build-appimage.sh') }}
       - name: Crea l'AppImage
         env: { KORESHELF_TOOLS: "${{ runner.temp }}/appimage-tools" }
         run: packaging/linux/build-appimage.sh target/release/koreshelf dist
@@ -122,10 +132,10 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/appimage-tools
-          key: appimage-tools-${{ runner.os }}-${{ hashFiles('packaging/linux/build-appimage.sh') }}
+          key: appimage-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/linux/build-appimage.sh') }}
       - uses: actions/upload-artifact@v4
         with:
-          name: KoreShelf-linux
+          name: KoreShelf-linux-${{ matrix.arch }}
           path: dist/*.AppImage
       - name: Allega alla Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -177,7 +187,7 @@ jobs:
         # irraggiungibile; Rust è già compilato, quindi i tentativi successivi sono rapidi
         run: |
           for attempt in 1 2 3; do
-            npx tauri android build --apk --target aarch64 --target armv7 && exit 0
+            npx tauri android build --apk --target aarch64 --target armv7 --target x86_64 && exit 0
             echo "::warning::Tentativo $attempt non riuscito, riprovo tra $((attempt * 30)) secondi"
             sleep $((attempt * 30))
           done

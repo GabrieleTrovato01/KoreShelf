@@ -9,6 +9,7 @@ Il test dell'AppImage (solo Linux) richiede: `cargo build --release`, Xvfb e i p
 di sviluppo WebKitGTK; scarica linuxdeploy da GitHub.
 """
 
+import hashlib
 import json
 import os
 import plistlib
@@ -63,6 +64,74 @@ def test_workflow_builds_exe_dmg_and_appimage():
         assert os.access(path, os.X_OK), f"{script} deve essere eseguibile"
     assert "universal" in text or ("aarch64-apple-darwin" in text and "x86_64-apple-darwin" in text), \
         "Il dmg deve funzionare sia sui Mac Intel sia sui Mac Apple Silicon"
+
+
+def test_linux_appimage_is_built_for_pc_and_arm():
+    """Linux ha due AppImage: una per i PC (x86_64) e una per i computer ARM (aarch64: Raspberry Pi
+    con il desktop, portatili ARM). Ognuna si costruisce su una macchina vera di quel tipo, con
+    Ubuntu 22.04 (glibc meno recente = più distribuzioni). Cache degli strumenti e artifact sono
+    separati per architettura, altrimenti la macchina ARM userebbe gli strumenti dell'altra."""
+    wf = yaml.safe_load(WORKFLOW.read_text())
+    linux = wf["jobs"].get("linux", {})
+    matrix = json.dumps(linux.get("strategy", {}).get("matrix", {}))
+    problems = []
+    for runner in ("ubuntu-22.04", "ubuntu-22.04-arm"):
+        if f'"{runner}"' not in matrix:
+            problems.append(f"Il job linux deve girare anche su {runner}: {matrix}")
+    if "${{ matrix." not in str(linux.get("runs-on", "")):
+        problems.append(f"runs-on deve venire dalla matrice: {linux.get('runs-on')}")
+    steps = linux.get("steps", [])
+    keys = [s.get("with", {}).get("key", "") for s in steps if "actions/cache" in str(s.get("uses", ""))]
+    if not keys or any("runner.arch" not in k for k in keys):
+        problems.append(f"La cache degli strumenti deve distinguere l'architettura (runner.arch): {keys}")
+    names = [s.get("with", {}).get("name", "") for s in steps if "upload-artifact" in str(s.get("uses", ""))]
+    if not names or any("runner.arch" not in n and "matrix." not in n for n in names):
+        problems.append(f"Gli artifact delle due AppImage devono avere nomi diversi: {names}")
+    assert not problems, "\n".join(problems)
+
+
+def test_appimage_runtimes_for_both_architectures_are_included():
+    """Il runtime dell'AppImage (il programmino che la apre) è incluso nel repository per x86_64 e
+    per aarch64, con impronta SHA-256 corretta: la build non dipende da un download che a volte
+    risponde 504. Ogni runtime deve essere davvero un eseguibile della sua architettura."""
+    folder = ROOT / "packaging" / "linux"
+    problems = []
+    for arch, machine in (("x86_64", 62), ("aarch64", 183)):     # e_machine ELF: 62 = x86-64, 183 = AArch64
+        runtime, digest = folder / f"runtime-{arch}", folder / f"runtime-{arch}.sha256"
+        if not runtime.exists() or not digest.exists():
+            problems.append(f"Mancano runtime-{arch} e/o runtime-{arch}.sha256")
+            continue
+        data = runtime.read_bytes()
+        expected = digest.read_text().split()[0]
+        if hashlib.sha256(data).hexdigest() != expected:
+            problems.append(f"runtime-{arch}: l'impronta SHA-256 non corrisponde")
+        if data[:4] != b"\x7fELF" or int.from_bytes(data[18:20], "little") != machine:
+            problems.append(f"runtime-{arch} non è un eseguibile ELF per {arch}")
+    assert not problems, "\n".join(problems)
+
+
+def test_android_apk_also_runs_on_x86_64():
+    """L'APK contiene ARM a 64 e 32 bit (tutti i telefoni veri) e anche x86_64 (emulatore Android
+    sul PC, Chromebook e i pochi dispositivi con processore Intel)."""
+    wf = yaml.safe_load(WORKFLOW.read_text())
+    android = json.dumps(wf["jobs"]["android"])
+    m = re.search(r"tauri android build[^\"&]*", android)
+    assert m, "Manca il comando tauri android build"
+    for target in ("aarch64", "armv7", "x86_64"):
+        assert f"--target {target}" in m.group(0), f"L'APK deve includere {target}: {m.group(0)}"
+
+
+def test_readmes_explain_which_linux_file_to_pick():
+    """Ogni README elenca anche l'AppImage per ARM e spiega in parole semplici quale scegliere:
+    x86_64 = amd64 = PC con Intel o AMD; aarch64 = arm64 = ARM (Raspberry Pi, portatili ARM), con il
+    comando per scoprirlo (uname -m)."""
+    problems = []
+    for lang, rel in READMES.items():
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        for need in ("aarch64.AppImage", "x86_64.AppImage", "amd64", "arm64", "uname -m", "Raspberry Pi"):
+            if need not in text:
+                problems.append(f"{rel}: manca {need!r}")
+    assert not problems, "\n".join(problems)
 
 
 # ------------------------------------------------------------------- macOS

@@ -2095,6 +2095,148 @@ async def test_reader_buttons_share_the_same_style(p):
 
 # ----------------------------------------------------------------- runner
 
+# ----------------------------------------------------------------- formati
+
+# Formati che l'app sa aprire: (nome del file, lettore che deve aprirsi).
+# FB2, TXT e Markdown diventano EPUB al caricamento, quindi si aprono in #viewer.
+READER_FORMATS = [
+    ("Romanzo_EPUB.epub", "#viewer"),
+    ("Romanzo Kobo.kepub.epub", "#viewer"),
+    ("Manuale_PDF.pdf", "#pdf-container"),
+    ("Racconto_FB2.fb2", "#viewer"),
+    ("Appunti_TXT.txt", "#viewer"),
+    ("Fumetto_CBZ.cbz", "#cbz-container"),
+]
+
+# Estensioni che la finestra di scelta deve proporre
+IMPORTABLE_EXTENSIONS = {".epub", ".kepub", ".pdf", ".fb2", ".fbz", ".zip", ".cbz", ".txt", ".md", ".markdown"}
+
+
+def make_cbz(path: Path, pages=3):
+    """Fumetto con pagine di colori diversi: rosso, verde, blu..."""
+    colors = [(200, 30, 30), (30, 160, 30), (30, 30, 200), (200, 200, 30)]
+    with zipfile.ZipFile(path, "w") as z:
+        for n in range(1, pages + 1):
+            buf = io.BytesIO()
+            Image.new("RGB", (400, 600), colors[(n - 1) % len(colors)]).save(buf, "JPEG")
+            z.writestr(f"p{n}.jpg", buf.getvalue())
+
+
+def make_book_file(path: Path):
+    title = path.name.split(".")[0].replace("_", " ")
+    if path.suffix == ".pdf":
+        make_pdf(path, {1: "Prima pagina del manuale."})
+    elif path.suffix == ".cbz":
+        make_cbz(path)
+    elif path.suffix == ".txt":
+        path.write_text("Capitolo 1\n\n" + "Testo semplice di prova. " * 400, encoding="utf-8")
+    elif path.suffix == ".fb2":
+        path.write_text(f'''<?xml version="1.0" encoding="UTF-8"?><FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0">
+<description><title-info><author><first-name>Autore</first-name><last-name>Test</last-name></author><book-title>{title}</book-title><lang>it</lang></title-info></description>
+<body><section><title><p>Capitolo</p></title><p>{"Testo del racconto. " * 400}</p></section></body></FictionBook>''', encoding="utf-8")
+    else:
+        make_epub(path, title, "Autore Test", (90, 40, 120))
+
+
+async def test_each_format_opens_in_its_reader_from_the_read_button(p):
+    """Il pulsante Leggi sceglie il lettore giusto dal tipo di file (main.js, openActiveBook)."""
+    for name, container in READER_FORMATS:
+        with Server() as srv:
+            path = srv.home / name
+            make_book_file(path)
+            assert api("POST", "/api/upload", files={"ebook": path})["success"], name
+            browser, ctx, page = await open_app(p)
+            await page.click("#ks-read-btn")
+            if container == "#pdf-container":
+                ready = "typeof pdfDoc !== 'undefined' && pdfDoc && document.querySelector('.textLayer span')"
+            elif container == "#cbz-container":
+                ready = "document.getElementById('cbz-page') && document.getElementById('cbz-page').naturalWidth > 0"
+            else:
+                ready = "typeof rendition !== 'undefined' && rendition && rendition.location"
+            await page.wait_for_function(ready, timeout=20000)
+            others = [c for c in ("#viewer", "#pdf-container", "#cbz-container") if c != container]
+            shown = await page.locator(container).is_visible()
+            hidden = [not await page.locator(c).is_visible() for c in others]
+            await shot(page, f"format_{name}")
+            await browser.close()
+            assert shown, f"{name}: deve aprirsi {container}"
+            assert all(hidden), f"{name}: gli altri lettori restano nascosti"
+
+
+async def test_file_picker_offers_exactly_the_importable_formats(p):
+    """La finestra di scelta dei file propone tutti e soli i formati che il server importa."""
+    with Server():
+        browser, ctx, page = await open_app(p)
+        accept = await page.get_attribute("#file-upload", "accept")
+        await browser.close()
+    offered = {e.strip().lower() for e in accept.split(",") if e.strip()}
+    assert offered == IMPORTABLE_EXTENSIONS, f"accept={accept!r}"
+
+
+async def test_comic_reader_turns_pages_both_ways(p):
+    """Fumetti: frecce e pulsanti girano pagina, l'avanzamento si salva, in modalità manga
+    la direzione si inverte; niente ricerca né indice (un fumetto non ha testo)."""
+    with Server() as srv:
+        path = srv.home / "Fumetto.cbz"
+        make_cbz(path, pages=3)
+        book = api("POST", "/api/upload", files={"ebook": path})["book"]
+        browser, ctx, page = await open_app(p)
+        await page.click("#ks-read-btn")
+        await page.wait_for_function("document.getElementById('cbz-page') && document.getElementById('cbz-page').complete"
+                                     " && document.getElementById('cbz-page').naturalWidth > 0", timeout=20000)
+
+        async def state():
+            return await page.evaluate("""() => {
+                const img = document.getElementById('cbz-page');
+                const c = document.createElement('canvas'); c.width = 4; c.height = 4;
+                const g = c.getContext('2d'); g.drawImage(img, 0, 0, 4, 4);
+                const [r, gr, b] = g.getImageData(2, 2, 1, 1).data;
+                return { page: document.getElementById('reading-progress').innerText,
+                         color: r > gr && r > b ? 'red' : gr > b ? 'green' : 'blue' };
+            }""")
+
+        async def wait_page(label):
+            await page.wait_for_function(f"document.getElementById('reading-progress').innerText === '{label}'"
+                                         " && document.getElementById('cbz-page').complete", timeout=5000)
+            await page.wait_for_timeout(200)
+
+        first = await state()
+        hidden = await page.evaluate("['reader-search-btn', 'reader-toc-btn'].map(id => { const e = document.getElementById(id);"
+                                     " return !e || getComputedStyle(e).display === 'none'; })")
+        await page.click("#next-page-btn")
+        await wait_page("2 / 3")
+        second = await state()
+        await page.keyboard.press("ArrowRight")
+        await wait_page("3 / 3")
+        review_shown = await page.locator("#reader-review-btn").is_visible()
+        await page.keyboard.press("ArrowRight")  # oltre l'ultima pagina non succede nulla
+        await page.wait_for_timeout(300)
+        still_last = (await state())["page"]
+        await page.wait_for_timeout(500)
+        progress = next(b for b in api("GET", "/api/books") if b["id"] == book["id"])["progress"]
+
+        await page.click("#cbz-rtl-btn")  # manga: il pulsante destro torna indietro
+        await page.click("#next-page-btn")
+        await wait_page("2 / 3")
+        rtl_back = await state()
+        await shot(page, "comic_reader")
+
+        await page.click("#close-reader-btn")
+        await page.wait_for_function("document.getElementById('reader-overlay').style.display === 'none'", timeout=5000)
+        cleaned = await page.evaluate("!document.getElementById('cbz-tools') && document.getElementById('cbz-container').style.display === 'none'"
+                                      " && getComputedStyle(document.getElementById('reader-search-btn')).display !== 'none'")
+        await browser.close()
+
+    assert first == {"page": "1 / 3", "color": "red"}, first
+    assert all(hidden), "Ricerca e indice nascosti per i fumetti"
+    assert second == {"page": "2 / 3", "color": "green"}, second
+    assert review_shown, "All'ultima pagina compare la recensione"
+    assert still_last == "3 / 3"
+    assert progress == 1.0, f"Avanzamento salvato sul server: {progress}"
+    assert rtl_back == {"page": "2 / 3", "color": "green"}, f"In modalità manga la direzione si inverte: {rtl_back}"
+    assert cleaned, "Chiudendo il fumetto i suoi comandi spariscono e tornano quelli degli altri lettori"
+
+
 async def main():
     only = [x for x in os.environ.get("ONLY", "").split(",") if x]   # es. ONLY=amazon,reader
     tests = [v for k, v in globals().items() if k.startswith("test_") and (not only or any(o in k for o in only))]

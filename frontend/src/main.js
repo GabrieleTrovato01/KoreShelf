@@ -382,7 +382,10 @@ topBar.appendChild(uploadLabel);
 const fileInput = document.createElement('input');
 fileInput.type = 'file';
 fileInput.id = 'file-upload';
-fileInput.accept = '.epub, .pdf';
+// Formati importabili: lo stesso elenco lo usa il trascinamento (IMPORTABLE_FILE)
+const IMPORTABLE_EXTENSIONS = ['.epub', '.kepub', '.pdf', '.fb2', '.fbz', '.zip', '.cbz', '.txt', '.md', '.markdown'];
+const IMPORTABLE_FILE = new RegExp('(' + IMPORTABLE_EXTENSIONS.map(e => e.replace('.', '\\.')).join('|') + ')$', 'i');
+fileInput.accept = IMPORTABLE_EXTENSIONS.join(', ');
 fileInput.multiple = true;
 topBar.appendChild(fileInput);
 
@@ -1522,7 +1525,7 @@ let uploadInProgress = false;
 let activeUploadSkip = null;   // { requested } del caricamento in corso
 
 async function uploadFiles(fileList, { offline = false } = {}) {
-    const files = Array.from(fileList).filter(f => /\.(epub|pdf)$/i.test(f.name));
+    const files = Array.from(fileList).filter(f => IMPORTABLE_FILE.test(f.name));
     if (files.length === 0 || uploadInProgress) return;
     uploadInProgress = true;
 
@@ -2332,8 +2335,14 @@ function openActiveBook() {
     setTimeout(() => {
         const bookPath = activeBook.userData.epubPath;
         const isPdf = bookPath.toLowerCase().endsWith('.pdf');
+        const isComic = bookPath.toLowerCase().endsWith('.cbz');
 
-        if (isPdf) {
+        if (isComic) {
+            console.log("Apertura fumetto");
+            document.getElementById('viewer').style.display = 'none';
+            document.getElementById('pdf-container').style.display = 'none';
+            window.openComicReader(bookPath, activeBook.userData.id);
+        } else if (isPdf) {
             console.log("Apertura PDF");
             document.getElementById('viewer').style.display = 'none';
             document.getElementById('pdf-container').style.display = 'flex'; 

@@ -140,7 +140,7 @@ export default {
             <li><b>Navegación por la estantería:</b> Desplázate horizontalmente (desliza o usa las flechas ←/→) para explorar obras, y verticalmente (↑/↓) para cambiar de categoría.</li>
             <li><b>Organizar y gestionar:</b> Usa "Asignar Categoría" para clasificar volúmenes, o "Gestionar" para operaciones avanzadas de la biblioteca.</li>
             <li><b>Editar Metadatos:</b> Haz clic en el botón "Editar" en cualquier libro para modificar manualmente el título, autor, descripción o categoría. También puedes cargar una portada personalizada de alta resolución, y el modelo 3D se actualizará instantáneamente.</li>
-            <li><b>Lectura Avanzada:</b> Haz clic en un libro para abrirlo. El lector soporta nativamente tanto <b>EPUB</b> (formato adaptable) como <b>PDF</b> (formato fijo).</li>
+            <li><b>Lectura Avanzada:</b> Haz clic en un libro para abrirlo. El lector soporta nativamente <b>EPUB</b> (formato adaptable), <b>PDF</b> (formato fijo) y cómics <b>CBZ</b>. Los archivos <b>FB2</b>, <b>TXT</b> y <b>Markdown</b> se convierten a EPUB al subirlos.</li>
             <li><b>Personalización del lector (menú de hamburguesa):</b> Abre el menú lateral (≡) para ajustar:
                 <ul>
                     <li><b>Zoom:</b> Amplía el texto o las páginas para una lectura óptima.</li>
@@ -187,7 +187,7 @@ export default {
 
         //server.js locales
         errNoFile: "No se ha seleccionado ningún archivo.",
-        errFormat: "Formato no soportado. Usa EPUB o PDF.",
+        errFormat: "Formato no soportado. Usa EPUB, PDF, FB2, CBZ, TXT o Markdown.",
         errDuplicate: "¡Este libro ya está en tu estante!",
         successUpload: "Libro procesado y agregado con éxito!",
         errInternal: "Error interno del servidor.",
@@ -336,7 +336,7 @@ export default {
     uploadReady: "¡Listo!",
     uploadDuplicate: "Ya existe",
     uploadError: "Error",
-    dropFilesHere: "Suelta aquí tus EPUB y PDF",
+    dropFilesHere: "Suelta aquí tus ebooks y cómics",
 
     // Ricerca nel lettore
     readerSearch: "Buscar",
@@ -351,7 +351,7 @@ export default {
 
     // Libreria vuota (B) e azione principale (C)
     emptyTitle: "Tu estantería te espera",
-    emptySubtitle: "Arrastra aquí tus EPUB y PDF, o elige los archivos. Cada hueco vacío te muestra lo que pasará.",
+    emptySubtitle: "Arrastra aquí tus ebooks y cómics, o elige los archivos. Cada hueco vacío te muestra lo que pasará.",
     slotCover: "Portada, autor y sinopsis llegan solos",
     slotShelves: "Una estantería para cada categoría",
     slotRead: "Lee, busca una frase, subraya",
@@ -367,7 +367,10 @@ export default {
     hideSynopsisShort: "Portada",
     keyBrowse: "hojea los libros",
     keyShelf: "cambia de estantería",
-    keyDrop: "Arrastra aquí nuevos EPUB y PDF",
+    keyDrop: "Arrastra aquí nuevos ebooks y cómics",
+    comicRtl: "Leer de derecha a izquierda (manga)",
+    comicFitWidth: "Ajustar al ancho",
+    comicFitPage: "Ajustar a la página",
     searchPlaceholderAmazon: "Busca un libro o descubre uno nuevo en Amazon",
 
     // Menu laterale del lettore

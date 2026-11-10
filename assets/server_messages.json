@@ -1,7 +1,7 @@
 {
   "it": {
     "errNoFile": "Nessun file caricato.",
-    "errFormat": "Formato non supportato. Usa EPUB o PDF.",
+    "errFormat": "Formato non supportato. Usa EPUB, PDF, FB2, CBZ, TXT o Markdown.",
     "successUpload": "Libro elaborato e aggiunto con successo!",
     "errInternal": "Errore interno del server.",
     "errInvalidTag": "Tag non valido.",
@@ -21,7 +21,7 @@
   },
   "en": {
     "errNoFile": "No file uploaded.",
-    "errFormat": "Unsupported format. Use EPUB or PDF.",
+    "errFormat": "Unsupported format. Use EPUB, PDF, FB2, CBZ, TXT or Markdown.",
     "successUpload": "Book processed and successfully added!",
     "errInternal": "Internal server error.",
     "errInvalidTag": "Invalid tag.",
@@ -41,7 +41,7 @@
   },
   "es": {
     "errNoFile": "No se ha seleccionado ningún archivo.",
-    "errFormat": "Formato no soportado. Usa EPUB o PDF.",
+    "errFormat": "Formato no soportado. Usa EPUB, PDF, FB2, CBZ, TXT o Markdown.",
     "successUpload": "Libro procesado y agregado con éxito!",
     "errInternal": "Error interno del servidor.",
     "errInvalidTag": "Etiqueta inválida.",
@@ -61,7 +61,7 @@
   },
   "fr": {
     "errNoFile": "Aucun fichier uploadé.",
-    "errFormat": "Format non supporté. Utilisez EPUB ou PDF.",
+    "errFormat": "Format non supporté. Utilisez EPUB, PDF, FB2, CBZ, TXT ou Markdown.",
     "successUpload": "Livre traité et ajouté avec succès !",
     "errInternal": "Erreur interne du serveur.",
     "errInvalidTag": "Tag invalide.",
@@ -81,7 +81,7 @@
   },
   "de": {
     "errNoFile": "Keine Datei hochgeladen.",
-    "errFormat": "Nicht unterstütztes Format. Verwenden Sie EPUB oder PDF.",
+    "errFormat": "Nicht unterstütztes Format. Verwenden Sie EPUB, PDF, FB2, CBZ, TXT oder Markdown.",
     "successUpload": "Buch verarbeitet und erfolgreich hinzugefügt!",
     "errInternal": "Interner Serverfehler.",
     "errInvalidTag": "Ungültiger Tag.",
